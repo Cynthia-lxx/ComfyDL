@@ -3,6 +3,7 @@ ComfyDL/Misc - Miscellaneous utility nodes.
 
 Nodes:
   - MessageBox : Display a Windows message box via ctypes.MessageBoxW
+  - NoOp       : Accept any input and do nothing (like Python's pass / asm NOP)
 """
 
 import ctypes
@@ -105,5 +106,42 @@ class CdlMessageBox:
             return False
 
 
+class CdlNoOp:
+    """A no-operation node: accepts any input and performs no computation.
+
+    Equivalent to Python's ``pass`` statement or assembly's ``NOP``.
+    Serves as:
+      - A clean connection terminator / null sink for any data type
+      - A placeholder node during workflow construction
+      - A debug bypass for temporarily disabling downstream paths
+
+    Inputs a single wildcard slot that accepts any data type; no returns.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {},
+            "optional": {
+                "any_input": ("*",),
+            },
+        }
+
+    RETURN_TYPES = ()
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Misc"
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, input_types):
+        # Wildcard * input bypasses backend type validation
+        return True
+
+    def execute(self, any_input=None):
+        # Intentionally does nothing
+        return ()
+
+
 NODE_CLASS_MAPPINGS["CdlMessageBox"] = CdlMessageBox
 NODE_DISPLAY_NAME_MAPPINGS["CdlMessageBox"] = "MessageBox"
+NODE_CLASS_MAPPINGS["CdlNoOp"] = CdlNoOp
+NODE_DISPLAY_NAME_MAPPINGS["CdlNoOp"] = "NoOp"

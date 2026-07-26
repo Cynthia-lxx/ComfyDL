@@ -178,7 +178,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 4. ComfyDL / Misc (1 node)
+## 4. ComfyDL / Misc (2 nodes)
 
 ### MessageBox
 - **Class**: `CdlMessageBox`
@@ -196,6 +196,15 @@ ComfyUI standard types (used directly):
   | Name | Type | Description |
   |------|------|-------------|
   | `result` | `STRING` | Name of the button clicked by user (e.g. `"2 (IDCANCEL)"`); returns a placeholder string on non-Windows systems |
+
+### NoOp
+- **Class**: `CdlNoOp`
+- **Purpose**: A no-operation node — accepts any input and performs no computation. Equivalent to Python's ``pass`` or assembly's ``NOP``. Useful as a null sink for any data type, a placeholder during workflow construction, or a debug bypass.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `any_input` | `*` | — | Wildcard input (optional), any data type — discarded |
+- **Outputs**: None
 
 ---
 
@@ -276,7 +285,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 6. ComfyDL / Tensor Basic (2 nodes)
+## 6. ComfyDL / Tensor Basic (7 nodes)
 
 ### Tensor → String
 - **Class**: `CdlTensorToStr`
@@ -304,6 +313,76 @@ ComfyUI standard types (used directly):
   | Name | Type | Description |
   |------|------|-------------|
   | `tensor` | `cdlTensor` | Parsed tensor (`torch.float32`) |
+
+### Conv2D
+- **Class**: `CdlConv2d`
+- **Purpose**: Performs 2D convolution on an input tensor with a kernel. Wraps ``torch.nn.functional.conv2d`` with configurable stride and padding. Auto-expands 2-D/3-D inputs to 4-D ``(N, C, H, W)`` and squeezes output back.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `input_tensor` | `cdlTensor` | — | Input tensor |
+  | `kernel` | `cdlTensor` | — | Convolution kernel |
+  | `stride` | `INT` | 1 | Convolution stride (1~4) |
+  | `padding` | `INT` | 0 | Zero padding (0~10) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `output` | `cdlTensor` | Convolved result |
+
+### Transpose
+- **Class**: `CdlTranspose`
+- **Purpose**: Swaps two dimensions of a tensor. Wraps ``torch.transpose``.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `dim0` | `INT` | 0 | First dimension to swap (0~5) |
+  | `dim1` | `INT` | 1 | Second dimension to swap (0~5) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `output` | `cdlTensor` | Transposed tensor |
+
+### Broadcast
+- **Class**: `CdlBroadcast`
+- **Purpose**: Broadcasts a tensor to a target shape. Wraps ``torch.broadcast_to``. Enter the target shape as a comma-separated string (e.g. ``"3,1,4"``). Returns original tensor unchanged on parse error.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `target_shape` | `STRING` | `""` | Target shape, comma-separated (e.g. ``"3,1,4"``) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `output` | `cdlTensor` | Broadcasted tensor |
+
+### Reshape
+- **Class**: `CdlReshape`
+- **Purpose**: Reshapes a tensor to a new shape. Wraps ``torch.reshape``. Enter the target shape as a comma-separated string (e.g. ``"2,8"``, ``"4,-1"``). Returns original tensor unchanged on parse error.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `target_shape` | `STRING` | `""` | Target shape, comma-separated (e.g. ``"2,8"``) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `output` | `cdlTensor` | Reshaped tensor |
+
+### Activation
+- **Class**: `CdlActivation`
+- **Purpose**: Applies an element-wise activation function to a tensor. Select the function from a combo widget: ``relu``, ``sigmoid``, ``tanh``, ``leaky_relu``, ``elu``, ``gelu``, ``silu``, ``softmax``, ``softplus``.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `func` | `COMBO` | `relu` | Activation: relu / sigmoid / tanh / leaky_relu / elu / gelu / silu / softmax / softplus |
+  | `dim` | `INT` | -1 | Dimension for softmax (-4~4) |
+  | `negative_slope` | `FLOAT` | 0.01 | Slope for leaky_relu (0~1) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `output` | `cdlTensor` | Activated tensor |
 
 ---
 
@@ -672,7 +751,7 @@ The 21 classes: `background, aeroplane, bicycle, bird, boat, bottle, bus, car, c
 
 ---
 
-## 10. ComfyDL / Visualization (7 nodes)
+## 10. ComfyDL / Visualization (13 nodes)
 
 Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix versions are ComfyUI output nodes (showing interactive plots directly in the UI), while non-suffix versions render plots as `IMAGE` tensors for downstream nodes.
 
@@ -780,6 +859,273 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
   |------|------|-------------|
   | `image` | `IMAGE` | Image with bounding boxes drawn `[1, H, W, C]` |
 
+### Histogram
+- **Class**: `CdlHistogram`
+- **Purpose**: Draws a histogram of tensor value distribution with configurable bins, density normalisation and colour. Wraps ``matplotlib.pyplot.hist``.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `cdlTensor` | — | Input tensor (flattened internally) |
+  | `bins` | `INT` | 30 | Number of histogram bins |
+  | `density` | `BOOLEAN` | False | If True show density instead of count |
+  | `color` | `STRING` | `"#4673a6"` | Bar face colour |
+  | `alpha` | `FLOAT` | 0.7 | Bar transparency |
+  | `title` | `STRING` | `""` | Plot title |
+  | `xlabel` | `STRING` | `""` | x-axis label |
+  | `ylabel` | `STRING` | `""` | y-axis label |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Histogram plot `[1, H, W, C]` |
+
+### Bar Chart
+- **Class**: `CdlBarChart`
+- **Purpose**: Draws a vertical or horizontal bar chart with optional value annotations. Wraps ``matplotlib.pyplot.bar`` / ``barh``.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `values` | `cdlTensor` | — | Bar heights (1-D tensor) |
+  | `labels` | `STRING` | `""` | Category labels, comma-separated |
+  | `xlabel` | `STRING` | `""` | x-axis label |
+  | `ylabel` | `STRING` | `""` | y-axis label |
+  | `horizontal` | `BOOLEAN` | False | Use ``barh`` instead of ``bar`` |
+  | `color` | `STRING` | `"#4673a6"` | Bar face colour |
+  | `annotate` | `BOOLEAN` | True | Show numeric values on bars |
+  | `figsize_w` | `FLOAT` | 7.0 | Figure width |
+  | `figsize_h` | `FLOAT` | 4.0 | Figure height |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Bar chart `[1, H, W, C]` |
+
+### Scatter
+- **Class**: `CdlScatter`
+- **Purpose**: Draws a 2-D scatter plot with optional point colour and size encodings. Wraps ``matplotlib.pyplot.scatter``.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `X` | `cdlTensor` | — | X coordinates (flattened) |
+  | `Y` | `cdlTensor` | — | Y coordinates (flattened) |
+  | `alpha` | `FLOAT` | 0.6 | Point transparency |
+  | `cmap` | `STRING` | `"viridis"` | Colormap for ``color_map`` |
+  | `xlabel` | `STRING` | `""` | x-axis label |
+  | `ylabel` | `STRING` | `""` | y-axis label |
+  | `figsize_w` | `FLOAT` | 6.0 | Figure width |
+  | `figsize_h` | `FLOAT` | 5.0 | Figure height |
+  | `color_map` | `cdlTensor` | — | Per-point colour values (optional) |
+  | `size_map` | `cdlTensor` | — | Per-point size values (optional) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Scatter plot `[1, H, W, C]` |
+
+### Confusion Matrix
+- **Class**: `CdlConfusionMatrix`
+- **Purpose**: Renders a confusion matrix as a heatmap with per-cell numeric annotations. Supports row-wise normalisation and configurable number format.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `matrix` | `cdlTensor` | — | Confusion matrix (N×N or flat) |
+  | `class_labels` | `STRING` | `""` | Class names, comma-separated |
+  | `cmap` | `STRING` | `"Blues"` | Colormap name |
+  | `normalize` | `BOOLEAN` | False | Normalise rows to [0,1] |
+  | `fmt` | `COMBO` | `.1f` | Number format (`.0f`, `.1f`, `.2f`, `.3f`) |
+  | `figsize_w` | `FLOAT` | 6.0 | Figure width |
+  | `figsize_h` | `FLOAT` | 5.0 | Figure height |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Confusion matrix heatmap `[1, H, W, C]` |
+
+### Pie Chart
+- **Class**: `CdlPieChart`
+- **Purpose**: Draws a pie chart (regular or donut style) with percentage labels. Wraps ``matplotlib.pyplot.pie``.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `values` | `cdlTensor` | — | Slice values (1-D tensor) |
+  | `labels` | `STRING` | `""` | Slice labels, comma-separated |
+  | `donut` | `BOOLEAN` | False | Hollow centre (donut chart) |
+  | `explode` | `STRING` | `""` | Comma-separated 0/1 per slice |
+  | `pctdistance` | `FLOAT` | 0.6 | Distance of percentage labels from centre |
+  | `shadow` | `BOOLEAN` | False | Drop shadow beneath pie |
+  | `figsize_w` | `FLOAT` | 6.0 | Figure width |
+  | `figsize_h` | `FLOAT` | 6.0 | Figure height |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Pie (or donut) chart `[1, H, W, C]` |
+
+### Area Chart
+- **Class**: `CdlAreaChart`
+- **Purpose**: Draws a filled area chart — single series with ``fill_between``, or stacked multi-series with ``stackplot``.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `Y` | `cdlTensor` | — | Series data, `[T]` or `[N, T]` |
+  | `stacked` | `BOOLEAN` | False | Stack series instead of overlay |
+  | `alpha` | `FLOAT` | 0.5 | Fill transparency |
+  | `color_palette` | `STRING` | `"tab10"` | matplotlib palette name |
+  | `xlabel` | `STRING` | `""` | x-axis label |
+  | `ylabel` | `STRING` | `""` | y-axis label |
+  | `figsize_w` | `FLOAT` | 7.0 | Figure width |
+  | `figsize_h` | `FLOAT` | 4.0 | Figure height |
+  | `X_vals` | `cdlTensor` | — | Custom x-axis values (optional) |
+  | `labels` | `STRING` | `""` | Series legend labels, comma-separated (optional) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Area chart `[1, H, W, C]` |
+
+---
+
+## 11. ComfyDL / Datasets (10 nodes)
+
+Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics.
+
+### Load Array → DataLoader
+- **Class**: `CdlLoadArray`
+- **d2lcore function**: `load_array(data_arrays, batch_size, is_train)`
+- **Purpose**: Wraps one or more tensors into a PyTorch DataLoader. Connect `cdlTensor` features and/or labels to the optional slots; the node outputs a `cdlDataloader`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `batch_size` | `INT` | 32 | Batch size (1~4096) |
+  | `shuffle` | `BOOLEAN` | True | Shuffle data on each epoch |
+  | `features` | `cdlTensor` | — | Feature tensor X (optional) |
+  | `labels` | `cdlTensor` | — | Label tensor y (optional) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `dataloader` | `cdlDataloader` | PyTorch DataLoader wrapping the tensors |
+
+### DataLoader Info
+- **Class**: `CdlDataLoaderInfo`
+- **Purpose**: Inspects a `cdlDataloader` and reports its properties: number of batches, batch size, and total dataset size.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `dataloader` | `cdlDataloader` | DataLoader to inspect |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `num_batches` | `INT` | Total number of batches |
+  | `batch_size` | `INT` | Samples per batch |
+  | `dataset_size` | `INT` | Total number of samples |
+
+### Download
+- **Class**: `CdlDownload`
+- **d2lcore function**: `download(url, folder, sha1_hash)`
+- **Purpose**: Downloads a file from a URL with SHA1-based cache checking. If the local file exists and matches the hash, download is skipped.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `url` | `STRING` | `""` | Download URL |
+  | `save_dir` | `STRING` | `"../data"` | Save directory (optional) |
+  | `sha1_hash` | `STRING` | `""` | Expected SHA1 hash for caching (optional) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `file_path` | `STRING` | Path to the downloaded/cached file |
+
+### Download + Extract
+- **Class**: `CdlDownloadExtract`
+- **d2lcore function**: `download_extract(name, folder)`
+- **Purpose**: Downloads and extracts a dataset registered in the d2l DATA_HUB. Select from a dropdown of pre-registered datasets (banana-detection, voc2012, cifar10_tiny, etc.).
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `name` | `COMBO` | first key | Dataset name from DATA_HUB |
+  | `subfolder` | `STRING` | `""` | Subfolder inside archive (optional) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `extract_dir` | `STRING` | Path to the extracted dataset directory |
+
+### Fashion-MNIST
+- **Class**: `CdlFashionMNIST`
+- **d2lcore function**: `load_data_fashion_mnist(batch_size, resize)`
+- **Purpose**: Loads the Fashion-MNIST image classification dataset (60k train / 10k test, 10 classes). Downloads automatically on first use (~30 MB).
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `batch_size` | `INT` | 64 | Samples per batch (1~2048) |
+  | `resize` | `INT` | 28 | Resize dimensions (0 = no resize, 1~512) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `train_loader` | `cdlDataloader` | Training DataLoader (60,000 images) |
+  | `test_loader` | `cdlDataloader` | Test DataLoader (10,000 images) |
+  | `class_names` | `STRING` | Newline-separated class names |
+
+10 classes: t-shirt, trouser, pullover, dress, coat, sandal, shirt, sneaker, bag, ankle boot
+
+### Bananas Detection
+- **Class**: `CdlBananasDetection`
+- **d2lcore function**: `load_data_bananas(batch_size)`
+- **Purpose**: Loads the banana detection dataset for object detection. Contains banana images with bounding box annotations. Downloads automatically on first use.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `batch_size` | `INT` | 32 | Samples per batch (1~256) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `train_loader` | `cdlDataloader` | Training DataLoader |
+  | `val_loader` | `cdlDataloader` | Validation DataLoader |
+
+### VOC Segmentation
+- **Class**: `CdlVOCSegmentation`
+- **d2lcore function**: `load_data_voc(batch_size, crop_size)`
+- **Purpose**: Loads the PASCAL VOC2012 semantic segmentation dataset (21 classes). Downloads and extracts automatically on first use (~2 GB).
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `batch_size` | `INT` | 32 | Samples per batch (1~128) |
+  | `crop_height` | `INT` | 320 | Random crop height (64~1024) |
+  | `crop_width` | `INT` | 480 | Random crop width (64~2048) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `train_loader` | `cdlDataloader` | Training DataLoader |
+  | `test_loader` | `cdlDataloader` | Test DataLoader |
+
+### DataLoader Preview
+- **Class**: `CdlDataLoaderPreview`
+- **Purpose**: Samples one batch from a `cdlDataloader` and renders it as an image grid (IMAGE output). Adapts to different formats: image classification displays images with labels; object detection shows images with bounding boxes.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `dataloader` | `cdlDataloader` | — | DataLoader to sample from |
+  | `num_rows` | `INT` | 2 | Grid rows (1~16) |
+  | `num_cols` | `INT` | 4 | Grid columns (1~16) |
+  | `max_samples` | `INT` | 32 | Max images to show (1~256, optional) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Rendered grid image `[1, H, W, C]` |
+
+### DataLoader Preview (Output)
+- **Class**: `CdlDataLoaderPreviewOutput`
+- **Purpose**: Same as `CdlDataLoaderPreview` but renders directly as an OUTPUT_NODE — no output slots, just the rendered preview in the UI.
+- **Inputs**: Same as `CdlDataLoaderPreview`
+- **Outputs**: None (output node)
+
+### Dataset Stats
+- **Class**: `CdlDataLoaderStats`
+- **Purpose**: Iterates over a `cdlDataloader` and computes class distribution statistics. Renders a bar chart showing per-class counts.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `dataloader` | `cdlDataloader` | — | DataLoader to analyze |
+  | `num_classes` | `INT` | 10 | Expected number of classes (1~1000) |
+  | `class_names` | `STRING` | `""` | Comma-separated class names (optional) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `stats_text` | `STRING` | Formatted text summary of class counts |
+  | `stats_image` | `IMAGE` | Bar chart of class distribution `[1, H, W, C]` |
+
 ---
 
 ## Appendix
@@ -790,17 +1136,18 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**46 nodes** across 10 categories:
+**68 nodes** across 11 categories:
 
 | Category | Count | Description |
 |----------|-------|-------------|
 | ComfyDL/Device Utils | 3 | GPU/CPU device queries |
 | ComfyDL/CV Models | 5 | CNN fundamentals & model construction |
 | ComfyDL/GAN | 2 | GAN training updates |
-| ComfyDL/Misc | 1 | Windows MessageBox |
+| ComfyDL/Misc | 2 | Windows MessageBox & NoOp pass-through |
 | ComfyDL/NLP Utils | 5 | Text tokenization & vocabularies |
-| ComfyDL/Tensor Basic | 2 | Tensor I/O & conversion |
+| ComfyDL/Tensor Basic | 7 | Tensor I/O, conv, transpose, broadcast, activation |
 | ComfyDL/TorchOps | 10 | Loss, optimization, metrics |
 | ComfyDL/ObjectDetection | 9 | Anchor boxes, IoU, NMS |
 | ComfyDL/Segmentation | 4 | VOC semantic segmentation tools |
-| ComfyDL/Visualization | 7 | Plots & bounding box visualization |
+| ComfyDL/Visualization | 13 | Plots, charts & bounding box visualization |
+| ComfyDL/Datasets | 10 | Dataset download, loading, preview, and statistics |

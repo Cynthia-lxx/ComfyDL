@@ -2,6 +2,7 @@
 <div align="center">
 <h1>ComfyDL</h1>
 <p>DeepLearning is just a few clicks away!</p>
+<p><sub>[中文版本 / Chinese](./README_zh.md)</sub></p>
 </div>
 
 ---
@@ -35,7 +36,7 @@
 
 ## Function Overview
 
-ComfyDL provides **49 nodes** across 9 categories:
+ComfyDL provides **71 nodes** across 10 categories:
 
 | Category | Nodes | Examples |
 |---|---|---|
@@ -43,11 +44,12 @@ ComfyDL provides **49 nodes** across 9 categories:
 | **NLP Utils** | 5 | Tokenization, vocabulary build/encode/decode |
 | **Object Detection** | 10 | Box IOU / NMS, anchor generation, multibox target/detection |
 | **Semantic Segmentation** | 4 | VOC colormap, label mapping, random crop |
-| **Tensor Ops** | 12 | Linear regression, masked softmax, accuracy, BLEU, SGD |
-| **Visualization** | 7 | Plot, heatmaps, image grid, bounding box overlay |
+| **Tensor Ops** | 17 | Linear regression, masked softmax, accuracy, BLEU, SGD, conv2d, transpose, activation |
+| **Visualization** | 13 | Plot, charts (bar/pie/scatter/histogram/area), heatmaps, image grid, bounding boxes |
+| **Datasets** | 10 | Fashion-MNIST, Bananas, VOC, download, DataLoader preview & stats |
 | **GAN** | 2 | Discriminator / generator update steps |
 | **Device Utils** | 3 | GPU info, try GPU(s) |
-| **Misc** | 1 | Message box |
+| **Misc** | 2 | Message box, no-op pass-through |
 
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).
 

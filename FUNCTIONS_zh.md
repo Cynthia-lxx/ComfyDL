@@ -178,7 +178,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 4. ComfyDL / Misc（1 个节点）
+## 4. ComfyDL / Misc（2 个节点）
 
 ### MessageBox
 - **类名**：`CdlMessageBox`
@@ -196,6 +196,15 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `result` | `STRING` | 用户点击的按钮名称（如 `"2 (IDCANCEL)"`）；在非 Windows 系统上返回占位字符串 |
+
+### NoOp
+- **类名**：`CdlNoOp`
+- **功能**：空操作节点——接受任意输入但不执行任何计算。等同于 Python 的 ``pass`` 或汇编的 ``NOP``。可作为任意数据类型的空接收器、工作流构建时的占位节点，或调试时的旁路工具。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `any_input` | `*` | — | 通配输入（可选），接受任意类型数据——直接丢弃 |
+- **输出**：无
 
 ---
 
@@ -276,7 +285,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 6. ComfyDL / Tensor Basic（2 个节点）
+## 6. ComfyDL / Tensor Basic（7 个节点）
 
 ### Tensor → String
 - **类名**：`CdlTensorToStr`
@@ -304,6 +313,76 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `tensor` | `cdlTensor` | 解析后的张量（`torch.float32`） |
+
+### Conv2D
+- **类名**：`CdlConv2d`
+- **功能**：对输入张量执行二维卷积，使用指定的卷积核。封装 ``torch.nn.functional.conv2d``，支持 stride 和 padding 参数。自动将 2-D/3-D 输入扩展为 4-D ``(N, C, H, W)``，结果去掉 batch 维度返回。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `input_tensor` | `cdlTensor` | — | 输入张量 |
+  | `kernel` | `cdlTensor` | — | 卷积核 |
+  | `stride` | `INT` | 1 | 卷积步幅（1~4） |
+  | `padding` | `INT` | 0 | 零填充（0~10） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `output` | `cdlTensor` | 卷积结果 |
+
+### Transpose
+- **类名**：`CdlTranspose`
+- **功能**：交换张量的两个维度。封装 ``torch.transpose``。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `dim0` | `INT` | 0 | 第一个要交换的维度（0~5） |
+  | `dim1` | `INT` | 1 | 第二个要交换的维度（0~5） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `output` | `cdlTensor` | 转置后的张量 |
+
+### Broadcast
+- **类名**：`CdlBroadcast`
+- **功能**：将张量广播到目标形状。封装 ``torch.broadcast_to``。目标形状以逗号分隔字符串输入（如 ``"3,1,4"``）。解析错误时返回原张量。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `target_shape` | `STRING` | `""` | 目标形状，逗号分隔（如 ``"3,1,4"``） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `output` | `cdlTensor` | 广播后的张量 |
+
+### Reshape
+- **类名**：`CdlReshape`
+- **功能**：将张量变形为新的形状。封装 ``torch.reshape``。目标形状以逗号分隔字符串输入（如 ``"2,8"``、``"4,-1"``）。解析错误时返回原张量。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `target_shape` | `STRING` | `""` | 目标形状，逗号分隔（如 ``"2,8"``） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `output` | `cdlTensor` | 变形后的张量 |
+
+### Activation
+- **类名**：`CdlActivation`
+- **功能**：对张量逐元素应用激活函数。通过下拉菜单选择：``relu``、``sigmoid``、``tanh``、``leaky_relu``、``elu``、``gelu``、``silu``、``softmax``、``softplus``。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `func` | `COMBO` | `relu` | 激活函数：relu / sigmoid / tanh / leaky_relu / elu / gelu / silu / softmax / softplus |
+  | `dim` | `INT` | -1 | softmax 的维度（-4~4） |
+  | `negative_slope` | `FLOAT` | 0.01 | leaky_relu 的负斜率（0~1） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `output` | `cdlTensor` | 激活后的张量 |
 
 ---
 
@@ -672,7 +751,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 10. ComfyDL / Visualization（7 个节点）
+## 10. ComfyDL / Visualization（13 个节点）
 
 可视化节点采用"双变体"设计模式：带 `(Output)` 后缀的版本是 ComfyUI 输出节点（直接在界面中显示交互式图表），不带后缀的版本将图表渲染为 `IMAGE` 张量，供下游节点使用。
 
@@ -780,6 +859,273 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
   |------|------|------|
   | `image` | `IMAGE` | 绘制了边界框的图像 `[1, H, W, C]` |
 
+### Histogram
+- **类名**：`CdlHistogram`
+- **功能**：绘制张量值分布的直方图，支持可调的 bins 数量、密度归一化和颜色。封装 ``matplotlib.pyplot.hist``。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `cdlTensor` | — | 输入张量（内部展平） |
+  | `bins` | `INT` | 30 | 直方图分桶数 |
+  | `density` | `BOOLEAN` | False | 为 True 时显示密度而非计数 |
+  | `color` | `STRING` | `"#4673a6"` | 条形颜色 |
+  | `alpha` | `FLOAT` | 0.7 | 条形透明度 |
+  | `title` | `STRING` | `""` | 图表标题 |
+  | `xlabel` | `STRING` | `""` | x 轴标签 |
+  | `ylabel` | `STRING` | `""` | y 轴标签 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 直方图 `[1, H, W, C]` |
+
+### Bar Chart
+- **类名**：`CdlBarChart`
+- **功能**：绘制垂直或水平柱状图，可选数值标注。封装 ``matplotlib.pyplot.bar`` / ``barh``。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `values` | `cdlTensor` | — | 柱状高度（1-D 张量） |
+  | `labels` | `STRING` | `""` | 分类标签，逗号分隔 |
+  | `xlabel` | `STRING` | `""` | x 轴标签 |
+  | `ylabel` | `STRING` | `""` | y 轴标签 |
+  | `horizontal` | `BOOLEAN` | False | 使用 ``barh`` 代替 ``bar`` |
+  | `color` | `STRING` | `"#4673a6"` | 条形颜色 |
+  | `annotate` | `BOOLEAN` | True | 在柱状条上显示数值 |
+  | `figsize_w` | `FLOAT` | 7.0 | 图宽 |
+  | `figsize_h` | `FLOAT` | 4.0 | 图高 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 柱状图 `[1, H, W, C]` |
+
+### Scatter
+- **类名**：`CdlScatter`
+- **功能**：绘制二维散点图，可选点颜色和尺寸编码第三维。封装 ``matplotlib.pyplot.scatter``。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `X` | `cdlTensor` | — | X 坐标（展平） |
+  | `Y` | `cdlTensor` | — | Y 坐标（展平） |
+  | `alpha` | `FLOAT` | 0.6 | 点透明度 |
+  | `cmap` | `STRING` | `"viridis"` | ``color_map`` 的 colormap |
+  | `xlabel` | `STRING` | `""` | x 轴标签 |
+  | `ylabel` | `STRING` | `""` | y 轴标签 |
+  | `figsize_w` | `FLOAT` | 6.0 | 图宽 |
+  | `figsize_h` | `FLOAT` | 5.0 | 图高 |
+  | `color_map` | `cdlTensor` | — | 逐点颜色值（可选） |
+  | `size_map` | `cdlTensor` | — | 逐点大小值（可选） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 散点图 `[1, H, W, C]` |
+
+### Confusion Matrix
+- **类名**：`CdlConfusionMatrix`
+- **功能**：将混淆矩阵渲染为热力图，并在每个格子中标注数值。支持行归一化和自定义数字格式。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `matrix` | `cdlTensor` | — | 混淆矩阵（N×N 或展平） |
+  | `class_labels` | `STRING` | `""` | 类别名称，逗号分隔 |
+  | `cmap` | `STRING` | `"Blues"` | colormap 名称 |
+  | `normalize` | `BOOLEAN` | False | 将行归一化到 [0,1] |
+  | `fmt` | `COMBO` | `.1f` | 数字格式（`.0f` / `.1f` / `.2f` / `.3f`） |
+  | `figsize_w` | `FLOAT` | 6.0 | 图宽 |
+  | `figsize_h` | `FLOAT` | 5.0 | 图高 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 混淆矩阵热力图 `[1, H, W, C]` |
+
+### Pie Chart
+- **类名**：`CdlPieChart`
+- **功能**：绘制饼图（普通或甜甜圈样式）并标注百分比。封装 ``matplotlib.pyplot.pie``。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `values` | `cdlTensor` | — | 扇区值（1-D 张量） |
+  | `labels` | `STRING` | `""` | 扇区标签，逗号分隔 |
+  | `donut` | `BOOLEAN` | False | 空心中心（甜甜圈图） |
+  | `explode` | `STRING` | `""` | 每扇区分裂 0/1，逗号分隔 |
+  | `pctdistance` | `FLOAT` | 0.6 | 百分比标签距中心的距离 |
+  | `shadow` | `BOOLEAN` | False | 饼底阴影 |
+  | `figsize_w` | `FLOAT` | 6.0 | 图宽 |
+  | `figsize_h` | `FLOAT` | 6.0 | 图高 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 饼图（或甜甜圈图）`[1, H, W, C]` |
+
+### Area Chart
+- **类名**：`CdlAreaChart`
+- **功能**：绘制填充面积图 —— 单序列使用 ``fill_between``，多序列堆叠使用 ``stackplot``。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `Y` | `cdlTensor` | — | 序列数据，`[T]` 或 `[N, T]` |
+  | `stacked` | `BOOLEAN` | False | 堆叠而非叠加 |
+  | `alpha` | `FLOAT` | 0.5 | 填充透明度 |
+  | `color_palette` | `STRING` | `"tab10"` | matplotlib 调色盘名称 |
+  | `xlabel` | `STRING` | `""` | x 轴标签 |
+  | `ylabel` | `STRING` | `""` | y 轴标签 |
+  | `figsize_w` | `FLOAT` | 7.0 | 图宽 |
+  | `figsize_h` | `FLOAT` | 4.0 | 图高 |
+  | `X_vals` | `cdlTensor` | — | 自定义 x 轴值（可选） |
+  | `labels` | `STRING` | `""` | 序列图例标签，逗号分隔（可选） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 面积图 `[1, H, W, C]` |
+
+---
+
+## 11. ComfyDL / Datasets（10 个节点）
+
+数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。
+
+### Load Array → DataLoader
+- **类名**：`CdlLoadArray`
+- **d2lcore 函数**：`load_array(data_arrays, batch_size, is_train)`
+- **功能**：将一个或多个张量封装为 PyTorch DataLoader。将 `cdlTensor` 特征和/或标签连接到可选输入槽；节点输出 `cdlDataloader`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `batch_size` | `INT` | 32 | 批大小（1~4096） |
+  | `shuffle` | `BOOLEAN` | True | 每个 epoch 是否打乱数据 |
+  | `features` | `cdlTensor` | — | 特征张量 X（可选） |
+  | `labels` | `cdlTensor` | — | 标签张量 y（可选） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `dataloader` | `cdlDataloader` | 包装了张量的 PyTorch DataLoader |
+
+### DataLoader Info
+- **类名**：`CdlDataLoaderInfo`
+- **功能**：查看 `cdlDataloader` 的属性：批次数、批大小和数据集总大小。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `dataloader` | `cdlDataloader` | 待查看的 DataLoader |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `num_batches` | `INT` | 批次总数 |
+  | `batch_size` | `INT` | 每批样本数 |
+  | `dataset_size` | `INT` | 样本总数 |
+
+### Download
+- **类名**：`CdlDownload`
+- **d2lcore 函数**：`download(url, folder, sha1_hash)`
+- **功能**：从 URL 下载文件，支持基于 SHA1 的缓存检查。若本地文件存在且 SHA1 匹配，则跳过下载。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `url` | `STRING` | `""` | 下载 URL |
+  | `save_dir` | `STRING` | `"../data"` | 保存目录（可选） |
+  | `sha1_hash` | `STRING` | `""` | 用于缓存的 SHA1 哈希值（可选） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `file_path` | `STRING` | 下载/缓存文件的本地路径 |
+
+### Download + Extract
+- **类名**：`CdlDownloadExtract`
+- **d2lcore 函数**：`download_extract(name, folder)`
+- **功能**：下载并解压 d2l DATA_HUB 中注册的数据集。从下拉菜单中选择预注册的数据集（banana-detection、voc2012、cifar10_tiny 等）。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `name` | `COMBO` | 第一个键 | DATA_HUB 中的数据集名称 |
+  | `subfolder` | `STRING` | `""` | 归档文件内的子文件夹（可选） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `extract_dir` | `STRING` | 解压后的数据集目录路径 |
+
+### Fashion-MNIST
+- **类名**：`CdlFashionMNIST`
+- **d2lcore 函数**：`load_data_fashion_mnist(batch_size, resize)`
+- **功能**：加载 Fashion-MNIST 图像分类数据集（训练集 6 万张 / 测试集 1 万张，10 个类别）。首次使用时自动下载（约 30 MB）。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `batch_size` | `INT` | 64 | 每批样本数（1~2048） |
+  | `resize` | `INT` | 28 | 缩放尺寸（0=不缩放，1~512） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `train_loader` | `cdlDataloader` | 训练 DataLoader（60,000 张图像） |
+  | `test_loader` | `cdlDataloader` | 测试 DataLoader（10,000 张图像） |
+  | `class_names` | `STRING` | 按行分隔的类别名称 |
+
+10 个类别：t-shirt, trouser, pullover, dress, coat, sandal, shirt, sneaker, bag, ankle boot
+
+### Bananas Detection
+- **类名**：`CdlBananasDetection`
+- **d2lcore 函数**：`load_data_bananas(batch_size)`
+- **功能**：加载用于目标检测的香蕉检测数据集。包含带边界框标注的香蕉图像。首次使用时自动下载。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `batch_size` | `INT` | 32 | 每批样本数（1~256） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `train_loader` | `cdlDataloader` | 训练 DataLoader |
+  | `val_loader` | `cdlDataloader` | 验证 DataLoader |
+
+### VOC Segmentation
+- **类名**：`CdlVOCSegmentation`
+- **d2lcore 函数**：`load_data_voc(batch_size, crop_size)`
+- **功能**：加载 PASCAL VOC2012 语义分割数据集（21 个类别）。首次使用时自动下载和解压（约 2 GB）。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `batch_size` | `INT` | 32 | 每批样本数（1~128） |
+  | `crop_height` | `INT` | 320 | 随机裁剪高度（64~1024） |
+  | `crop_width` | `INT` | 480 | 随机裁剪宽度（64~2048） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `train_loader` | `cdlDataloader` | 训练 DataLoader |
+  | `test_loader` | `cdlDataloader` | 测试 DataLoader |
+
+### DataLoader Preview
+- **类名**：`CdlDataLoaderPreview`
+- **功能**：从 `cdlDataloader` 中取一批样本，渲染为图像网格（IMAGE 输出）。自动适配不同数据格式：图像分类显示带标签的图像；目标检测显示带边界框的图像。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `dataloader` | `cdlDataloader` | — | 待采样的 DataLoader |
+  | `num_rows` | `INT` | 2 | 网格行数（1~16） |
+  | `num_cols` | `INT` | 4 | 网格列数（1~16） |
+  | `max_samples` | `INT` | 32 | 最大显示图像数（1~256，可选） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 渲染后的网格图像 `[1, H, W, C]` |
+
+### DataLoader Preview (Output)
+- **类名**：`CdlDataLoaderPreviewOutput`
+- **功能**：与 `CdlDataLoaderPreview` 相同，但作为 OUTPUT_NODE 直接渲染——无输出槽，仅在 UI 中显示渲染预览。
+- **输入**：与 `CdlDataLoaderPreview` 相同
+- **输出**：无（输出节点）
+
+### Dataset Stats
+- **类名**：`CdlDataLoaderStats`
+- **功能**：遍历 `cdlDataloader`，统计类别分布。渲染柱状图显示各类别的样本数。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `dataloader` | `cdlDataloader` | — | 待分析的 DataLoader |
+  | `num_classes` | `INT` | 10 | 预期类别数（1~1000） |
+  | `class_names` | `STRING` | `""` | 逗号分隔的类别名称（可选） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `stats_text` | `STRING` | 格式化后的类别统计文本摘要 |
+  | `stats_image` | `IMAGE` | 类别分布柱状图 `[1, H, W, C]` |
+
 ---
 
 ## 附录
@@ -790,17 +1136,18 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **46 个节点**，分属 10 个类别：
+共 **68 个节点**，分属 11 个类别：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
 | ComfyDL/Device Utils | 3 | GPU/CPU 设备查询 |
 | ComfyDL/CV Models | 5 | CNN 基础与模型构建 |
 | ComfyDL/GAN | 2 | GAN 训练更新 |
-| ComfyDL/Misc | 1 | Windows MessageBox |
+| ComfyDL/Misc | 2 | Windows MessageBox 和 NoOp 空操作 |
 | ComfyDL/NLP Utils | 5 | 文本分词与词表 |
-| ComfyDL/Tensor Basic | 2 | 张量 I/O 与转换 |
+| ComfyDL/Tensor Basic | 7 | 张量 I/O、卷积、转置、广播、激活函数 |
 | ComfyDL/TorchOps | 10 | 损失、优化、评估指标 |
 | ComfyDL/ObjectDetection | 9 | 锚框、IoU、NMS |
 | ComfyDL/Segmentation | 4 | VOC 语义分割工具 |
-| ComfyDL/Visualization | 7 | 图表与边界框可视化 |
+| ComfyDL/Visualization | 13 | 图表与边界框可视化 |
+| ComfyDL/Datasets | 10 | 数据集下载、加载、预览与统计 |

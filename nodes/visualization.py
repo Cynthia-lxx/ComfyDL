@@ -485,3 +485,487 @@ class CdlShowBboxes:
 
 NODE_CLASS_MAPPINGS["CdlShowBboxes"] = CdlShowBboxes
 NODE_DISPLAY_NAME_MAPPINGS["CdlShowBboxes"] = "Show BBoxes"
+
+
+# ============================================================
+# Histogram
+# ============================================================
+
+class CdlHistogram:
+    """Draw a histogram of tensor value distribution with optional density curve.
+
+    Uses ``matplotlib.pyplot.hist`` for bin-based distribution visualisation.
+    Supports density-normalised overlay and semitransparent face colour.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "tensor": ("cdlTensor",),
+                "bins": ("INT", {"default": 30, "min": 5, "max": 200, "step": 1}),
+                "density": ("BOOLEAN", {"default": False}),
+                "color": ("STRING", {"default": "#4673a6", "placeholder": "bar face color"}),
+                "alpha": ("FLOAT", {"default": 0.7, "min": 0.1, "max": 1.0, "step": 0.05}),
+                "title": ("STRING", {"default": "", "placeholder": "plot title"}),
+                "xlabel": ("STRING", {"default": "", "placeholder": "x-axis label"}),
+                "ylabel": ("STRING", {"default": "", "placeholder": "y-axis label"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Visualization"
+
+    def execute(self, tensor, bins, density, color, alpha, title, xlabel, ylabel):
+        data = tensor.cpu().numpy().flatten()
+        if data.size == 0:
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.text(0.5, 0.5, 'No data', transform=ax.transAxes,
+                    ha='center', va='center', fontsize=14)
+            result = _fig_to_image_tensor(fig)
+            return (result,)
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.hist(data, bins=bins, density=density, color=color, alpha=alpha,
+                edgecolor='white', linewidth=0.5)
+        if xlabel:
+            ax.set_xlabel(xlabel)
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        if title:
+            ax.set_title(title)
+        ax.grid(True, alpha=0.3, linestyle='--')
+        fig.tight_layout()
+        result = _fig_to_image_tensor(fig)
+        return (result,)
+
+
+NODE_CLASS_MAPPINGS["CdlHistogram"] = CdlHistogram
+NODE_DISPLAY_NAME_MAPPINGS["CdlHistogram"] = "Histogram"
+
+
+# ============================================================
+# Bar Chart
+# ============================================================
+
+class CdlBarChart:
+    """Draw a bar chart (vertical or horizontal) with optional value annotations.
+
+    Uses ``matplotlib.pyplot.bar`` / ``barh``.  Values tensor supplies bar
+    heights; labels provide category names.  A compact figure size avoids
+    overlap on modest numbers of bars.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "values": ("cdlTensor",),
+                "labels": ("STRING", {"default": "", "placeholder": "comma-separated category labels"}),
+                "xlabel": ("STRING", {"default": "", "placeholder": "x-axis label"}),
+                "ylabel": ("STRING", {"default": "", "placeholder": "y-axis label"}),
+                "horizontal": ("BOOLEAN", {"default": False}),
+                "color": ("STRING", {"default": "#4673a6", "placeholder": "bar face color"}),
+                "annotate": ("BOOLEAN", {"default": True}),
+                "figsize_w": ("FLOAT", {"default": 7.0, "min": 2.0, "max": 20.0, "step": 0.5}),
+                "figsize_h": ("FLOAT", {"default": 4.0, "min": 2.0, "max": 20.0, "step": 0.5}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Visualization"
+
+    def execute(self, values, labels, xlabel, ylabel, horizontal, color,
+                annotate, figsize_w, figsize_h):
+        v = values.cpu().numpy().flatten()
+        if v.size == 0:
+            fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+            ax.text(0.5, 0.5, 'No data', transform=ax.transAxes,
+                    ha='center', va='center', fontsize=14)
+            result = _fig_to_image_tensor(fig)
+            return (result,)
+
+        labs = [s.strip() for s in labels.split(',') if s.strip()] if labels and labels.strip() else []
+        if labs:
+            labs = labs[:len(v)]
+        else:
+            labs = [str(i) for i in range(len(v))]
+
+        fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+        xs = np.arange(len(v))
+
+        if horizontal:
+            bars = ax.barh(xs, v, color=color, alpha=0.85, edgecolor='white',
+                           height=0.6, linewidth=0.5)
+            ax.set_yticks(xs)
+            ax.set_yticklabels(labs)
+            if annotate:
+                for bar_val, bar_patch in zip(v, bars):
+                    w = bar_patch.get_width()
+                    ax.text(w + max(abs(v)) * 0.01, bar_patch.get_y() + bar_patch.get_height() / 2,
+                            f'{bar_val:.2f}'.rstrip('0').rstrip('.'),
+                            va='center', ha='left', fontsize=8)
+        else:
+            bars = ax.bar(xs, v, color=color, alpha=0.85, edgecolor='white',
+                          width=0.6, linewidth=0.5)
+            ax.set_xticks(xs)
+            ax.set_xticklabels(labs, rotation=45 if len(labs) > 6 else 0, ha='right' if len(labs) > 6 else 'center')
+            if annotate:
+                for bar_val, bar_patch in zip(v, bars):
+                    h = bar_patch.get_height()
+                    ax.text(bar_patch.get_x() + bar_patch.get_width() / 2, h + max(abs(v)) * 0.01,
+                            f'{bar_val:.2f}'.rstrip('0').rstrip('.'),
+                            ha='center', va='bottom', fontsize=8)
+
+        if xlabel:
+            ax.set_xlabel(xlabel)
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        ax.grid(True, axis='y', alpha=0.3, linestyle='--')
+        fig.tight_layout()
+        result = _fig_to_image_tensor(fig)
+        return (result,)
+
+
+NODE_CLASS_MAPPINGS["CdlBarChart"] = CdlBarChart
+NODE_DISPLAY_NAME_MAPPINGS["CdlBarChart"] = "Bar Chart"
+
+
+# ============================================================
+# Scatter Plot
+# ============================================================
+
+class CdlScatter:
+    """Draw a 2-D scatter plot with optional colour and size encodings.
+
+    Uses ``matplotlib.pyplot.scatter``.  ``color_map`` drives the point colour
+    via a colormap; ``size_map`` scales marker sizes between min/max values.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "X": ("cdlTensor",),
+                "Y": ("cdlTensor",),
+                "alpha": ("FLOAT", {"default": 0.6, "min": 0.1, "max": 1.0, "step": 0.05}),
+                "cmap": ("STRING", {"default": "viridis", "placeholder": "matplotlib colormap name"}),
+                "xlabel": ("STRING", {"default": "", "placeholder": "x-axis label"}),
+                "ylabel": ("STRING", {"default": "", "placeholder": "y-axis label"}),
+                "figsize_w": ("FLOAT", {"default": 6.0, "min": 2.0, "max": 20.0, "step": 0.5}),
+                "figsize_h": ("FLOAT", {"default": 5.0, "min": 2.0, "max": 20.0, "step": 0.5}),
+            },
+            "optional": {
+                "color_map": ("cdlTensor",),
+                "size_map": ("cdlTensor",),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Visualization"
+
+    def execute(self, X, Y, alpha, cmap, xlabel, ylabel, figsize_w, figsize_h,
+                color_map=None, size_map=None):
+        x = X.cpu().numpy().flatten()
+        y = Y.cpu().numpy().flatten()
+        n = min(len(x), len(y))
+        if n == 0:
+            fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+            ax.text(0.5, 0.5, 'No data', transform=ax.transAxes,
+                    ha='center', va='center', fontsize=14)
+            result = _fig_to_image_tensor(fig)
+            return (result,)
+
+        x, y = x[:n], y[:n]
+
+        c = None
+        if color_map is not None:
+            c = color_map.cpu().numpy().flatten()[:n]
+
+        s = None
+        min_marker, max_marker = 20, 200
+        if size_map is not None:
+            raw_s = size_map.cpu().numpy().flatten()[:n]
+            if raw_s.max() - raw_s.min() > 1e-9:
+                s = min_marker + (max_marker - min_marker) * (raw_s - raw_s.min()) / (raw_s.max() - raw_s.min())
+            else:
+                s = np.full_like(raw_s, (min_marker + max_marker) / 2.0)
+
+        fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+        sc = ax.scatter(x, y, c=c, s=s, alpha=alpha, cmap=cmap, edgecolors='none')
+        if xlabel:
+            ax.set_xlabel(xlabel)
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        if c is not None:
+            fig.colorbar(sc, ax=ax, shrink=0.8)
+        ax.grid(True, alpha=0.3, linestyle='--')
+        fig.tight_layout()
+        result = _fig_to_image_tensor(fig)
+        return (result,)
+
+
+NODE_CLASS_MAPPINGS["CdlScatter"] = CdlScatter
+NODE_DISPLAY_NAME_MAPPINGS["CdlScatter"] = "Scatter"
+
+
+# ============================================================
+# Confusion Matrix
+# ============================================================
+
+class CdlConfusionMatrix:
+    """Render a confusion matrix heatmap with per-cell value annotations.
+
+    Uses ``matplotlib.pyplot.imshow`` for the colour grid and ``ax.text`` to
+    print each number.  Supports normalisation and configurable number format.
+    """
+
+    LABEL_LIST = [".0f", ".1f", ".2f", ".3f"]
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "matrix": ("cdlTensor",),
+                "class_labels": ("STRING", {"default": "", "placeholder": "comma-separated class names"}),
+                "cmap": ("STRING", {"default": "Blues", "placeholder": "matplotlib colormap name"}),
+                "normalize": ("BOOLEAN", {"default": False}),
+                "fmt": (cls.LABEL_LIST, {"default": ".1f"}),
+                "figsize_w": ("FLOAT", {"default": 6.0, "min": 3.0, "max": 20.0, "step": 0.5}),
+                "figsize_h": ("FLOAT", {"default": 5.0, "min": 3.0, "max": 20.0, "step": 0.5}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Visualization"
+
+    def execute(self, matrix, class_labels, cmap, normalize, fmt, figsize_w, figsize_h):
+        m = matrix.cpu().numpy()
+        if m.ndim == 1:
+            n = int(np.sqrt(m.size))
+            m = m[:n * n].reshape(n, n)
+        if m.size == 0:
+            fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+            ax.text(0.5, 0.5, 'No data', transform=ax.transAxes,
+                    ha='center', va='center', fontsize=14)
+            result = _fig_to_image_tensor(fig)
+            return (result,)
+
+        if normalize:
+            row_sums = m.sum(axis=1, keepdims=True)
+            row_sums[row_sums == 0] = 1
+            m = m.astype(np.float64) / row_sums
+
+        labs = [s.strip() for s in class_labels.split(',') if s.strip()] if class_labels and class_labels.strip() else []
+
+        fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+        im = ax.imshow(m, cmap=cmap, aspect='auto')
+
+        n_rows, n_cols = m.shape
+        threshold = (m.max() + m.min()) / 2.0
+        for i in range(n_rows):
+            for j in range(n_cols):
+                val = m[i, j]
+                text_color = 'white' if val > threshold else 'black'
+                ax.text(j, i, f"{val:{fmt}}", ha='center', va='center',
+                        fontsize=9, color=text_color)
+
+        if labs:
+            tick_labs = labs[:max(n_rows, n_cols)]
+            ax.set_xticks(range(n_cols))
+            ax.set_xticklabels(tick_labs[:n_cols], rotation=45 if len(labs) > 6 else 0,
+                               ha='right' if len(labs) > 6 else 'center')
+            ax.set_yticks(range(n_rows))
+            ax.set_yticklabels(tick_labs[:n_rows])
+
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("True")
+        fig.colorbar(im, ax=ax, shrink=0.8)
+        fig.tight_layout()
+        result = _fig_to_image_tensor(fig)
+        return (result,)
+
+
+NODE_CLASS_MAPPINGS["CdlConfusionMatrix"] = CdlConfusionMatrix
+NODE_DISPLAY_NAME_MAPPINGS["CdlConfusionMatrix"] = "Confusion Matrix"
+
+
+# ============================================================
+# Pie Chart
+# ============================================================
+
+class CdlPieChart:
+    """Draw a pie chart (regular or donut) with percentage labels.
+
+    Uses ``matplotlib.pyplot.pie``.  The ``donut`` option hollows the centre
+    via ``wedgeprops``.  ``explode`` expects a comma-separated list of 0/1.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "values": ("cdlTensor",),
+                "labels": ("STRING", {"default": "", "placeholder": "comma-separated slice labels"}),
+                "donut": ("BOOLEAN", {"default": False}),
+                "explode": ("STRING", {"default": "", "placeholder": "comma-separated 0/1 per slice"}),
+                "pctdistance": ("FLOAT", {"default": 0.6, "min": 0.1, "max": 1.5, "step": 0.05}),
+                "shadow": ("BOOLEAN", {"default": False}),
+                "figsize_w": ("FLOAT", {"default": 6.0, "min": 3.0, "max": 20.0, "step": 0.5}),
+                "figsize_h": ("FLOAT", {"default": 6.0, "min": 3.0, "max": 20.0, "step": 0.5}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Visualization"
+
+    def execute(self, values, labels, donut, explode, pctdistance, shadow,
+                figsize_w, figsize_h):
+        v = values.cpu().numpy().flatten()
+        if v.size == 0:
+            fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+            ax.text(0.5, 0.5, 'No data', transform=ax.transAxes,
+                    ha='center', va='center', fontsize=14)
+            result = _fig_to_image_tensor(fig)
+            return (result,)
+
+        labs = [s.strip() for s in labels.split(',') if s.strip()] if labels and labels.strip() else None
+        if labs:
+            labs = labs[:len(v)]
+
+        expl = None
+        if explode and explode.strip():
+            raw = [int(x.strip()) for x in explode.split(',') if x.strip().isdigit()]
+            expl = [float(i) * 0.08 for i in raw[:len(v)]]
+
+        wedges_kw = {}
+        if donut:
+            wedges_kw = {'width': 0.4, 'edgecolor': 'white'}
+
+        fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+        wedges, texts, autotexts = ax.pie(
+            v, labels=labs, autopct='%1.1f%%', explode=expl,
+            shadow=shadow, startangle=90, pctdistance=pctdistance,
+            wedgeprops=wedges_kw
+        )
+
+        if donut:
+            # Draw a centre circle to create donut look
+            centre_circle = plt.Circle((0, 0), 0.4, fc='white', edgecolor='none')
+            ax.add_artist(centre_circle)
+
+        ax.axis('equal')
+        fig.tight_layout()
+        result = _fig_to_image_tensor(fig)
+        return (result,)
+
+
+NODE_CLASS_MAPPINGS["CdlPieChart"] = CdlPieChart
+NODE_DISPLAY_NAME_MAPPINGS["CdlPieChart"] = "Pie Chart"
+
+
+# ============================================================
+# Area Chart
+# ============================================================
+
+class CdlAreaChart:
+    """Draw a filled area chart (single series or stacked).
+
+    Uses ``matplotlib.pyplot.fill_between`` for a single series, and
+    ``plt.stackplot`` for multiple stacked series.  Transparent fills and
+    muted default colours give a clean look.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "Y": ("cdlTensor",),
+                "stacked": ("BOOLEAN", {"default": False}),
+                "alpha": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 1.0, "step": 0.05}),
+                "color_palette": ("STRING", {"default": "tab10", "placeholder": "matplotlib palette name"}),
+                "xlabel": ("STRING", {"default": "", "placeholder": "x-axis label"}),
+                "ylabel": ("STRING", {"default": "", "placeholder": "y-axis label"}),
+                "figsize_w": ("FLOAT", {"default": 7.0, "min": 3.0, "max": 20.0, "step": 0.5}),
+                "figsize_h": ("FLOAT", {"default": 4.0, "min": 2.0, "max": 20.0, "step": 0.5}),
+            },
+            "optional": {
+                "X_vals": ("cdlTensor",),
+                "labels": ("STRING", {"default": "", "placeholder": "comma-separated series labels (for stacked)"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Visualization"
+
+    def execute(self, Y, stacked, alpha, color_palette, xlabel, ylabel,
+                figsize_w, figsize_h, X_vals=None, labels=None):
+        y = Y.cpu().numpy()
+        if y.size == 0:
+            fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+            ax.text(0.5, 0.5, 'No data', transform=ax.transAxes,
+                    ha='center', va='center', fontsize=14)
+            result = _fig_to_image_tensor(fig)
+            return (result,)
+
+        # Ensure y is 2-D
+        if y.ndim == 1:
+            y = y.reshape(1, -1)
+
+        x = None
+        if X_vals is not None:
+            x = X_vals.cpu().numpy().flatten()
+        else:
+            x = np.arange(y.shape[1])
+
+        n_series = min(y.shape[0], y.shape[1])
+        if y.shape[0] <= y.shape[1]:
+            y_data = y  # [series, T]
+        else:
+            y_data = y.T[:n_series]
+
+        lbls = [s.strip() for s in labels.split(',') if s.strip()] if labels and labels.strip() else []
+        colors = plt.get_cmap(color_palette)(np.linspace(0, 1, max(n_series, 1)))
+
+        fig, ax = plt.subplots(figsize=(figsize_w, figsize_h))
+
+        if stacked:
+            ax.stackplot(x, *[y_data[i] for i in range(y_data.shape[0])],
+                         labels=lbls[:y_data.shape[0]] if lbls else None,
+                         alpha=alpha, colors=colors, edgecolor='none')
+        else:
+            for i in range(y_data.shape[0]):
+                lbl = lbls[i] if i < len(lbls) else f"series {i}"
+                ax.fill_between(x, y_data[i], alpha=alpha,
+                                color=colors[i % len(colors)],
+                                label=lbl, linewidth=0)
+
+        if lbls:
+            ax.legend(fontsize=8, loc='upper left')
+
+        if xlabel:
+            ax.set_xlabel(xlabel)
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        ax.grid(True, alpha=0.3, linestyle='--')
+        ax.set_xlim(x[0], x[-1])
+
+        fig.tight_layout()
+        result = _fig_to_image_tensor(fig)
+        return (result,)
+
+
+NODE_CLASS_MAPPINGS["CdlAreaChart"] = CdlAreaChart
+NODE_DISPLAY_NAME_MAPPINGS["CdlAreaChart"] = "Area Chart"
