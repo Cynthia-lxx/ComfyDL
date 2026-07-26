@@ -1,0 +1,4 @@
+# ComfyDL - 节点定义（待填充）
+
+NODE_CLASS_MAPPINGS = {}
+NODE_DISPLAY_NAME_MAPPINGS = {}

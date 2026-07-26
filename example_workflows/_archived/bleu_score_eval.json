@@ -1,0 +1,39 @@
+{
+  "last_node_id": 1,
+  "last_link_id": 0,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CdlBleu",
+      "pos": [0, 0],
+      "size": [315, 230],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "bleu_score", "type": "FLOAT", "links": null}
+      ],
+      "properties": {"Node name for S&R": "BLEU Score"},
+      "widgets_values": [
+        "the cat is on the mat",
+        "there is a cat on the mat",
+        4
+      ]
+    }
+  ],
+  "links": [],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7,
+      "offset": [50, 50]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "unknown"
+    }
+  },
+  "version": 0.4
+}
