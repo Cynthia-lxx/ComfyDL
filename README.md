@@ -36,7 +36,7 @@
 
 ## Function Overview
 
-ComfyDL provides **71 nodes** across 11 categories:
+ComfyDL provides **88 nodes** across 13 categories:
 
 | Category | Count | Description |
 |---|---|---|
@@ -44,7 +44,9 @@ ComfyDL provides **71 nodes** across 11 categories:
 | **Datasets** | 10 | Dataset download, load, preview & stats |
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
+| **Image Tools** | 9 | Resize, normalize, flip, rotate, crop, adjust, blur & stats |
 | **Misc** | 2 | Windows MessageBox & NoOp pass-through |
+| **Model Utils** | 8 | Model info, mode, forward, layers, params, clone & persistence |
 | **NLP Utils** | 5 | Text tokenization & vocabularies |
 | **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
 | **Segmentation** | 4 | VOC semantic segmentation tools |
@@ -62,6 +64,7 @@ ComfyDL provides **71 nodes** across 11 categories:
 ComfyDL/
 ├── src/d2lcore/     # D2L-inspired core implementation — a reference layer (torch.py, ...)
 ├── nodes/           # ComfyUI node definitions (thin mapping layer)
+│                    #   incl. self-developed model_utils.py & image_tools.py
 └── example_workflows/  # Sample workflow JSONs
 ```
 

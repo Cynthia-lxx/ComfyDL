@@ -1128,6 +1128,244 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 
 ---
 
+## 12. ComfyDL / Model Utils (8 nodes)
+
+Self-developed model utility nodes (not from d2l). They help inspect, switch, run, clone and persist PyTorch models directly on the workflow graph. All nodes operate on the `cdlModel` type (any `nn.Module` instance).
+
+### Model Info
+- **Class**: `CdlModelInfo`
+- **Purpose**: Inspects a model and reports (1) a human-readable summary string, (2) the total parameter count and (3) the trainable parameter count.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Any `nn.Module` instance |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `summary` | `STRING` | Model type, submodule names, module count, parameter counts |
+  | `total_params` | `INT` | Total number of parameters |
+  | `trainable_params` | `INT` | Number of parameters with `requires_grad=True` |
+
+### Model Mode
+- **Class**: `CdlModelMode`
+- **Purpose**: Switches a model between training and evaluation mode via `model.train()` / `model.eval()`. Returns the same instance so downstream nodes observe the new mode.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `model` | `cdlModel` | — | Any `nn.Module` instance |
+  | `mode` | `COMBO` | `eval` | `train` (training mode) / `eval` (inference mode) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | The same instance with the mode applied |
+
+### Model Forward
+- **Class**: `CdlModelForward`
+- **Purpose**: Runs a forward pass of `model` on an input tensor under `torch.no_grad()`. The input is moved to the model's device if they differ; the model is switched to eval mode first.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Any `nn.Module` instance |
+  | `tensor` | `cdlTensor` | Input tensor of the shape the model expects |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `output` | `cdlTensor` | `model(tensor)` — shape depends on the model |
+
+### Model Layers
+- **Class**: `CdlModelLayers`
+- **Purpose**: Walks `model.named_modules()` and renders an indented tree of every module (name + class), so you can inspect the architecture.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Any `nn.Module` instance |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `layers_str` | `STRING` | One module per line, indented by nesting depth |
+
+### Model Params
+- **Class**: `CdlModelParams`
+- **Purpose**: Walks `model.named_parameters()` and renders name, shape and `requires_grad` for each parameter, plus the total count.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Any `nn.Module` instance |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `params_str` | `STRING` | One parameter per line + total count |
+
+### Model Clone
+- **Class**: `CdlModelClone`
+- **Purpose**: Returns `copy.deepcopy(model)` — an independent instance with the same architecture and weights but no shared parameters.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Any `nn.Module` instance |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `clone` | `cdlModel` | A deep copy of the input model |
+
+### Model Save
+- **Class**: `CdlModelSave`
+- **Purpose**: Writes `torch.save(model.state_dict(), path)` to disk. Only weights are saved (state_dict), so reloading requires a model with a matching architecture.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `model` | `cdlModel` | — | Any `nn.Module` instance |
+  | `path` | `STRING` | `"model.pt"` | Target file path, e.g. `"C:/models/my_model.pt"` |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `message` | `STRING` | Confirmation text including the saved path |
+
+### Model Load
+- **Class**: `CdlModelLoad`
+- **Purpose**: Reads a `.pt` state_dict with `torch.load` and applies it to the input model via `model.load_state_dict()`. The model architecture must match the saved state_dict.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `model` | `cdlModel` | — | Model instance that will receive the weights |
+  | `path` | `STRING` | `"model.pt"` | Path of the saved state_dict file |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | The input model with loaded weights |
+
+---
+
+## 13. ComfyDL / Image Tools (9 nodes)
+
+Self-developed general CV image nodes (not from d2l). All nodes consume and produce the native ComfyUI `IMAGE` format — float32 `[B, H, W, C]` with values in `[0, 1]` — and are implemented with `torch` + `torchvision.transforms.functional`. Exception: `Image Normalize` deliberately does not clip its output to `[0, 1]` (z-score range).
+
+### Image Resize
+- **Class**: `CdlImageResize`
+- **Purpose**: Resizes each image to `(height, width)` using the selected interpolation mode. Setting a dimension to 0 keeps the input size on that axis.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
+  | `width` | `INT` | 512 | Target width (0 = keep input width) |
+  | `height` | `INT` | 512 | Target height (0 = keep input height) |
+  | `mode` | `COMBO` | `bilinear` | bilinear / nearest / bicubic / area |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Resized images `[B, H, W, C]` |
+
+### Image Normalize
+- **Class**: `CdlImageNormalize`
+- **Purpose**: Applies `(x - mean) / std` when `denorm` is False, or the inverse `x * std + mean` when `denorm` is True. `mean`/`std` are comma-separated strings; a single value broadcasts to all channels (e.g. `"0.5"` or `"0.5,0.5,0.5"`).
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
+  | `mean` | `STRING` | `"0.5,0.5,0.5"` | Comma-separated per-channel means |
+  | `std` | `STRING` | `"0.5,0.5,0.5"` | Comma-separated per-channel standard deviations |
+  | `denorm` | `BOOLEAN` | False | True = denormalize, False = normalize |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Processed images `[B, H, W, C]` (range depends on the op) |
+
+### Image Grayscale
+- **Class**: `CdlImageGrayscale`
+- **Purpose**: Converts images to grayscale with `num_output_channels=3`, preserving the `[B, H, W, C]` (C=3) layout while all channels carry the same luminance value.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Input images `[B, H, W, C]` |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | 3-channel grayscale images `[B, H, W, C]` |
+
+### Image Flip
+- **Class**: `CdlImageFlip`
+- **Purpose**: Mirrors every image along the width axis (`horizontal`) or the height axis (`vertical`).
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
+  | `direction` | `COMBO` | `horizontal` | horizontal / vertical |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Flipped images `[B, H, W, C]` |
+
+### Image Rotate
+- **Class**: `CdlImageRotate`
+- **Purpose**: Rotates every image by `angle` degrees (counter-clockwise) with bilinear interpolation and zero-filled borders. When `expand` is True the canvas is enlarged so rotated content is not clipped; otherwise the output keeps the input size.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
+  | `angle` | `FLOAT` | 90.0 | Rotation angle in degrees (-360~360) |
+  | `expand` | `BOOLEAN` | False | True = enlarge canvas to fit rotated content |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Rotated images `[B, H, W, C]` |
+
+### Image Crop
+- **Class**: `CdlImageCrop`
+- **Purpose**: Center-crops each image to the requested size. A requested dimension of 0 (or larger than the input) is clamped to the input size, so the output never exceeds the input.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
+  | `height` | `INT` | 0 | Crop height (0 = keep input height) |
+  | `width` | `INT` | 0 | Crop width (0 = keep input width) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Cropped images `[B, H, W, C]` |
+
+### Image Adjust
+- **Class**: `CdlImageAdjust`
+- **Purpose**: Applies torchvision brightness, contrast and saturation adjustments with the given factors (1.0 = unchanged, >1 stronger, <1 weaker, 0 = none). Factors equal to 1.0 are skipped for speed.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
+  | `brightness` | `FLOAT` | 1.0 | Brightness factor (0~2) |
+  | `contrast` | `FLOAT` | 1.0 | Contrast factor (0~2) |
+  | `saturation` | `FLOAT` | 1.0 | Saturation factor (0~2) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Adjusted images `[B, H, W, C]` |
+
+### Image Blur
+- **Class**: `CdlImageBlur`
+- **Purpose**: Applies a Gaussian blur (`torchvision` gaussian_blur) or a mean (box) blur (`avg_pool2d`). `kernel_size` is auto-rounded up to the next odd number and clamped to at least 1.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
+  | `blur_type` | `COMBO` | `gaussian` | gaussian / mean |
+  | `kernel_size` | `INT` | 3 | Odd kernel size (1~99) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Blurred images `[B, H, W, C]` |
+
+### Image Stats
+- **Class**: `CdlImageStats`
+- **Purpose**: Aggregates all images in the batch and reports per channel the mean, std, min and max values, plus the batch layout.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Input images `[B, H, W, C]` |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `stats` | `STRING` | One line per channel + batch summary line |
+
+---
+
 ## Appendix
 
 ### Node Registration Mechanism
@@ -1136,14 +1374,16 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**71 nodes** across 11 categories:
+**88 nodes** across 13 categories:
 
 | Category | Count | Description |
 |----------|-------|-------------|
 | ComfyDL/Device Utils | 3 | GPU/CPU device queries |
 | ComfyDL/CV Models | 5 | CNN fundamentals & model construction |
 | ComfyDL/GAN | 2 | GAN training updates |
+| ComfyDL/Image Tools | 9 | Resize, normalize, flip, rotate, crop, adjust, blur & stats |
 | ComfyDL/Misc | 2 | Windows MessageBox & NoOp pass-through |
+| ComfyDL/Model Utils | 8 | Model info, mode, forward, layers, params, clone & persistence |
 | ComfyDL/NLP Utils | 5 | Text tokenization & vocabularies |
 | ComfyDL/Tensor Basic | 7 | Tensor I/O, conv, transpose, broadcast, activation |
 | ComfyDL/TorchOps | 10 | Loss, optimization, metrics |

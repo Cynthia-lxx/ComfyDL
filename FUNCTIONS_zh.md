@@ -1128,6 +1128,244 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
+## 12. ComfyDL / Model Utils（8 个节点）
+
+自主开发的模型实用工具节点（非 d2l 内容）。用于在工作流中直接检查、切换、运行、克隆与持久化 PyTorch 模型。所有节点操作 `cdlModel` 类型（任意 `nn.Module` 实例）。
+
+### Model Info（模型信息）
+- **类名**：`CdlModelInfo`
+- **功能**：检查模型并报告 (1) 人类可读的摘要字符串、(2) 总参数量、(3) 可训练参数量。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `summary` | `STRING` | 模型类型、子模块名、模块数量与参数量 |
+  | `total_params` | `INT` | 总参数量 |
+  | `trainable_params` | `INT` | `requires_grad=True` 的参数量 |
+
+### Model Mode（模型模式）
+- **类名**：`CdlModelMode`
+- **功能**：通过 `model.train()` / `model.eval()` 在训练与评估模式间切换，返回同一实例，使下游节点感知新模式。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `model` | `cdlModel` | — | 任意 `nn.Module` 实例 |
+  | `mode` | `COMBO` | `eval` | `train`（训练模式）/ `eval`（推理模式） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 已应用模式的同一实例 |
+
+### Model Forward（模型前向）
+- **类名**：`CdlModelForward`
+- **功能**：在 `torch.no_grad()` 下对输入张量执行模型前向。若输入与模型设备不同则自动迁移；前向前置为 eval 模式。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+  | `tensor` | `cdlTensor` | 模型期望形状的输入张量 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `output` | `cdlTensor` | `model(tensor)`——形状取决于模型 |
+
+### Model Layers（模型层结构）
+- **类名**：`CdlModelLayers`
+- **功能**：遍历 `model.named_modules()` 并以缩进树形式输出每个模块（名称 + 类名），便于检查架构。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `layers_str` | `STRING` | 每行一个模块，按嵌套深度缩进 |
+
+### Model Params（模型参数）
+- **类名**：`CdlModelParams`
+- **功能**：遍历 `model.named_parameters()` 并输出每个参数的名称、形状与 `requires_grad`，附总数。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `params_str` | `STRING` | 每行一个参数 + 总数 |
+
+### Model Clone（模型克隆）
+- **类名**：`CdlModelClone`
+- **功能**：返回 `copy.deepcopy(model)`——架构与权重相同但参数完全独立的实例。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `clone` | `cdlModel` | 输入模型的深拷贝 |
+
+### Model Save（模型保存）
+- **类名**：`CdlModelSave`
+- **功能**：将 `torch.save(model.state_dict(), path)` 写入磁盘。仅保存权重（state_dict），重新加载需要结构匹配的模型。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `model` | `cdlModel` | — | 任意 `nn.Module` 实例 |
+  | `path` | `STRING` | `"model.pt"` | 目标文件路径，如 `"C:/models/my_model.pt"` |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `message` | `STRING` | 包含保存路径的确认文本 |
+
+### Model Load（模型加载）
+- **类名**：`CdlModelLoad`
+- **功能**：用 `torch.load` 读取 `.pt` state_dict 并通过 `model.load_state_dict()` 应用到输入模型。模型架构必须与保存的 state_dict 匹配。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `model` | `cdlModel` | — | 将接收权重的模型实例 |
+  | `path` | `STRING` | `"model.pt"` | 已保存 state_dict 文件的路径 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 已加载权重的输入模型 |
+
+---
+
+## 13. ComfyDL / Image Tools（9 个节点）
+
+自主开发的通用 CV 图像节点（非 d2l 内容）。所有节点消费并产出 ComfyUI 原生 `IMAGE` 格式——float32 `[B, H, W, C]`，值域 `[0, 1]`——用 `torch` + `torchvision.transforms.functional` 实现。例外：Image Normalize（图像归一化）故意不将输出裁剪到 `[0, 1]`（z-score 值域）。
+
+### Image Resize（图像缩放）
+- **类名**：`CdlImageResize`
+- **功能**：使用所选插值模式将每张图像缩放到 `(height, width)`。某维设为 0 表示该轴保持输入尺寸。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
+  | `width` | `INT` | 512 | 目标宽度（0 = 保持输入宽度） |
+  | `height` | `INT` | 512 | 目标高度（0 = 保持输入高度） |
+  | `mode` | `COMBO` | `bilinear` | bilinear / nearest / bicubic / area |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 缩放后的图像 `[B, H, W, C]` |
+
+### Image Normalize（图像归一化）
+- **类名**：`CdlImageNormalize`
+- **功能**：`denorm` 为 False 时执行 `(x - mean) / std`，为 True 时执行逆变换 `x * std + mean`。`mean`/`std` 为逗号分隔字符串；单个值会广播到所有通道（如 `"0.5"` 或 `"0.5,0.5,0.5"`）。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
+  | `mean` | `STRING` | `"0.5,0.5,0.5"` | 逗号分隔的逐通道均值 |
+  | `std` | `STRING` | `"0.5,0.5,0.5"` | 逗号分隔的逐通道标准差 |
+  | `denorm` | `BOOLEAN` | False | True = 反归一化，False = 归一化 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 处理后的图像 `[B, H, W, C]`（值域取决于操作） |
+
+### Image Grayscale（图像灰度化）
+- **类名**：`CdlImageGrayscale`
+- **功能**：以 `num_output_channels=3` 转为灰度，保持 `[B, H, W, C]`（C=3）布局，各通道携带相同的亮度值。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 输入图像 `[B, H, W, C]` |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 3 通道灰度图像 `[B, H, W, C]` |
+
+### Image Flip（图像翻转）
+- **类名**：`CdlImageFlip`
+- **功能**：沿宽度轴（`horizontal`）或高度轴（`vertical`）镜像每张图像。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
+  | `direction` | `COMBO` | `horizontal` | horizontal / vertical |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 翻转后的图像 `[B, H, W, C]` |
+
+### Image Rotate（图像旋转）
+- **类名**：`CdlImageRotate`
+- **功能**：以双线性插值和零填充边界将每张图像旋转 `angle` 度（逆时针）。`expand` 为 True 时画布会放大以容纳旋转内容；否则输出保持输入尺寸。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
+  | `angle` | `FLOAT` | 90.0 | 旋转角度（度，-360~360） |
+  | `expand` | `BOOLEAN` | False | True = 放大画布以容纳旋转内容 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 旋转后的图像 `[B, H, W, C]` |
+
+### Image Crop（图像裁剪）
+- **类名**：`CdlImageCrop`
+- **功能**：围绕中心将每张图像裁剪到指定尺寸。请求尺寸为 0（或大于输入）时钳制为输入尺寸，输出不会超过输入。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
+  | `height` | `INT` | 0 | 裁剪高度（0 = 保持输入高度） |
+  | `width` | `INT` | 0 | 裁剪宽度（0 = 保持输入宽度） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 裁剪后的图像 `[B, H, W, C]` |
+
+### Image Adjust（图像调整）
+- **类名**：`CdlImageAdjust`
+- **功能**：用给定因子应用 torchvision 亮度、对比度与饱和度调整（1.0 = 不变，>1 增强，<1 减弱，0 = 无）。等于 1.0 的因子会跳过以加速。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
+  | `brightness` | `FLOAT` | 1.0 | 亮度因子（0~2） |
+  | `contrast` | `FLOAT` | 1.0 | 对比度因子（0~2） |
+  | `saturation` | `FLOAT` | 1.0 | 饱和度因子（0~2） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 调整后的图像 `[B, H, W, C]` |
+
+### Image Blur（图像模糊）
+- **类名**：`CdlImageBlur`
+- **功能**：应用高斯模糊（torchvision gaussian_blur）或均值（方框）模糊（`avg_pool2d`）。`kernel_size` 自动向上取整为奇数且至少为 1。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
+  | `blur_type` | `COMBO` | `gaussian` | gaussian / mean |
+  | `kernel_size` | `INT` | 3 | 奇数核大小（1~99） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 模糊后的图像 `[B, H, W, C]` |
+
+### Image Stats（图像统计）
+- **类名**：`CdlImageStats`
+- **功能**：聚合批次内所有图像，按通道报告 mean/std/min/max 以及批次布局。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 输入图像 `[B, H, W, C]` |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `stats` | `STRING` | 每通道一行 + 批次摘要行 |
+
+---
+
 ## 附录
 
 ### 节点注册机制
@@ -1136,14 +1374,16 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **71 个节点**，分属 11 个类别：
+共 **88 个节点**，分属 13 个类别：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
 | ComfyDL/Device Utils | 3 | GPU/CPU 设备查询 |
 | ComfyDL/CV Models | 5 | CNN 基础与模型构建 |
 | ComfyDL/GAN | 2 | GAN 训练更新 |
+| ComfyDL/Image Tools | 9 | 缩放、归一化、翻转、旋转、裁剪、调整、模糊与统计 |
 | ComfyDL/Misc | 2 | Windows MessageBox 和 NoOp 空操作 |
+| ComfyDL/Model Utils | 8 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
 | ComfyDL/NLP Utils | 5 | 文本分词与词表 |
 | ComfyDL/Tensor Basic | 7 | 张量 I/O、卷积、转置、广播、激活函数 |
 | ComfyDL/TorchOps | 10 | 损失、优化、评估指标 |
