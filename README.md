@@ -9,7 +9,7 @@
 
 ## What's This?
 
-**ComfyDL** lets you build deep learning workflows — from CNNs to BERT — by connecting nodes in ComfyUI, not by writing code. Powered by the `d2l` codebase, it's visual, educational, and great for rapid prototyping. Drag, connect, and see results instantly.
+**ComfyDL** lets you build deep learning workflows — from CNNs to BERT and beyond — by connecting nodes in ComfyUI, not by writing code. Built on a foundation inspired by the `d2l` codebase, it keeps evolving as we develop more useful nodes — visual, educational, and great for rapid prototyping. Drag, connect, and see results instantly.
 
 ---
 
@@ -60,7 +60,7 @@ ComfyDL provides **71 nodes** across 11 categories:
 
 ```
 ComfyDL/
-├── src/d2lcore/     # D2L core implementation (torch.py, ...)
+├── src/d2lcore/     # D2L-inspired core implementation — a reference layer (torch.py, ...)
 ├── nodes/           # ComfyUI node definitions (thin mapping layer)
 └── example_workflows/  # Sample workflow JSONs
 ```
@@ -79,7 +79,7 @@ This project is licensed under the **MIT License** — see the [LICENSE](./LICEN
 
 ComfyDL stands on the shoulders of the incredible **`d2l`** (Dive into Deep Learning) community.
 
-- **Codebase:** We heavily reference and adapt implementations from the [`d2l-pytorch`](https://github.com/dsgiitr/d2l-pytorch) repository. Its clear, textbook-grade code serves as the backbone for many of our nodes. We are deeply grateful to all contributors who made this resource available under the permissive **MIT-0** license.
+- **Codebase:** We heavily reference and adapt implementations from the [`d2l-pytorch`](https://github.com/dsgiitr/d2l-pytorch) repository. Its clear, textbook-grade code serves as a high-quality reference and starting point for many of our nodes — and continues to guide the development of new ones. We are deeply grateful to all contributors who made this resource available under the permissive **MIT-0** license.
 - **Inspiration:** The design and pedagogical philosophy behind this project are fundamentally inspired by the book **《Dive into Deep Learning》** (《动手学深度学习》PyTorch版), which offers one of the most accessible and practical paths to mastering deep learning.
 
 This project would not exist without their vision and generosity. We encourage everyone to explore the original book and repository:

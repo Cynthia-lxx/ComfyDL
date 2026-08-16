@@ -2,7 +2,7 @@
 
 > [中文版 / 中文版本](FUNCTIONS_zh.md)
 
-This document details every custom node in ComfyDL: what it does, its inputs, and its outputs.
+This document details every custom node in ComfyDL: what it does, its inputs, and its outputs. The node suite began as a mapping of the `d2l` textbook codebase and keeps growing with self-developed nodes beyond it.
 
 ---
 
