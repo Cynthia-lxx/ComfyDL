@@ -1,0 +1,38 @@
+name: CI
+
+# Emulates the README deployment path (clone into ComfyUI custom_nodes +
+# pip install -r requirements.txt) on a clean runner, then verifies that
+# all nodes import/register and that example workflows reference only
+# registered node types.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Verify node registration & workflows
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          # ComfyUI normally provides torch; install the CPU wheel here so the
+          # plugin can be imported on a headless CI runner.
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt numpy pillow
+
+      - name: Verify
+        run: python .github/scripts/verify_nodes.py
