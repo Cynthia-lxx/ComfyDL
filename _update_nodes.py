@@ -1,7 +1,7 @@
 import os
 import glob
 
-nodes_dir = r'c:\Users\11252\Desktop\ComfyDL_Refs\ComfyDL\nodes'
+nodes_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nodes')
 
 replacements = [
     ('CATEGORY = "d2lcore/', 'CATEGORY = "ComfyDL/'),

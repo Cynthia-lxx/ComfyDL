@@ -36,22 +36,36 @@
 
 ## Function Overview
 
-ComfyDL provides **71 nodes** across 10 categories:
+ComfyDL provides **71 nodes** across 11 categories:
 
-| Category | Nodes | Examples |
+| Category | Count | Description |
 |---|---|---|
-| **CV Models** | 5 | LeNet, ResNet-18, ResNeXt block, 2D convolution |
-| **NLP Utils** | 5 | Tokenization, vocabulary build/encode/decode |
-| **Object Detection** | 10 | Box IOU / NMS, anchor generation, multibox target/detection |
-| **Semantic Segmentation** | 4 | VOC colormap, label mapping, random crop |
-| **Tensor Ops** | 17 | Linear regression, masked softmax, accuracy, BLEU, SGD, conv2d, transpose, activation |
-| **Visualization** | 13 | Plot, charts (bar/pie/scatter/histogram/area), heatmaps, image grid, bounding boxes |
-| **Datasets** | 10 | Fashion-MNIST, Bananas, VOC, download, DataLoader preview & stats |
-| **GAN** | 2 | Discriminator / generator update steps |
-| **Device Utils** | 3 | GPU info, try GPU(s) |
-| **Misc** | 2 | Message box, no-op pass-through |
+| **CV Models** | 5 | CNN fundamentals & model construction |
+| **Datasets** | 10 | Dataset download, load, preview & stats |
+| **Device Utils** | 3 | GPU/CPU device utilities |
+| **GAN** | 2 | GAN training updates |
+| **Misc** | 2 | Windows MessageBox & NoOp pass-through |
+| **NLP Utils** | 5 | Text tokenization & vocabularies |
+| **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
+| **Segmentation** | 4 | VOC semantic segmentation tools |
+| **Tensor Basic** | 7 | Tensor I/O, conv, transpose, broadcast, activation |
+| **TorchOps** | 10 | Loss, optimization, metrics |
+| **Visualization** | 13 | Plots, charts & bounding box visualization |
 
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).
+
+---
+
+## Repository Layout
+
+```
+ComfyDL/
+├── src/d2lcore/     # D2L core implementation (torch.py, ...)
+├── nodes/           # ComfyUI node definitions (thin mapping layer)
+└── example_workflows/  # Sample workflow JSONs
+```
+
+> **Note:** A mirror copy of `src/d2lcore/` also exists at the repository root as `d2lcore/` (outside the plugin folder). They must be kept in sync whenever the D2L core logic is modified.
 
 ---
 

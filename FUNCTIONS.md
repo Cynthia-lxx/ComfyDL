@@ -539,7 +539,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 8. ComfyDL / ObjectDetection (9 nodes)
+## 8. ComfyDL / ObjectDetection (10 nodes)
 
 ### Box Corner→Center
 - **Class**: `CdlBoxCornerToCenter`
@@ -1136,7 +1136,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**68 nodes** across 11 categories:
+**71 nodes** across 11 categories:
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1147,7 +1147,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | ComfyDL/NLP Utils | 5 | Text tokenization & vocabularies |
 | ComfyDL/Tensor Basic | 7 | Tensor I/O, conv, transpose, broadcast, activation |
 | ComfyDL/TorchOps | 10 | Loss, optimization, metrics |
-| ComfyDL/ObjectDetection | 9 | Anchor boxes, IoU, NMS |
+| ComfyDL/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | ComfyDL/Segmentation | 4 | VOC semantic segmentation tools |
 | ComfyDL/Visualization | 13 | Plots, charts & bounding box visualization |
 | ComfyDL/Datasets | 10 | Dataset download, loading, preview, and statistics |

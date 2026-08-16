@@ -1,0 +1,360 @@
+{
+  "version": 0.4,
+  "last_node_id": 7,
+  "last_link_id": 7,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CdlSyntheticData",
+      "pos": [
+        50,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "X",
+          "type": "cdlTensor",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "y",
+          "type": "cdlTensor",
+          "links": [
+            2
+          ],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlSyntheticData"
+      },
+      "widgets_values": [
+        4,
+        200,
+        0.01,
+        42
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CdlLoadArray",
+      "pos": [
+        420,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "features",
+          "type": "cdlTensor",
+          "link": 1
+        },
+        {
+          "name": "labels",
+          "type": "cdlTensor",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "links": [
+            3,
+            4,
+            5,
+            7
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlLoadArray"
+      },
+      "widgets_values": [
+        32,
+        true
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CdlDataLoaderInfo",
+      "pos": [
+        790,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "num_batches",
+          "type": "INT",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "dataset_size",
+          "type": "INT",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderInfo"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 4,
+      "type": "CdlDataLoaderPreview",
+      "pos": [
+        790,
+        300
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderPreview"
+      },
+      "widgets_values": [
+        3,
+        4,
+        32
+      ]
+    },
+    {
+      "id": 5,
+      "type": "CdlDataLoaderPreviewOutput",
+      "pos": [
+        790,
+        550
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderPreviewOutput"
+      },
+      "widgets_values": [
+        2,
+        2,
+        32
+      ]
+    },
+    {
+      "id": 6,
+      "type": "CdlShowImagesOutput",
+      "pos": [
+        1160,
+        800
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "CdlShowImagesOutput"
+      },
+      "widgets_values": [
+        1,
+        1,
+        1.5
+      ]
+    },
+    {
+      "id": 7,
+      "type": "CdlDataLoaderStats",
+      "pos": [
+        790,
+        800
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "stats_text",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "stats_image",
+          "type": "IMAGE",
+          "links": [
+            6
+          ],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderStats"
+      },
+      "widgets_values": [
+        4
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "cdlTensor"
+    ],
+    [
+      2,
+      1,
+      1,
+      2,
+      1,
+      "cdlTensor"
+    ],
+    [
+      3,
+      2,
+      0,
+      3,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      4,
+      2,
+      0,
+      4,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      5,
+      2,
+      0,
+      5,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      6,
+      7,
+      1,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      2,
+      0,
+      7,
+      0,
+      "cdlDataloader"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.35,
+      "offset": [
+        20,
+        20
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "test"
+    }
+  }
+}

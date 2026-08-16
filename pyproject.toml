@@ -1,0 +1,19 @@
+[project]
+name = "ComfyDL"
+description = "ComfyUI custom nodes for Deep Learning (D2L): build CNN-to-BERT workflows by connecting nodes, no code required."
+version = "1.0.0"
+license = "MIT"
+
+[project.urls]
+Repository = "https://github.com/Cynthia-lxx/ComfyDL"
+#  Used by Comfy Registry https://registry.comfy.org
+
+[tool.comfy]
+# TODO: 请填入你的 Comfy Registry 发布者 ID（见 https://registry.comfy.org）
+PublisherId = ""
+DisplayName = "ComfyDL"
+# TODO: 可选，如需发布可填写图标文件路径（如 "icon.png"）
+Icon = ""
+includes = [] 
+# "requires-comfyui" = ">=1.0.0"  # ComfyUI version compatibility
+

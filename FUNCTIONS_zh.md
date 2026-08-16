@@ -539,7 +539,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 8. ComfyDL / ObjectDetection（9 个节点）
+## 8. ComfyDL / ObjectDetection（10 个节点）
 
 ### Box Corner→Center
 - **类名**：`CdlBoxCornerToCenter`
@@ -1136,7 +1136,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **68 个节点**，分属 11 个类别：
+共 **71 个节点**，分属 11 个类别：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1147,7 +1147,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | ComfyDL/NLP Utils | 5 | 文本分词与词表 |
 | ComfyDL/Tensor Basic | 7 | 张量 I/O、卷积、转置、广播、激活函数 |
 | ComfyDL/TorchOps | 10 | 损失、优化、评估指标 |
-| ComfyDL/ObjectDetection | 9 | 锚框、IoU、NMS |
+| ComfyDL/ObjectDetection | 10 | 锚框、IoU、NMS |
 | ComfyDL/Segmentation | 4 | VOC 语义分割工具 |
 | ComfyDL/Visualization | 13 | 图表与边界框可视化 |
 | ComfyDL/Datasets | 10 | 数据集下载、加载、预览与统计 |

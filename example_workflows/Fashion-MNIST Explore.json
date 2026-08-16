@@ -1,0 +1,263 @@
+{
+  "version": 0.4,
+  "last_node_id": 5,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CdlFashionMNIST",
+      "pos": [
+        50,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "train_loader",
+          "type": "cdlDataloader",
+          "links": [
+            1,
+            2,
+            4
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "test_loader",
+          "type": "cdlDataloader",
+          "links": [
+            3
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "class_names",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlFashionMNIST"
+      },
+      "widgets_values": [
+        64,
+        28
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CdlDataLoaderInfo",
+      "pos": [
+        400,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "num_batches",
+          "type": "INT",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "dataset_size",
+          "type": "INT",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderInfo"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 3,
+      "type": "CdlDataLoaderPreview",
+      "pos": [
+        400,
+        300
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderPreview"
+      },
+      "widgets_values": [
+        2,
+        4,
+        32
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CdlDataLoaderPreviewOutput",
+      "pos": [
+        400,
+        550
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderPreviewOutput"
+      },
+      "widgets_values": [
+        2,
+        4,
+        32
+      ]
+    },
+    {
+      "id": 5,
+      "type": "CdlDataLoaderStats",
+      "pos": [
+        400,
+        800
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "stats_text",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "stats_image",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderStats"
+      },
+      "widgets_values": [
+        10,
+        ""
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      2,
+      1,
+      0,
+      3,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      3,
+      1,
+      1,
+      4,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      4,
+      1,
+      0,
+      5,
+      0,
+      "cdlDataloader"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.35,
+      "offset": [
+        20,
+        20
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "test"
+    }
+  }
+}
