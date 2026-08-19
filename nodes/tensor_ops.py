@@ -283,8 +283,8 @@ class CdlBleu:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "pred_seq": ("STRING", {"default": "", "multiline": True}),
-                "label_seq": ("STRING", {"default": "", "multiline": True}),
+                "pred_seq": ("STRING", {"default": "the quick brown", "multiline": True}),
+                "label_seq": ("STRING", {"default": "the quick brown fox", "multiline": True}),
                 "max_n": ("INT", {"default": 4, "min": 1, "max": 4, "step": 1}),
             }
         }

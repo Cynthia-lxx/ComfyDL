@@ -35,7 +35,7 @@
 
 ## 功能概览
 
-ComfyDL 提供 **88 个节点**，涵盖 13 个类别：
+ComfyDL 提供 **106 个节点**，涵盖 14 个类别：
 
 | 类别 | 节点数 | 说明 |
 |---|---|---|
@@ -44,12 +44,13 @@ ComfyDL 提供 **88 个节点**，涵盖 13 个类别：
 | **设备工具** | 3 | GPU/CPU 设备查询 |
 | **GAN** | 2 | GAN 训练更新 |
 | **图像工具** | 9 | 缩放、归一化、翻转、旋转、裁剪、调整、模糊与统计 |
-| **杂项** | 2 | Windows MessageBox 和 NoOp 空操作 |
+| **杂项** | 3 | Windows MessageBox、NoOp 空操作与计时 |
 | **模型工具** | 8 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
+| **NLP 模型** | 16 | RNN/GRU/RNNLM、注意力与 Seq2Seq 模型构件 |
 | **NLP 工具** | 5 | 文本分词与词表 |
 | **目标检测** | 10 | 锚框、IoU、NMS |
 | **语义分割** | 4 | VOC 语义分割工具 |
-| **张量基础** | 7 | 张量 I/O、卷积、转置、广播、激活函数 |
+| **张量基础** | 8 | 张量 I/O、卷积、转置、广播、重塑、激活函数 |
 | **张量运算** | 10 | 损失、优化、评估指标 |
 | **可视化** | 13 | 图表与边界框可视化 |
 
@@ -63,7 +64,8 @@ ComfyDL 提供 **88 个节点**，涵盖 13 个类别：
 ComfyDL/
 ├── src/d2lcore/     # 受 D2L 启发的核心实现——参考层（torch.py 等）
 ├── nodes/           # ComfyUI 节点定义（薄映射层）
-│                    #   含自主开发的 model_utils.py 与 image_tools.py
+│                    #   含自主开发的 model_utils.py、image_tools.py 及
+│                    #   NLP 模型包装（model_nlp.py、model_attention.py、model_seq2seq.py）
 └── example_workflows/  # 示例工作流 JSON
 ```
 

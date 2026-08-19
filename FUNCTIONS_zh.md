@@ -178,7 +178,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 4. ComfyDL / Misc（2 个节点）
+## 4. ComfyDL / Misc（3 个节点）
 
 ### MessageBox
 - **类名**：`CdlMessageBox`
@@ -206,6 +206,21 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
   | `any_input` | `*` | — | 通配输入（可选），接受任意类型数据——直接丢弃 |
 - **输出**：无
 
+### Timer（计时基准）
+- **类名**：`CdlTimer`
+- **功能**：对张量操作进行基准测试——在预热 3 次后运行 `num_iters` 次并报告总耗时与平均耗时。支持 `sum`、`mean`、`abs`、`sqrt`、`neg`。当张量位于 GPU 时，计时前后会执行 CUDA 同步。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `operation` | `COMBO` | `sum` | 计时操作：sum / mean / abs / sqrt / neg |
+  | `num_iters` | `INT` | 10 | 计时迭代次数（1~100000） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `report` | `STRING` | 人类可读的计时报告 |
+  | `avg_seconds` | `FLOAT` | 平均每次迭代秒数 |
+
 ---
 
 ## 5. ComfyDL / NLP Utils（5 个节点）
@@ -217,7 +232,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `text` | `STRING` | `""` | 输入文本，每行一个句子（多行） |
+  | `text` | `STRING` | `"the quick brown fox\njumps over the lazy dog"` | 输入文本，每行一个句子（多行） |
   | `token_mode` | `COMBO` | `word` | 分词模式：`word`（按空白符分词）/ `char`（字符级分词） |
 - **输出**：
   | 名称 | 类型 | 说明 |
@@ -231,8 +246,8 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tokens_a` | `STRING` | `""` | A 段，逗号分隔的 token（多行） |
-  | `tokens_b` | `STRING` | `""` | B 段，逗号分隔的 token（可选，多行） |
+  | `tokens_a` | `STRING` | `"the,quick,brown,fox"` | A 段，逗号分隔的 token（多行） |
+  | `tokens_b` | `STRING` | `"jumps,over"` | B 段，逗号分隔的 token（可选，多行） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -246,7 +261,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tokens_text` | `STRING` | `""` | Token 文本，每行一个或逗号分隔（多行） |
+  | `tokens_text` | `STRING` | `"the quick\nbrown fox\nthe lazy dog"` | Token 文本，每行一个或逗号分隔（多行） |
   | `min_freq` | `INT` | 1 | 最小频率阈值（1~100000） |
   | `reserved_tokens` | `STRING` | `"<pad>,<bos>,<eos>"` | 保留 token，逗号分隔 |
 - **输出**：
@@ -260,10 +275,10 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **d2lcore 函数**：`Vocab.__getitem__(tokens)`
 - **功能**：使用词表将 token 字符串转换为索引张量。词表中不存在的 token 映射为 `<unk>` 索引。
 - **输入**：
-  | 名称 | 类型 | 说明 |
-  |------|------|------|
-  | `vocab` | `cdlVocab` | 词表字典 |
-  | `tokens` | `STRING` | 逗号分隔的 token 序列（多行） |
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `vocab` | `cdlVocab` | — | 词表字典 |
+  | `tokens` | `STRING` | `"the,quick,brown"` | 逗号分隔的 token 序列（多行） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -285,7 +300,256 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 6. ComfyDL / Tensor Basic（7 个节点）
+## 6. ComfyDL / NLP Models（16 个节点）
+
+NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer 与 Seq2Seq 构件。所有构建器都返回 `cdlModel`，可接入 `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` 等节点进行查看与推理。RNN/GRU 前向输入为时间优先 `(num_steps, batch_size, num_inputs)`；注意力模块与 Transformer 编码器为批次优先。
+
+### RNN（从头实现）
+- **类名**：`CdlRNNScratch`
+- **d2lcore 函数**：`RNNScratch(num_inputs, num_hiddens, sigma)`
+- **功能**：从头构建 RNN（tanh 单元、手动创建参数）。前向输入形状 `(num_steps, batch_size, num_inputs)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `num_inputs` | `INT` | 32 | 输入特征维度（语言模型中为词表大小）（1~100000） |
+  | `num_hiddens` | `INT` | 64 | 隐藏单元数（1~4096） |
+  | `sigma` | `FLOAT` | 0.01 | 随机参数初始化标准差（0.0001~1） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | RNNScratch 实例 |
+
+### RNN（高层封装）
+- **类名**：`CdlRNN`
+- **d2lcore 函数**：`RNN(num_inputs, num_hiddens)`
+- **功能**：使用 PyTorch 高层 `nn.RNN` 构建 RNN。前向输入 `(num_steps, batch_size, num_inputs)`，返回 `(output, h_n)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `num_inputs` | `INT` | 32 | 输入特征维度（1~100000） |
+  | `num_hiddens` | `INT` | 64 | 隐藏单元数（1~4096） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | RNN 实例 |
+
+### GRU
+- **类名**：`CdlGRU`
+- **d2lcore 函数**：`GRU(num_inputs, num_hiddens, num_layers, dropout)`
+- **功能**：使用 PyTorch 高层 `nn.GRU` 构建多层 GRU。前向输入 `(num_steps, batch_size, num_inputs)`，返回 `(output, h_n)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `num_inputs` | `INT` | 32 | 输入特征维度（1~100000） |
+  | `num_hiddens` | `INT` | 64 | 每层隐藏单元数（1~4096） |
+  | `num_layers` | `INT` | 1 | GRU 层数（1~20） |
+  | `dropout` | `FLOAT` | 0.0 | 层间 dropout（0~0.9） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | GRU 实例 |
+
+### RNN 语言模型（从头实现）
+- **类名**：`CdlRNNLMScratch`
+- **d2lcore 函数**：`RNNLMScratch(rnn, vocab_size, lr)`
+- **功能**：将 RNN/GRU `cdlModel`（要求 `num_inputs == vocab_size`）包装为从头实现的语言模型，输出投影到 `vocab_size` 个类别。前向输入索引张量 `(batch_size, num_steps)`，返回 logits `(num_steps, batch_size, vocab_size)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `rnn` | `cdlModel` | — | 满足 `num_inputs == vocab_size` 的 RNN/GRU cdlModel |
+  | `vocab_size` | `INT` | 32 | 输出投影的词表大小（2~100000） |
+  | `lr` | `FLOAT` | 0.01 | 训练时使用的学习率（0.0001~1） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | RNNLMScratch 实例 |
+
+### RNN 语言模型（高层封装）
+- **类名**：`CdlRNNLM`
+- **d2lcore 函数**：`RNNLM(rnn, vocab_size, lr)`
+- **功能**：将 RNN/GRU `cdlModel` 包装为使用高层 `LazyLinear` 头的语言模型，接口与从头版本一致。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `rnn` | `cdlModel` | — | 满足 `num_inputs == vocab_size` 的 RNN/GRU cdlModel |
+  | `vocab_size` | `INT` | 32 | 输出投影的词表大小（2~100000） |
+  | `lr` | `FLOAT` | 0.01 | 训练时使用的学习率（0.0001~1） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | RNNLM 实例 |
+
+### RNN LM 预测
+- **类名**：`CdlRNNLMScratchPredict`
+- **d2lcore 函数**：`RNNLMScratch.predict(prefix, num_preds, vocab, device)`
+- **功能**：给定起始前缀，用 RNN 语言模型生成文本。接受 `cdlVocab` 字典（来自 `CdlVocabBuild`），返回前缀加上 `num_preds` 个预测 token。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `model` | `cdlModel` | — | RNNLMScratch / RNNLM cdlModel |
+  | `vocab` | `cdlVocab` | — | 来自 `CdlVocabBuild` 的词表字典 |
+  | `prefix` | `STRING` | `"the "` | 起始 token，如 `"the "` |
+  | `num_preds` | `INT` | 10 | 前缀之后预测的 token 数（1~1000） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `prediction` | `STRING` | 前缀加上预测出的 token |
+
+### 点积注意力
+- **类名**：`CdlDotProductAttention`
+- **d2lcore 函数**：`DotProductAttention(dropout)`
+- **功能**：构建缩放点积注意力层。前向 `(queries, keys, values, valid_lens)`，批次优先张量 `(batch, seq, num_hiddens)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `dropout` | `FLOAT` | 0.0 | 注意力权重上的 dropout（0~0.9） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 注意力层 |
+
+### 加性注意力
+- **类名**：`CdlAdditiveAttention`
+- **d2lcore 函数**：`AdditiveAttention(num_hiddens, dropout)`
+- **功能**：构建加性（Bahdanau）注意力层。前向 `(queries, keys, values, valid_lens)`，批次优先张量。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `num_hiddens` | `INT` | 8 | 加性评分函数的隐藏单元数（1~4096） |
+  | `dropout` | `FLOAT` | 0.0 | 注意力权重上的 dropout（0~0.9） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 注意力层 |
+
+### 多头注意力
+- **类名**：`CdlMultiHeadAttention`
+- **d2lcore 函数**：`MultiHeadAttention(num_hiddens, num_heads, dropout, bias)`
+- **功能**：构建多头注意力层。`num_hiddens` 必须能被 `num_heads` 整除。前向 `(queries, keys, values, valid_lens)`，批次优先张量。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `num_hiddens` | `INT` | 8 | 模型宽度；需能被 `num_heads` 整除（1~4096） |
+  | `num_heads` | `INT` | 4 | 并行注意力头数（1~64） |
+  | `dropout` | `FLOAT` | 0.0 | 注意力权重上的 dropout（0~0.9） |
+  | `use_bias` | `BOOLEAN` | False | Q/K/V/O 投影是否使用偏置 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 多头注意力层 |
+
+### 位置编码
+- **类名**：`CdlPositionalEncoding`
+- **d2lcore 函数**：`PositionalEncoding(num_hiddens, dropout, max_len)`
+- **功能**：构建正弦位置编码层。前向 `X` 形状 `(batch, seq, num_hiddens)`，为输入添加位置信息。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `num_hiddens` | `INT` | 16 | 模型宽度（特征维度）（1~4096） |
+  | `dropout` | `FLOAT` | 0.0 | 添加编码后的 dropout（0~0.9） |
+  | `max_len` | `INT` | 1000 | 最大支持序列长度（1~100000） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 位置编码层 |
+
+### 位置逐元素 FFN
+- **类名**：`CdlPositionWiseFFN`
+- **d2lcore 函数**：`PositionWiseFFN(ffn_num_hiddens, ffn_num_outputs)`
+- **功能**：构建位置逐元素前馈网络（两个全连接层 + ReLU），对每个位置独立应用。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `ffn_num_hiddens` | `INT` | 64 | 内层全连接的隐藏单元数（1~16384） |
+  | `ffn_num_outputs` | `INT` | 16 | 输出单元数，通常等于 `num_hiddens`（1~16384） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | FFN 模块 |
+
+### 残差 + 层归一化（Add & Norm）
+- **类名**：`CdlAddNorm`
+- **d2lcore 函数**：`AddNorm(norm_shape, dropout)`
+- **功能**：构建残差连接后接层归一化：`LayerNorm(dropout(Y) + X)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `norm_shape` | `INT` | 16 | LayerNorm 的特征维度（1~16384） |
+  | `dropout` | `FLOAT` | 0.0 | 残差分支上的 dropout（0~0.9） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | Add & Norm 模块 |
+
+### Transformer 编码器块
+- **类名**：`CdlTransformerEncoderBlock`
+- **d2lcore 函数**：`TransformerEncoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias)`
+- **功能**：构建单个 Transformer 编码器块（多头注意力 + FFN，含残差与层归一化）。前向 `(X, valid_lens)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `num_hiddens` | `INT` | 8 | 模型宽度；需能被 `num_heads` 整除（1~4096） |
+  | `ffn_num_hiddens` | `INT` | 64 | 位置逐元素 FFN 的隐藏单元数（1~16384） |
+  | `num_heads` | `INT` | 4 | 注意力头数（1~64） |
+  | `dropout` | `FLOAT` | 0.0 | dropout 概率（0~0.9） |
+  | `use_bias` | `BOOLEAN` | False | 注意力投影是否使用偏置 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | Transformer 编码器块 |
+
+### Transformer 编码器
+- **类名**：`CdlTransformerEncoder`
+- **d2lcore 函数**：`TransformerEncoder(vocab_size, num_hiddens, ffn_num_hiddens, num_heads, num_blks, dropout, use_bias)`
+- **功能**：构建完整 Transformer 编码器（嵌入 + 位置编码 + `num_blks` 个堆叠块）。前向 `(X, valid_lens)`，`X` 为 token 索引 `(batch, seq)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `vocab_size` | `INT` | 32 | 输入嵌入的词表大小（2~100000） |
+  | `num_hiddens` | `INT` | 8 | 模型宽度；需能被 `num_heads` 整除（1~4096） |
+  | `ffn_num_hiddens` | `INT` | 64 | 位置逐元素 FFN 的隐藏单元数（1~16384） |
+  | `num_heads` | `INT` | 4 | 注意力头数（1~64） |
+  | `num_blks` | `INT` | 2 | 堆叠编码器块数（1~50） |
+  | `dropout` | `FLOAT` | 0.0 | dropout 概率（0~0.9） |
+  | `use_bias` | `BOOLEAN` | False | 注意力投影是否使用偏置 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | Transformer 编码器 |
+
+### Seq2Seq 编码器
+- **类名**：`CdlSeq2SeqEncoder`
+- **d2lcore 函数**：`Seq2SeqEncoder(vocab_size, embed_size, num_hiddens, num_layers, dropout)`
+- **功能**：构建序列到序列学习的 RNN 编码器（嵌入 + 多层 GRU）。前向 `X` 为 token 索引 `(batch, num_steps)`，返回 `(outputs, state)`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `vocab_size` | `INT` | 32 | 源嵌入的词表大小（2~100000） |
+  | `embed_size` | `INT` | 16 | 嵌入维度（1~4096） |
+  | `num_hiddens` | `INT` | 16 | 每层 GRU 的隐藏单元数（1~4096） |
+  | `num_layers` | `INT` | 2 | GRU 层数（1~20） |
+  | `dropout` | `FLOAT` | 0.0 | GRU 层间 dropout（0~0.9） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | Seq2Seq 编码器 |
+
+### 初始化 Seq2Seq 权重
+- **类名**：`CdlInitSeq2Seq`
+- **d2lcore 函数**：`init_seq2seq(module)`
+- **功能**：原地应用 Xavier 均匀分布权重初始化。`nn.Linear` 与 `nn.GRU` 层会被初始化，其余层保持不变。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 任意待初始化的 `nn.Module` |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `cdlModel` | 原地初始化后的同一模型 |
+
+---
+
+## 7. ComfyDL / Tensor Basic（8 个节点）
 
 ### Tensor → String
 - **类名**：`CdlTensorToStr`
@@ -384,9 +648,27 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
   |------|------|------|
   | `output` | `cdlTensor` | 激活后的张量 |
 
+### Random Tensor（随机张量）
+- **类名**：`CdlRandomTensor`
+- **功能**：按所选分布（`normal`、`uniform`、`randint`）生成随机张量。`seed >= 0` 固定随机种子以保证结果可复现；`-1` 表示不固定。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `shape` | `STRING` | `"4,4"` | 输出形状，逗号分隔的维度（如 `"4,4"`） |
+  | `dist` | `COMBO` | `normal` | 分布：normal / uniform / randint |
+  | `mean` | `FLOAT` | 0.0 | `normal` 的均值 |
+  | `std` | `FLOAT` | 1.0 | `normal` 的标准差 |
+  | `low` | `FLOAT` | 0.0 | `uniform` / `randint` 的下界（包含） |
+  | `high` | `FLOAT` | 1.0 | `uniform` / `randint` 的上界（不包含） |
+  | `seed` | `INT` | -1 | 随机种子（>= 0 固定 RNG，-1 = 随机） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `tensor` | `cdlTensor` | 指定形状的随机张量 |
+
 ---
 
-## 7. ComfyDL / TorchOps（10 个节点）
+## 8. ComfyDL / TorchOps（10 个节点）
 
 ### Linear Regression
 - **类名**：`CdlLinReg`
@@ -500,8 +782,8 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `pred_seq` | `STRING` | `""` | 预测序列，空白符分隔的 token（多行） |
-  | `label_seq` | `STRING` | `""` | 参考序列，空白符分隔的 token（多行） |
+  | `pred_seq` | `STRING` | `"the quick brown"` | 预测序列，空白符分隔的 token（多行） |
+  | `label_seq` | `STRING` | `"the quick brown fox"` | 参考序列，空白符分隔的 token（多行） |
   | `max_n` | `INT` | 4 | 最大 n-gram 阶数（1~4） |
 - **输出**：
   | 名称 | 类型 | 说明 |
@@ -539,7 +821,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 8. ComfyDL / ObjectDetection（10 个节点）
+## 9. ComfyDL / ObjectDetection（10 个节点）
 
 ### Box Corner→Center
 - **类名**：`CdlBoxCornerToCenter`
@@ -690,7 +972,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 9. ComfyDL / Segmentation（4 个节点）
+## 10. ComfyDL / Segmentation（4 个节点）
 
 ### VOC Classes
 - **类名**：`CdlVocClasses`
@@ -751,7 +1033,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 10. ComfyDL / Visualization（13 个节点）
+## 11. ComfyDL / Visualization（13 个节点）
 
 可视化节点采用"双变体"设计模式：带 `(Output)` 后缀的版本是 ComfyUI 输出节点（直接在界面中显示交互式图表），不带后缀的版本将图表渲染为 `IMAGE` 张量，供下游节点使用。
 
@@ -979,7 +1261,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 11. ComfyDL / Datasets（10 个节点）
+## 12. ComfyDL / Datasets（10 个节点）
 
 数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。
 
@@ -1128,7 +1410,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 12. ComfyDL / Model Utils（8 个节点）
+## 13. ComfyDL / Model Utils（8 个节点）
 
 自主开发的模型实用工具节点（非 d2l 内容）。用于在工作流中直接检查、切换、运行、克隆与持久化 PyTorch 模型。所有节点操作 `cdlModel` 类型（任意 `nn.Module` 实例）。
 
@@ -1236,7 +1518,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 13. ComfyDL / Image Tools（9 个节点）
+## 14. ComfyDL / Image Tools（9 个节点）
 
 自主开发的通用 CV 图像节点（非 d2l 内容）。所有节点消费并产出 ComfyUI 原生 `IMAGE` 格式——float32 `[B, H, W, C]`，值域 `[0, 1]`——用 `torch` + `torchvision.transforms.functional` 实现。例外：Image Normalize（图像归一化）故意不将输出裁剪到 `[0, 1]`（z-score 值域）。
 
@@ -1374,7 +1656,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **88 个节点**，分属 13 个类别：
+共 **106 个节点**，分属 14 个类别：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1382,10 +1664,11 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | ComfyDL/CV Models | 5 | CNN 基础与模型构建 |
 | ComfyDL/GAN | 2 | GAN 训练更新 |
 | ComfyDL/Image Tools | 9 | 缩放、归一化、翻转、旋转、裁剪、调整、模糊与统计 |
-| ComfyDL/Misc | 2 | Windows MessageBox 和 NoOp 空操作 |
+| ComfyDL/Misc | 3 | Windows MessageBox、NoOp 空操作与计时 |
 | ComfyDL/Model Utils | 8 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
+| ComfyDL/NLP Models | 16 | RNN/GRU/RNNLM、注意力与 Seq2Seq 模型构件 |
 | ComfyDL/NLP Utils | 5 | 文本分词与词表 |
-| ComfyDL/Tensor Basic | 7 | 张量 I/O、卷积、转置、广播、激活函数 |
+| ComfyDL/Tensor Basic | 8 | 张量 I/O、卷积、转置、广播、重塑、激活函数 |
 | ComfyDL/TorchOps | 10 | 损失、优化、评估指标 |
 | ComfyDL/ObjectDetection | 10 | 锚框、IoU、NMS |
 | ComfyDL/Segmentation | 4 | VOC 语义分割工具 |

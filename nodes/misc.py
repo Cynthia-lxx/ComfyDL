@@ -8,6 +8,9 @@ Nodes:
 
 import ctypes
 import threading
+import time
+
+import torch
 
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
@@ -145,3 +148,56 @@ NODE_CLASS_MAPPINGS["CdlMessageBox"] = CdlMessageBox
 NODE_DISPLAY_NAME_MAPPINGS["CdlMessageBox"] = "MessageBox"
 NODE_CLASS_MAPPINGS["CdlNoOp"] = CdlNoOp
 NODE_DISPLAY_NAME_MAPPINGS["CdlNoOp"] = "NoOp"
+
+
+_OP_FUNCS = {
+    "sum": lambda t: t.sum(),
+    "mean": lambda t: t.mean(),
+    "abs": lambda t: t.abs(),
+    "sqrt": lambda t: t.sqrt(),
+    "neg": lambda t: t.neg(),
+}
+
+
+class CdlTimer:
+    """Benchmark a tensor operation: run it num_iters times and report timing.
+
+    A short warm-up run happens first to stabilize timing. Returns a human
+    readable report (STRING) and the average seconds per iteration (FLOAT).
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "tensor": ("cdlTensor",),
+                "operation": (list(_OP_FUNCS.keys()), {"default": "sum"}),
+                "num_iters": ("INT", {"default": 10, "min": 1, "max": 100000, "step": 1}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "FLOAT")
+    RETURN_NAMES = ("report", "avg_seconds")
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Misc"
+
+    def execute(self, tensor, operation, num_iters):
+        fn = _OP_FUNCS[operation]
+        for _ in range(3):  # warm-up
+            fn(tensor)
+        if tensor.is_cuda:
+            torch.cuda.synchronize()
+        t0 = time.perf_counter()
+        for _ in range(max(1, num_iters)):
+            fn(tensor)
+        if tensor.is_cuda:
+            torch.cuda.synchronize()
+        dt = time.perf_counter() - t0
+        avg = dt / max(1, num_iters)
+        report = (f'{operation}: {num_iters} iters, '
+                  f'total {dt:.4f} s, avg {avg:.6f} s/it')
+        return (report, avg)
+
+
+NODE_CLASS_MAPPINGS["CdlTimer"] = CdlTimer
+NODE_DISPLAY_NAME_MAPPINGS["CdlTimer"] = "Timer (Benchmark)"

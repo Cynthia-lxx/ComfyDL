@@ -26,7 +26,7 @@ class CdlTokenize:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "text": ("STRING", {"default": "", "multiline": True, "placeholder": "Input text, one sentence per line"}),
+                "text": ("STRING", {"default": "the quick brown fox\njumps over the lazy dog", "multiline": True, "placeholder": "Input text, one sentence per line"}),
                 "token_mode": (["word", "char"], {"default": "word"}),
             }
         }
@@ -63,10 +63,10 @@ class CdlGetTokensAndSegments:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tokens_a": ("STRING", {"default": "", "multiline": True, "placeholder": "comma-separated tokens for segment A"}),
+                "tokens_a": ("STRING", {"default": "the,quick,brown,fox", "multiline": True, "placeholder": "comma-separated tokens for segment A"}),
             },
             "optional": {
-                "tokens_b": ("STRING", {"default": "", "multiline": True, "placeholder": "comma-separated tokens for segment B (optional)"}),
+                "tokens_b": ("STRING", {"default": "jumps,over", "multiline": True, "placeholder": "comma-separated tokens for segment B (optional)"}),
             }
         }
 
@@ -102,7 +102,7 @@ class CdlVocabBuild:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tokens_text": ("STRING", {"default": "", "multiline": True,
+                "tokens_text": ("STRING", {"default": "the quick\nbrown fox\nthe lazy dog", "multiline": True,
                                             "placeholder": "One token per line, or comma-separated per line"}),
                 "min_freq": ("INT", {"default": 1, "min": 1, "max": 100000, "step": 1}),
                 "reserved_tokens": ("STRING", {"default": "<pad>,<bos>,<eos>", "placeholder": "comma-separated reserved tokens"}),
@@ -161,7 +161,7 @@ class CdlVocabEncode:
         return {
             "required": {
                 "vocab": ("cdlVocab",),
-                "tokens": ("STRING", {"default": "", "multiline": True, "placeholder": "comma-separated tokens"}),
+                "tokens": ("STRING", {"default": "the,quick,brown", "multiline": True, "placeholder": "comma-separated tokens"}),
             }
         }
 

@@ -90,7 +90,7 @@ class CdlStrToTensor:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "text": ("STRING", {"default": "", "multiline": True,
+                "text": ("STRING", {"default": "[[1, 2, 3], [4, 5, 6]]", "multiline": True,
                                      "placeholder": "e.g. [[1, 2], [3, 4]]"}),
                 "error_strategy": (["empty_tensor", "zero_tensor", "raise_error"],
                                    {"default": "empty_tensor"}),
@@ -232,7 +232,7 @@ class CdlBroadcast:
             "required": {
                 "tensor": ("cdlTensor",),
                 "target_shape": ("STRING", {
-                    "default": "", "multiline": False,
+                    "default": "2,3", "multiline": False,
                     "placeholder": "e.g. 3,1,4",
                 }),
             }
@@ -275,7 +275,7 @@ class CdlReshape:
             "required": {
                 "tensor": ("cdlTensor",),
                 "target_shape": ("STRING", {
-                    "default": "", "multiline": False,
+                    "default": "3,2", "multiline": False,
                     "placeholder": "e.g. 2,8",
                 }),
             }
@@ -361,3 +361,54 @@ class CdlActivation:
 
 NODE_CLASS_MAPPINGS["CdlActivation"] = CdlActivation
 NODE_DISPLAY_NAME_MAPPINGS["CdlActivation"] = "Activation"
+
+
+class CdlRandomTensor:
+    """Generate a random tensor with a chosen distribution.
+
+    Distributions (Combo widget):
+        - normal : N(mean, std)
+        - uniform: U(low, high)   (high is exclusive)
+        - randint: integer in [low, high)   (high is exclusive)
+
+    ``seed`` >= 0 fixes the RNG for reproducible results; -1 leaves it random.
+    """
+
+    DIST_LIST = ["normal", "uniform", "randint"]
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "shape": ("STRING", {"default": "4,4", "placeholder": "rows,cols[,...], e.g. 4,4"}),
+                "dist": (cls.DIST_LIST, {"default": "normal"}),
+                "mean": ("FLOAT", {"default": 0.0, "min": -1e6, "max": 1e6, "step": 0.1}),
+                "std": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1e6, "step": 0.1}),
+                "low": ("FLOAT", {"default": 0.0, "min": -1e6, "max": 1e6, "step": 0.1}),
+                "high": ("FLOAT", {"default": 1.0, "min": -1e6, "max": 1e6, "step": 0.1}),
+                "seed": ("INT", {"default": -1, "min": -1, "max": 2**31 - 1, "step": 1}),
+            }
+        }
+
+    RETURN_TYPES = ("cdlTensor",)
+    RETURN_NAMES = ("tensor",)
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Tensor Basic"
+
+    def execute(self, shape, dist, mean, std, low, high, seed):
+        dims = [int(x.strip()) for x in str(shape).split(',') if x.strip()]
+        if not dims:
+            raise ValueError('shape 不能为空，例如 "4,4"')
+        if seed >= 0:
+            torch.manual_seed(seed)
+        if dist == "normal":
+            tensor = torch.randn(*dims) * std + mean
+        elif dist == "uniform":
+            tensor = torch.rand(*dims) * (high - low) + low
+        else:  # randint
+            tensor = torch.randint(int(low), int(high), dims)
+        return (tensor,)
+
+
+NODE_CLASS_MAPPINGS["CdlRandomTensor"] = CdlRandomTensor
+NODE_DISPLAY_NAME_MAPPINGS["CdlRandomTensor"] = "Random Tensor"

@@ -36,7 +36,7 @@
 
 ## Function Overview
 
-ComfyDL provides **88 nodes** across 13 categories:
+ComfyDL provides **106 nodes** across 14 categories:
 
 | Category | Count | Description |
 |---|---|---|
@@ -45,12 +45,13 @@ ComfyDL provides **88 nodes** across 13 categories:
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
 | **Image Tools** | 9 | Resize, normalize, flip, rotate, crop, adjust, blur & stats |
-| **Misc** | 2 | Windows MessageBox & NoOp pass-through |
+| **Misc** | 3 | Windows MessageBox, NoOp pass-through & timing |
 | **Model Utils** | 8 | Model info, mode, forward, layers, params, clone & persistence |
+| **NLP Models** | 16 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
 | **NLP Utils** | 5 | Text tokenization & vocabularies |
 | **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
 | **Segmentation** | 4 | VOC semantic segmentation tools |
-| **Tensor Basic** | 7 | Tensor I/O, conv, transpose, broadcast, activation |
+| **Tensor Basic** | 8 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
 | **TorchOps** | 10 | Loss, optimization, metrics |
 | **Visualization** | 13 | Plots, charts & bounding box visualization |
 
@@ -64,7 +65,8 @@ ComfyDL provides **88 nodes** across 13 categories:
 ComfyDL/
 ├── src/d2lcore/     # D2L-inspired core implementation — a reference layer (torch.py, ...)
 ├── nodes/           # ComfyUI node definitions (thin mapping layer)
-│                    #   incl. self-developed model_utils.py & image_tools.py
+│                    #   incl. self-developed model_utils.py, image_tools.py &
+│                    #   nlp model wrappers (model_nlp.py, model_attention.py, model_seq2seq.py)
 └── example_workflows/  # Sample workflow JSONs
 ```
 

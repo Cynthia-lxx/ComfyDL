@@ -178,7 +178,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 4. ComfyDL / Misc (2 nodes)
+## 4. ComfyDL / Misc (3 nodes)
 
 ### MessageBox
 - **Class**: `CdlMessageBox`
@@ -206,6 +206,21 @@ ComfyUI standard types (used directly):
   | `any_input` | `*` | — | Wildcard input (optional), any data type — discarded |
 - **Outputs**: None
 
+### Timer (Benchmark)
+- **Class**: `CdlTimer`
+- **Purpose**: Benchmarks a tensor operation by running it `num_iters` times (after a 3-iteration warm-up) and reports total and average time. Operations: `sum`, `mean`, `abs`, `sqrt`, `neg`. Synchronizes CUDA before/after timing when the tensor is on GPU.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `cdlTensor` | — | Input tensor to operate on |
+  | `operation` | `COMBO` | `sum` | Operation to benchmark: sum / mean / abs / sqrt / neg |
+  | `num_iters` | `INT` | 10 | Number of timed iterations (1~100000) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `report` | `STRING` | Human-readable timing report |
+  | `avg_seconds` | `FLOAT` | Average seconds per iteration |
+
 ---
 
 ## 5. ComfyDL / NLP Utils (5 nodes)
@@ -217,7 +232,7 @@ ComfyUI standard types (used directly):
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `text` | `STRING` | `""` | Input text, one sentence per line (multiline) |
+  | `text` | `STRING` | `"the quick brown fox\njumps over the lazy dog"` | Input text, one sentence per line (multiline) |
   | `token_mode` | `COMBO` | `word` | Tokenization mode: `word` (whitespace split) / `char` (character-level) |
 - **Outputs**:
   | Name | Type | Description |
@@ -231,8 +246,8 @@ ComfyUI standard types (used directly):
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tokens_a` | `STRING` | `""` | Segment A, comma-separated tokens (multiline) |
-  | `tokens_b` | `STRING` | `""` | Segment B, comma-separated tokens (optional, multiline) |
+  | `tokens_a` | `STRING` | `"the,quick,brown,fox"` | Segment A, comma-separated tokens (multiline) |
+  | `tokens_b` | `STRING` | `"jumps,over"` | Segment B, comma-separated tokens (optional, multiline) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -246,7 +261,7 @@ ComfyUI standard types (used directly):
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tokens_text` | `STRING` | `""` | Token text, one token per line or comma-separated (multiline) |
+  | `tokens_text` | `STRING` | `"the quick\nbrown fox\nthe lazy dog"` | Token text, one token per line or comma-separated (multiline) |
   | `min_freq` | `INT` | 1 | Minimum frequency threshold (1~100000) |
   | `reserved_tokens` | `STRING` | `"<pad>,<bos>,<eos>"` | Reserved tokens, comma-separated |
 - **Outputs**:
@@ -260,10 +275,10 @@ ComfyUI standard types (used directly):
 - **d2lcore function**: `Vocab.__getitem__(tokens)`
 - **Purpose**: Converts token strings to index tensor using the vocabulary. Tokens not found in the vocabulary are mapped to the `<unk>` index.
 - **Inputs**:
-  | Name | Type | Description |
-  |------|------|-------------|
-  | `vocab` | `cdlVocab` | Vocabulary dictionary |
-  | `tokens` | `STRING` | Comma-separated token sequence (multiline) |
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `vocab` | `cdlVocab` | — | Vocabulary dictionary |
+  | `tokens` | `STRING` | `"the,quick,brown"` | Comma-separated token sequence (multiline) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -285,7 +300,256 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 6. ComfyDL / Tensor Basic (7 nodes)
+## 6. ComfyDL / NLP Models (16 nodes)
+
+NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer and Seq2Seq building blocks. All builders return a `cdlModel` that can be wired into `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` etc. for inspection and inference. RNN/GRU forwards expect time-major inputs `(num_steps, batch_size, num_inputs)`; attention modules and the Transformer encoder expect batch-first inputs.
+
+### RNN (from scratch)
+- **Class**: `CdlRNNScratch`
+- **d2lcore function**: `RNNScratch(num_inputs, num_hiddens, sigma)`
+- **Purpose**: Builds an RNN from scratch (tanh cell, manually created parameters). Forward expects `(num_steps, batch_size, num_inputs)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `num_inputs` | `INT` | 32 | Input feature size (vocab size for LMs) (1~100000) |
+  | `num_hiddens` | `INT` | 64 | Number of hidden units (1~4096) |
+  | `sigma` | `FLOAT` | 0.01 | Std of random parameter initialization (0.0001~1) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | RNNScratch instance |
+
+### RNN (high-level)
+- **Class**: `CdlRNN`
+- **d2lcore function**: `RNN(num_inputs, num_hiddens)`
+- **Purpose**: Builds an RNN using PyTorch's high-level `nn.RNN`. Forward expects `(num_steps, batch_size, num_inputs)` and returns `(output, h_n)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `num_inputs` | `INT` | 32 | Input feature size (1~100000) |
+  | `num_hiddens` | `INT` | 64 | Number of hidden units (1~4096) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | RNN instance |
+
+### GRU
+- **Class**: `CdlGRU`
+- **d2lcore function**: `GRU(num_inputs, num_hiddens, num_layers, dropout)`
+- **Purpose**: Builds a multilayer GRU using PyTorch's high-level `nn.GRU`. Forward expects `(num_steps, batch_size, num_inputs)` and returns `(output, h_n)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `num_inputs` | `INT` | 32 | Input feature size (1~100000) |
+  | `num_hiddens` | `INT` | 64 | Hidden units per layer (1~4096) |
+  | `num_layers` | `INT` | 1 | Number of stacked GRU layers (1~20) |
+  | `dropout` | `FLOAT` | 0.0 | Dropout between layers (0~0.9) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | GRU instance |
+
+### RNN Language Model (from scratch)
+- **Class**: `CdlRNNLMScratch`
+- **d2lcore function**: `RNNLMScratch(rnn, vocab_size, lr)`
+- **Purpose**: Wraps an RNN/GRU `cdlModel` (with `num_inputs == vocab_size`) into a from-scratch language model with an output projection to `vocab_size` classes. Forward takes an index tensor `(batch_size, num_steps)` and returns logits `(num_steps, batch_size, vocab_size)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `rnn` | `cdlModel` | — | RNN/GRU cdlModel with `num_inputs == vocab_size` |
+  | `vocab_size` | `INT` | 32 | Vocabulary size of the output projection (2~100000) |
+  | `lr` | `FLOAT` | 0.01 | Learning rate used when training (0.0001~1) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | RNNLMScratch instance |
+
+### RNN Language Model (high-level)
+- **Class**: `CdlRNNLM`
+- **d2lcore function**: `RNNLM(rnn, vocab_size, lr)`
+- **Purpose**: Wraps an RNN/GRU `cdlModel` into a language model with a high-level `LazyLinear` head. Same interface as the from-scratch version.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `rnn` | `cdlModel` | — | RNN/GRU cdlModel with `num_inputs == vocab_size` |
+  | `vocab_size` | `INT` | 32 | Vocabulary size of the output projection (2~100000) |
+  | `lr` | `FLOAT` | 0.01 | Learning rate used when training (0.0001~1) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | RNNLM instance |
+
+### RNN LM Predict
+- **Class**: `CdlRNNLMScratchPredict`
+- **d2lcore function**: `RNNLMScratch.predict(prefix, num_preds, vocab, device)`
+- **Purpose**: Generates text with an RNN language model given a starting prefix. Accepts a `cdlVocab` dict (from `CdlVocabBuild`) and returns the prefix followed by `num_preds` predicted tokens.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `model` | `cdlModel` | — | An RNNLMScratch / RNNLM cdlModel |
+  | `vocab` | `cdlVocab` | — | Vocabulary dict from `CdlVocabBuild` |
+  | `prefix` | `STRING` | `"the "` | Starting token(s), e.g. `"the "` |
+  | `num_preds` | `INT` | 10 | Number of tokens to predict after prefix (1~1000) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `prediction` | `STRING` | Prefix followed by predicted tokens |
+
+### Dot-Product Attention
+- **Class**: `CdlDotProductAttention`
+- **d2lcore function**: `DotProductAttention(dropout)`
+- **Purpose**: Builds a scaled dot-product attention layer. Forward `(queries, keys, values, valid_lens)` with batch-first tensors `(batch, seq, num_hiddens)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `dropout` | `FLOAT` | 0.0 | Dropout on attention weights (0~0.9) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Attention layer |
+
+### Additive Attention
+- **Class**: `CdlAdditiveAttention`
+- **d2lcore function**: `AdditiveAttention(num_hiddens, dropout)`
+- **Purpose**: Builds an additive (Bahdanau) attention layer. Forward `(queries, keys, values, valid_lens)` with batch-first tensors.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `num_hiddens` | `INT` | 8 | Hidden units of the additive score function (1~4096) |
+  | `dropout` | `FLOAT` | 0.0 | Dropout on attention weights (0~0.9) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Attention layer |
+
+### Multi-Head Attention
+- **Class**: `CdlMultiHeadAttention`
+- **d2lcore function**: `MultiHeadAttention(num_hiddens, num_heads, dropout, bias)`
+- **Purpose**: Builds a multi-head attention layer. `num_hiddens` must be divisible by `num_heads`. Forward `(queries, keys, values, valid_lens)` with batch-first tensors.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `num_hiddens` | `INT` | 8 | Model width; divisible by `num_heads` (1~4096) |
+  | `num_heads` | `INT` | 4 | Number of parallel attention heads (1~64) |
+  | `dropout` | `FLOAT` | 0.0 | Dropout on attention weights (0~0.9) |
+  | `use_bias` | `BOOLEAN` | False | Whether Q/K/V/O projections use bias |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Multi-head attention layer |
+
+### Positional Encoding
+- **Class**: `CdlPositionalEncoding`
+- **d2lcore function**: `PositionalEncoding(num_hiddens, dropout, max_len)`
+- **Purpose**: Builds a sinusoidal positional encoding layer. Forward `X` of shape `(batch, seq, num_hiddens)` adds positional information.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `num_hiddens` | `INT` | 16 | Model width (feature dimension) (1~4096) |
+  | `dropout` | `FLOAT` | 0.0 | Dropout after adding encoding (0~0.9) |
+  | `max_len` | `INT` | 1000 | Maximum supported sequence length (1~100000) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Positional encoding layer |
+
+### Position-Wise FFN
+- **Class**: `CdlPositionWiseFFN`
+- **d2lcore function**: `PositionWiseFFN(ffn_num_hiddens, ffn_num_outputs)`
+- **Purpose**: Builds a position-wise feed-forward network (two dense layers + ReLU), applied identically to each position.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `ffn_num_hiddens` | `INT` | 64 | Hidden units of the inner dense layer (1~16384) |
+  | `ffn_num_outputs` | `INT` | 16 | Output units, usually == `num_hiddens` (1~16384) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | FFN module |
+
+### Add & Norm
+- **Class**: `CdlAddNorm`
+- **d2lcore function**: `AddNorm(norm_shape, dropout)`
+- **Purpose**: Builds a residual connection followed by layer normalization: `LayerNorm(dropout(Y) + X)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `norm_shape` | `INT` | 16 | Feature dimension for LayerNorm (1~16384) |
+  | `dropout` | `FLOAT` | 0.0 | Dropout on the residual branch (0~0.9) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Add & Norm block |
+
+### Transformer Encoder Block
+- **Class**: `CdlTransformerEncoderBlock`
+- **d2lcore function**: `TransformerEncoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias)`
+- **Purpose**: Builds a single Transformer encoder block (multi-head attention + FFN with add & norm). Forward `(X, valid_lens)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `num_hiddens` | `INT` | 8 | Model width; divisible by `num_heads` (1~4096) |
+  | `ffn_num_hiddens` | `INT` | 64 | Hidden units of the position-wise FFN (1~16384) |
+  | `num_heads` | `INT` | 4 | Number of attention heads (1~64) |
+  | `dropout` | `FLOAT` | 0.0 | Dropout probability (0~0.9) |
+  | `use_bias` | `BOOLEAN` | False | Whether attention projections use bias |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Transformer encoder block |
+
+### Transformer Encoder
+- **Class**: `CdlTransformerEncoder`
+- **d2lcore function**: `TransformerEncoder(vocab_size, num_hiddens, ffn_num_hiddens, num_heads, num_blks, dropout, use_bias)`
+- **Purpose**: Builds a full Transformer encoder (embedding + positional encoding + `num_blks` stacked blocks). Forward `(X, valid_lens)` with `X` of token indices `(batch, seq)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `vocab_size` | `INT` | 32 | Vocabulary size of input embeddings (2~100000) |
+  | `num_hiddens` | `INT` | 8 | Model width; divisible by `num_heads` (1~4096) |
+  | `ffn_num_hiddens` | `INT` | 64 | Hidden units of the position-wise FFN (1~16384) |
+  | `num_heads` | `INT` | 4 | Number of attention heads (1~64) |
+  | `num_blks` | `INT` | 2 | Number of stacked encoder blocks (1~50) |
+  | `dropout` | `FLOAT` | 0.0 | Dropout probability (0~0.9) |
+  | `use_bias` | `BOOLEAN` | False | Whether attention projections use bias |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Transformer encoder |
+
+### Seq2Seq Encoder
+- **Class**: `CdlSeq2SeqEncoder`
+- **d2lcore function**: `Seq2SeqEncoder(vocab_size, embed_size, num_hiddens, num_layers, dropout)`
+- **Purpose**: Builds an RNN encoder for sequence-to-sequence learning (embedding + multilayer GRU). Forward `X` of token indices `(batch, num_steps)` returns `(outputs, state)`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `vocab_size` | `INT` | 32 | Vocabulary size of source embeddings (2~100000) |
+  | `embed_size` | `INT` | 16 | Embedding dimension (1~4096) |
+  | `num_hiddens` | `INT` | 16 | Hidden units of each GRU layer (1~4096) |
+  | `num_layers` | `INT` | 2 | Number of stacked GRU layers (1~20) |
+  | `dropout` | `FLOAT` | 0.0 | Dropout between GRU layers (0~0.9) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Seq2Seq encoder |
+
+### Init Seq2Seq Weights
+- **Class**: `CdlInitSeq2Seq`
+- **d2lcore function**: `init_seq2seq(module)`
+- **Purpose**: Applies Xavier-uniform weight initialization in place. `nn.Linear` and `nn.GRU` layers get initialized weights; other layers are left untouched.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | Any `nn.Module` to initialize |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `cdlModel` | The same model after in-place initialization |
+
+---
+
+## 7. ComfyDL / Tensor Basic (8 nodes)
 
 ### Tensor → String
 - **Class**: `CdlTensorToStr`
@@ -307,7 +571,7 @@ ComfyUI standard types (used directly):
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `text` | `STRING` | `""` | String representation of tensor (multiline), e.g. `"[[1,2],[3,4]]"` |
+  | `text` | `STRING` | `"[[1, 2, 3], [4, 5, 6]]"` | String representation of tensor (multiline), e.g. `"[[1,2],[3,4]]"` |
   | `error_strategy` | `COMBO` | `empty_tensor` | Error handling: `empty_tensor`=return empty tensor; `zero_tensor`=return `[0.]`; `raise_error`=raise exception |
 - **Outputs**:
   | Name | Type | Description |
@@ -350,7 +614,7 @@ ComfyUI standard types (used directly):
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
   | `tensor` | `cdlTensor` | — | Input tensor |
-  | `target_shape` | `STRING` | `""` | Target shape, comma-separated (e.g. ``"3,1,4"``) |
+  | `target_shape` | `STRING` | `"2,3"` | Target shape, comma-separated (e.g. ``"3,1,4"``) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -363,7 +627,7 @@ ComfyUI standard types (used directly):
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
   | `tensor` | `cdlTensor` | — | Input tensor |
-  | `target_shape` | `STRING` | `""` | Target shape, comma-separated (e.g. ``"2,8"``) |
+  | `target_shape` | `STRING` | `"3,2"` | Target shape, comma-separated (e.g. ``"2,8"``) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -384,9 +648,27 @@ ComfyUI standard types (used directly):
   |------|------|-------------|
   | `output` | `cdlTensor` | Activated tensor |
 
+### Random Tensor
+- **Class**: `CdlRandomTensor`
+- **Purpose**: Generates a random tensor with a chosen distribution (`normal`, `uniform`, `randint`). `seed >= 0` fixes the RNG for reproducible results; `-1` leaves it random.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `shape` | `STRING` | `"4,4"` | Output shape, comma-separated dims (e.g. `"4,4"`) |
+  | `dist` | `COMBO` | `normal` | Distribution: normal / uniform / randint |
+  | `mean` | `FLOAT` | 0.0 | Mean for `normal` |
+  | `std` | `FLOAT` | 1.0 | Std deviation for `normal` |
+  | `low` | `FLOAT` | 0.0 | Lower bound for `uniform` / `randint` (inclusive) |
+  | `high` | `FLOAT` | 1.0 | Upper bound for `uniform` / `randint` (exclusive) |
+  | `seed` | `INT` | -1 | Random seed (>= 0 fixes RNG, -1 = random) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `tensor` | `cdlTensor` | Random tensor of the requested shape |
+
 ---
 
-## 7. ComfyDL / TorchOps (10 nodes)
+## 8. ComfyDL / TorchOps (10 nodes)
 
 ### Linear Regression
 - **Class**: `CdlLinReg`
@@ -500,8 +782,8 @@ ComfyUI standard types (used directly):
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `pred_seq` | `STRING` | `""` | Predicted sequence, whitespace-separated tokens (multiline) |
-  | `label_seq` | `STRING` | `""` | Reference sequence, whitespace-separated tokens (multiline) |
+  | `pred_seq` | `STRING` | `"the quick brown"` | Predicted sequence, whitespace-separated tokens (multiline) |
+  | `label_seq` | `STRING` | `"the quick brown fox"` | Reference sequence, whitespace-separated tokens (multiline) |
   | `max_n` | `INT` | 4 | Maximum n-gram order (1~4) |
 - **Outputs**:
   | Name | Type | Description |
@@ -539,7 +821,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 8. ComfyDL / ObjectDetection (10 nodes)
+## 9. ComfyDL / ObjectDetection (10 nodes)
 
 ### Box Corner→Center
 - **Class**: `CdlBoxCornerToCenter`
@@ -690,7 +972,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 9. ComfyDL / Segmentation (4 nodes)
+## 10. ComfyDL / Segmentation (4 nodes)
 
 ### VOC Classes
 - **Class**: `CdlVocClasses`
@@ -751,7 +1033,7 @@ The 21 classes: `background, aeroplane, bicycle, bird, boat, bottle, bus, car, c
 
 ---
 
-## 10. ComfyDL / Visualization (13 nodes)
+## 11. ComfyDL / Visualization (13 nodes)
 
 Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix versions are ComfyUI output nodes (showing interactive plots directly in the UI), while non-suffix versions render plots as `IMAGE` tensors for downstream nodes.
 
@@ -979,7 +1261,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 
 ---
 
-## 11. ComfyDL / Datasets (10 nodes)
+## 12. ComfyDL / Datasets (10 nodes)
 
 Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics.
 
@@ -1128,7 +1410,7 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 
 ---
 
-## 12. ComfyDL / Model Utils (8 nodes)
+## 13. ComfyDL / Model Utils (8 nodes)
 
 Self-developed model utility nodes (not from d2l). They help inspect, switch, run, clone and persist PyTorch models directly on the workflow graph. All nodes operate on the `cdlModel` type (any `nn.Module` instance).
 
@@ -1236,7 +1518,7 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 
 ---
 
-## 13. ComfyDL / Image Tools (9 nodes)
+## 14. ComfyDL / Image Tools (9 nodes)
 
 Self-developed general CV image nodes (not from d2l). All nodes consume and produce the native ComfyUI `IMAGE` format — float32 `[B, H, W, C]` with values in `[0, 1]` — and are implemented with `torch` + `torchvision.transforms.functional`. Exception: `Image Normalize` deliberately does not clip its output to `[0, 1]` (z-score range).
 
@@ -1374,7 +1656,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**88 nodes** across 13 categories:
+**106 nodes** across 14 categories:
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1382,10 +1664,11 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | ComfyDL/CV Models | 5 | CNN fundamentals & model construction |
 | ComfyDL/GAN | 2 | GAN training updates |
 | ComfyDL/Image Tools | 9 | Resize, normalize, flip, rotate, crop, adjust, blur & stats |
-| ComfyDL/Misc | 2 | Windows MessageBox & NoOp pass-through |
+| ComfyDL/Misc | 3 | Windows MessageBox, NoOp pass-through & timing |
 | ComfyDL/Model Utils | 8 | Model info, mode, forward, layers, params, clone & persistence |
+| ComfyDL/NLP Models | 16 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
 | ComfyDL/NLP Utils | 5 | Text tokenization & vocabularies |
-| ComfyDL/Tensor Basic | 7 | Tensor I/O, conv, transpose, broadcast, activation |
+| ComfyDL/Tensor Basic | 8 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
 | ComfyDL/TorchOps | 10 | Loss, optimization, metrics |
 | ComfyDL/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | ComfyDL/Segmentation | 4 | VOC semantic segmentation tools |
