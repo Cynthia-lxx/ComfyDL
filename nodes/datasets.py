@@ -168,7 +168,9 @@ class CdlDownload:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "url": ("STRING", {"default": "", "multiline": False, "placeholder": "https://..."}),
+                "url": ("STRING",
+                        {"default": "https://d2l-data.s3-accelerate.amazonaws.com/hotdog.zip",
+                         "multiline": False, "placeholder": "https://..."}),
             },
             "optional": {
                 "save_dir": ("STRING", {"default": "../data", "multiline": False}),
@@ -496,8 +498,9 @@ NODE_DISPLAY_NAME_MAPPINGS["CdlDataLoaderPreview"] = "DataLoader Preview"
 class CdlDataLoaderPreviewOutput:
     """Preview a batch of data from a DataLoader (OUTPUT_NODE variant).
 
-    Same as CdlDataLoaderPreview but renders directly without producing
-    an output tensor. Use this for quick inspection.
+    Same as CdlDataLoaderPreview but registered as OUTPUT_NODE so the
+    rendered image grid is displayed directly in the UI. Use this for
+    quick inspection.
 
     Inputs:
       - dataloader  : cdlDataloader to sample from
@@ -505,7 +508,8 @@ class CdlDataLoaderPreviewOutput:
       - num_cols    : columns in the grid
       - max_samples : maximum images to show
 
-    No outputs — this is a display-only node.
+    Output:
+      - image: rendered preview grid as IMAGE tensor
     """
 
     @classmethod
@@ -521,8 +525,8 @@ class CdlDataLoaderPreviewOutput:
             }
         }
 
-    RETURN_TYPES = ()
-    RETURN_NAMES = ()
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
     FUNCTION = "execute"
     OUTPUT_NODE = True
     CATEGORY = "ComfyDL/Datasets"
@@ -531,8 +535,7 @@ class CdlDataLoaderPreviewOutput:
         # Delegate to CdlDataLoaderPreview logic
         preview_node = CdlDataLoaderPreview()
         image_result, = preview_node.execute(dataloader, num_rows, num_cols, max_samples)
-        # OUTPUT_NODE discards the return value
-        return ()
+        return (image_result,)
 
 
 NODE_CLASS_MAPPINGS["CdlDataLoaderPreviewOutput"] = CdlDataLoaderPreviewOutput

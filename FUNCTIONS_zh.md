@@ -1389,9 +1389,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ### DataLoader Preview (Output)
 - **类名**：`CdlDataLoaderPreviewOutput`
-- **功能**：与 `CdlDataLoaderPreview` 相同，但作为 OUTPUT_NODE 直接渲染——无输出槽，仅在 UI 中显示渲染预览。
+- **功能**：与 `CdlDataLoaderPreview` 相同，但注册为 OUTPUT_NODE，渲染后的图像网格直接在 UI 中显示。
 - **输入**：与 `CdlDataLoaderPreview` 相同
-- **输出**：无（输出节点）
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `image` | `IMAGE` | 渲染后的网格图像 `[1, H, W, C]` |
 
 ### Dataset Stats
 - **类名**：`CdlDataLoaderStats`

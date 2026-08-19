@@ -118,6 +118,7 @@ class CdlMaskedSoftmax:
         else:
             valid_lens = valid_lens.reshape(-1)
 
+        X = X.clone()  # 避免就地修改上游输入张量
         X_flat = X.reshape(-1, shape[-1])
         maxlen = X_flat.size(1)
         mask = torch.arange(maxlen, dtype=torch.float32, device=X.device)[None, :] < valid_lens[:, None]

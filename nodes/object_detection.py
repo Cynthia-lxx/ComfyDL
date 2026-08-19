@@ -174,7 +174,9 @@ class CdlNms:
             iou = self._box_iou_single(boxes[i, :].reshape(-1, 4),
                                         boxes[B[1:], :].reshape(-1, 4)).reshape(-1)
             inds = torch.nonzero(iou <= iou_threshold).reshape(-1)
-            B = B[inds + 1]
+            idx = inds + 1
+            idx = idx[idx < B.numel()]  # 防止最后一个元素被选中时越界
+            B = B[idx]
         if keep:
             result = torch.tensor(keep, device=boxes.device)
         else:
@@ -595,7 +597,9 @@ class CdlMultiboxDetection:
             union_areas = areas1 + areas2 - inter_areas
             iou = inter_areas / union_areas
             inds = torch.nonzero(iou <= iou_threshold).reshape(-1)
-            B = B[inds + 1]
+            idx = inds + 1
+            idx = idx[idx < B.numel()]  # 防止最后一个元素被选中时越界
+            B = B[idx]
         return torch.tensor(keep, device=boxes.device) if keep else torch.tensor([], dtype=torch.long, device=boxes.device)
 
     @staticmethod

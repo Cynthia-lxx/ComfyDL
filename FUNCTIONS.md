@@ -1389,9 +1389,12 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 
 ### DataLoader Preview (Output)
 - **Class**: `CdlDataLoaderPreviewOutput`
-- **Purpose**: Same as `CdlDataLoaderPreview` but renders directly as an OUTPUT_NODE — no output slots, just the rendered preview in the UI.
+- **Purpose**: Same as `CdlDataLoaderPreview` but registered as an OUTPUT_NODE so the rendered grid is displayed directly in the UI.
 - **Inputs**: Same as `CdlDataLoaderPreview`
-- **Outputs**: None (output node)
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `image` | `IMAGE` | Rendered grid image `[1, H, W, C]` |
 
 ### Dataset Stats
 - **Class**: `CdlDataLoaderStats`
