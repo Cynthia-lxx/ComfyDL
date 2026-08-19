@@ -229,7 +229,7 @@ ComfyUI standard types (used directly):
   |------|------|---------|-------------|
   | `OMG` | `BOOLEAN` | False | 试一试就知道了~ |
   | `any_input` | `*` | — | Optional wildcard input — ignored |
-- **Outputs**: None
+- **Outputs**: None (output node)
 
 ---
 

@@ -228,6 +228,7 @@ class CdlWhat:
 
     RETURN_TYPES = ()
     FUNCTION = "execute"
+    OUTPUT_NODE = True
     CATEGORY = "ComfyDL/Misc"
 
     @classmethod
