@@ -51,3 +51,5 @@ for mod_name in _module_files:
             NODE_DISPLAY_NAME_MAPPINGS.update(mod.NODE_DISPLAY_NAME_MAPPINGS)
     except Exception as e:
         print(f"[ComfyDL] Warning: Failed to load {mod_name}: {e}")
+
+print("\033[92m[ComfyDL] Loaded "+str(len(NODE_CLASS_MAPPINGS))+" deep learning nodes.🤩\033[0m")
