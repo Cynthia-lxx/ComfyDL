@@ -4,9 +4,13 @@ ComfyDL/Misc - Miscellaneous utility nodes.
 Nodes:
   - MessageBox : Display a Windows message box via ctypes.MessageBoxW
   - NoOp       : Accept any input and do nothing (like Python's pass / asm NOP)
+  - What       : Meaningless node; toggling OMG opens a browser tab (try it and see)
 """
 
 import ctypes
+import os
+import subprocess
+import sys
 import threading
 import time
 
@@ -201,3 +205,55 @@ class CdlTimer:
 
 NODE_CLASS_MAPPINGS["CdlTimer"] = CdlTimer
 NODE_DISPLAY_NAME_MAPPINGS["CdlTimer"] = "Timer (Benchmark)"
+
+
+class CdlWhat:
+    """A meaningless node. It does nothing... unless you flip OMG.
+
+    Accepts an optional wildcard (ANY) input which is ignored, and exposes
+    a single "OMG" toggle. When OMG is True, a browser tab opens.
+    What it opens? Try it and see.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "OMG": ("BOOLEAN", {"default": False}),
+            },
+            "optional": {
+                "any_input": ("*",),
+            },
+        }
+
+    RETURN_TYPES = ()
+    FUNCTION = "execute"
+    CATEGORY = "ComfyDL/Misc"
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, input_types):
+        # Wildcard * input bypasses backend type validation
+        return True
+
+    def execute(self, OMG=False, any_input=None):
+        if OMG:
+            self._open_url("https://www.bilibili.com/video/BV1GJ411x7h7")
+        # Intentionally does nothing meaningful
+        return ()
+
+    @staticmethod
+    def _open_url(url):
+        """Open the given URL in the system default browser (non-blocking)."""
+        try:
+            if sys.platform == "win32":
+                os.startfile(url)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", url])
+            else:
+                subprocess.Popen(["xdg-open", url])
+        except Exception:
+            pass
+
+
+NODE_CLASS_MAPPINGS["CdlWhat"] = CdlWhat
+NODE_DISPLAY_NAME_MAPPINGS["CdlWhat"] = "?"

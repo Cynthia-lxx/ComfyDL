@@ -36,7 +36,7 @@
 
 ## Function Overview
 
-ComfyDL provides **105 nodes** across 14 categories:
+ComfyDL provides **106 nodes** across 14 categories:
 
 | Category | Count | Description |
 |---|---|---|
@@ -45,7 +45,7 @@ ComfyDL provides **105 nodes** across 14 categories:
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
 | **Image Tools** | 9 | Resize, normalize, flip, rotate, crop, adjust, blur & stats |
-| **Misc** | 3 | Windows MessageBox, NoOp pass-through & timing |
+| **Misc** | 4 | Windows MessageBox, NoOp pass-through, timing & a mysterious "?" |
 | **Model Utils** | 8 | Model info, mode, forward, layers, params, clone & persistence |
 | **NLP Models** | 16 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
 | **NLP Utils** | 5 | Text tokenization & vocabularies |

@@ -178,7 +178,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 4. ComfyDL / Misc (3 nodes)
+## 4. ComfyDL / Misc (4 nodes)
 
 ### MessageBox
 - **Class**: `CdlMessageBox`
@@ -220,6 +220,16 @@ ComfyUI standard types (used directly):
   |------|------|-------------|
   | `report` | `STRING` | Human-readable timing report |
   | `avg_seconds` | `FLOAT` | Average seconds per iteration |
+
+### ?
+- **Class**: `CdlWhat`
+- **Purpose**: 试一试就知道了~
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `OMG` | `BOOLEAN` | False | 试一试就知道了~ |
+  | `any_input` | `*` | — | Optional wildcard input — ignored |
+- **Outputs**: None
 
 ---
 
@@ -1645,7 +1655,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**105 nodes** across 14 categories:
+**106 nodes** across 14 categories:
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1653,7 +1663,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | ComfyDL/CV Models | 5 | CNN fundamentals & model construction |
 | ComfyDL/GAN | 2 | GAN training updates |
 | ComfyDL/Image Tools | 9 | Resize, normalize, flip, rotate, crop, adjust, blur & stats |
-| ComfyDL/Misc | 3 | Windows MessageBox, NoOp pass-through & timing |
+| ComfyDL/Misc | 4 | Windows MessageBox, NoOp pass-through, timing & a mysterious "?" |
 | ComfyDL/Model Utils | 8 | Model info, mode, forward, layers, params, clone & persistence |
 | ComfyDL/NLP Models | 16 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
 | ComfyDL/NLP Utils | 5 | Text tokenization & vocabularies |

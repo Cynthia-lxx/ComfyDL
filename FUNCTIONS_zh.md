@@ -178,7 +178,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 4. ComfyDL / Misc（3 个节点）
+## 4. ComfyDL / Misc（4 个节点）
 
 ### MessageBox
 - **类名**：`CdlMessageBox`
@@ -220,6 +220,16 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
   |------|------|------|
   | `report` | `STRING` | 人类可读的计时报告 |
   | `avg_seconds` | `FLOAT` | 平均每次迭代秒数 |
+
+### ?
+- **类名**：`CdlWhat`
+- **功能**：试一试就知道了~
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `OMG` | `BOOLEAN` | False | 试一试就知道了~ |
+  | `any_input` | `*` | — | 任意通配输入（可选）——被忽略 |
+- **输出**：无
 
 ---
 
@@ -1645,7 +1655,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **105 个节点**，分属 14 个类别：
+共 **106 个节点**，分属 14 个类别：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1653,7 +1663,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | ComfyDL/CV Models | 5 | CNN 基础与模型构建 |
 | ComfyDL/GAN | 2 | GAN 训练更新 |
 | ComfyDL/Image Tools | 9 | 缩放、归一化、翻转、旋转、裁剪、调整、模糊与统计 |
-| ComfyDL/Misc | 3 | Windows MessageBox、NoOp 空操作与计时 |
+| ComfyDL/Misc | 4 | Windows MessageBox、NoOp 空操作、计时与神秘的 "?" |
 | ComfyDL/Model Utils | 8 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
 | ComfyDL/NLP Models | 16 | RNN/GRU/RNNLM、注意力与 Seq2Seq 模型构件 |
 | ComfyDL/NLP Utils | 5 | 文本分词与词表 |
