@@ -1033,23 +1033,9 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 11. ComfyDL / Visualization（13 个节点）
+## 11. ComfyDL / Visualization（12 个节点）
 
 可视化节点采用"双变体"设计模式：带 `(Output)` 后缀的版本是 ComfyUI 输出节点（直接在界面中显示交互式图表），不带后缀的版本将图表渲染为 `IMAGE` 张量，供下游节点使用。
-
-### Show Images (Output)
-- **类名**：`CdlShowImagesOutput`
-- **d2lcore 函数**：`show_images(imgs, num_rows, num_cols, titles, scale)`
-- **功能**：在网格布局中显示一批图像。输出节点变体——图像直接渲染到 ComfyUI 界面中。
-- **输入**：
-  | 名称 | 类型 | 默认值 | 说明 |
-  |------|------|---------|------|
-  | `images` | `IMAGE` | — | 输入图像批次 `[B, H, W, C]` |
-  | `num_rows` | `INT` | 1 | 网格行数（1~100） |
-  | `num_cols` | `INT` | 4 | 网格列数（1~100） |
-  | `scale` | `FLOAT` | 1.5 | 图像缩放因子（0.1~10.0） |
-  | `titles` | `STRING` | `""` | 图像标题，逗号分隔（可选） |
-- **输出**：无（输出节点）
 
 ### Show Images
 - **类名**：`CdlShowImages`
@@ -1659,7 +1645,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **106 个节点**，分属 14 个类别：
+共 **105 个节点**，分属 14 个类别：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1675,5 +1661,5 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | ComfyDL/TorchOps | 10 | 损失、优化、评估指标 |
 | ComfyDL/ObjectDetection | 10 | 锚框、IoU、NMS |
 | ComfyDL/Segmentation | 4 | VOC 语义分割工具 |
-| ComfyDL/Visualization | 13 | 图表与边界框可视化 |
+| ComfyDL/Visualization | 12 | 图表与边界框可视化 |
 | ComfyDL/Datasets | 10 | 数据集下载、加载、预览与统计 |

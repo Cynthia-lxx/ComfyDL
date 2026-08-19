@@ -1033,23 +1033,9 @@ The 21 classes: `background, aeroplane, bicycle, bird, boat, bottle, bus, car, c
 
 ---
 
-## 11. ComfyDL / Visualization (13 nodes)
+## 11. ComfyDL / Visualization (12 nodes)
 
 Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix versions are ComfyUI output nodes (showing interactive plots directly in the UI), while non-suffix versions render plots as `IMAGE` tensors for downstream nodes.
-
-### Show Images (Output)
-- **Class**: `CdlShowImagesOutput`
-- **d2lcore function**: `show_images(imgs, num_rows, num_cols, titles, scale)`
-- **Purpose**: Displays a batch of images in a grid layout. Output node variant — images render directly in the ComfyUI interface.
-- **Inputs**:
-  | Name | Type | Default | Description |
-  |------|------|---------|-------------|
-  | `images` | `IMAGE` | — | Input image batch `[B, H, W, C]` |
-  | `num_rows` | `INT` | 1 | Grid rows (1~100) |
-  | `num_cols` | `INT` | 4 | Grid columns (1~100) |
-  | `scale` | `FLOAT` | 1.5 | Image scaling factor (0.1~10.0) |
-  | `titles` | `STRING` | `""` | Image titles, comma-separated (optional) |
-- **Outputs**: None (output node)
 
 ### Show Images
 - **Class**: `CdlShowImages`
@@ -1659,7 +1645,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**106 nodes** across 14 categories:
+**105 nodes** across 14 categories:
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1675,5 +1661,5 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | ComfyDL/TorchOps | 10 | Loss, optimization, metrics |
 | ComfyDL/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | ComfyDL/Segmentation | 4 | VOC semantic segmentation tools |
-| ComfyDL/Visualization | 13 | Plots, charts & bounding box visualization |
+| ComfyDL/Visualization | 12 | Plots, charts & bounding box visualization |
 | ComfyDL/Datasets | 10 | Dataset download, loading, preview, and statistics |

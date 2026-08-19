@@ -43,67 +43,6 @@ def _fig_to_image_tensor(fig):
 # show_images nodes
 # ============================================================
 
-class CdlShowImagesOutput:
-    """Display images in a grid. OUTPUT_NODE variant.
-
-    d2lcore: show_images(imgs, num_rows, num_cols, titles, scale)
-    """
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "images": ("IMAGE",),
-                "num_rows": ("INT", {"default": 1, "min": 1, "max": 100, "step": 1}),
-                "num_cols": ("INT", {"default": 4, "min": 1, "max": 100, "step": 1}),
-                "scale": ("FLOAT", {"default": 1.5, "min": 0.1, "max": 10.0, "step": 0.1}),
-            },
-            "optional": {
-                "titles": ("STRING", {"default": "", "multiline": True, "placeholder": "comma-separated titles"}),
-            }
-        }
-
-    RETURN_TYPES = ()
-    RETURN_NAMES = ()
-    FUNCTION = "execute"
-    OUTPUT_NODE = True
-    CATEGORY = "ComfyDL/Visualization"
-
-    def execute(self, images, num_rows, num_cols, scale, titles=None):
-        n = min(images.shape[0], num_rows * num_cols)
-        figsize = (num_cols * scale, num_rows * scale)
-        fig, axes = plt.subplots(num_rows, num_cols, figsize=figsize)
-        if num_rows * num_cols == 1:
-            axes = np.array([axes])
-        axes = axes.flatten()
-
-        titles_list = []
-        if titles and titles.strip():
-            titles_list = [t.strip() for t in titles.split(',')]
-
-        for i in range(n):
-            ax = axes[i]
-            img = images[i].cpu().numpy()
-            # Clip to valid range
-            img = np.clip(img, 0, 1)
-            ax.imshow(img)
-            ax.axes.get_xaxis().set_visible(False)
-            ax.axes.get_yaxis().set_visible(False)
-            if i < len(titles_list):
-                ax.set_title(titles_list[i])
-
-        for i in range(n, len(axes)):
-            axes[i].axis('off')
-
-        plt.tight_layout()
-        fig.canvas.draw()
-        return ()
-
-
-NODE_CLASS_MAPPINGS["CdlShowImagesOutput"] = CdlShowImagesOutput
-NODE_DISPLAY_NAME_MAPPINGS["CdlShowImagesOutput"] = "Show Images (Output)"
-
-
 class CdlShowImages:
     """Display images in a grid. IMAGE output variant.
 

@@ -382,7 +382,7 @@
     },
     {
       "id": 11,
-      "type": "CdlShowImagesOutput",
+      "type": "PreviewImage",
       "pos": [
         1550,
         50
@@ -403,18 +403,13 @@
       ],
       "outputs": [],
       "properties": {
-        "Node name for S&R": "CdlShowImagesOutput"
+        "Node name for S&R": "PreviewImage"
       },
-      "widgets_values": [
-        1,
-        4,
-        1.5,
-        "original"
-      ]
+      "widgets_values": []
     },
     {
       "id": 12,
-      "type": "CdlShowImagesOutput",
+      "type": "PreviewImage",
       "pos": [
         1550,
         300
@@ -435,14 +430,9 @@
       ],
       "outputs": [],
       "properties": {
-        "Node name for S&R": "CdlShowImagesOutput"
+        "Node name for S&R": "PreviewImage"
       },
-      "widgets_values": [
-        1,
-        4,
-        1.5,
-        "processed"
-      ]
+      "widgets_values": []
     }
   ],
   "links": [

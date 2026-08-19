@@ -1961,7 +1961,7 @@
     },
     {
       "id": 51,
-      "type": "CdlShowImagesOutput",
+      "type": "PreviewImage",
       "pos": [
         50,
         12000
@@ -1982,14 +1982,9 @@
       ],
       "outputs": [],
       "properties": {
-        "Node name for S&R": "CdlShowImagesOutput"
+        "Node name for S&R": "PreviewImage"
       },
-      "widgets_values": [
-        1,
-        4,
-        1.5,
-        ""
-      ]
+      "widgets_values": []
     },
     {
       "id": 52,

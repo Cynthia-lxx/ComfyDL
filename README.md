@@ -36,7 +36,7 @@
 
 ## Function Overview
 
-ComfyDL provides **106 nodes** across 14 categories:
+ComfyDL provides **105 nodes** across 14 categories:
 
 | Category | Count | Description |
 |---|---|---|
@@ -53,7 +53,7 @@ ComfyDL provides **106 nodes** across 14 categories:
 | **Segmentation** | 4 | VOC semantic segmentation tools |
 | **Tensor Basic** | 8 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
 | **TorchOps** | 10 | Loss, optimization, metrics |
-| **Visualization** | 13 | Plots, charts & bounding box visualization |
+| **Visualization** | 12 | Plots, charts & bounding box visualization |
 
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).
 
