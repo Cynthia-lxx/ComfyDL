@@ -1,0 +1,457 @@
+{
+  "version": 0.4,
+  "last_node_id": 10,
+  "last_link_id": 7,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CdlDeviceInfo",
+      "pos": [
+        50,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "num_gpus",
+          "type": "INT",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "has_cuda",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDeviceInfo"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 2,
+      "type": "CdlTryGpu",
+      "pos": [
+        50,
+        300
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "device_str",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlTryGpu"
+      },
+      "widgets_values": [
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CdlLeNet",
+      "pos": [
+        420,
+        100
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "links": [
+            1,
+            2,
+            3
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlLeNet"
+      },
+      "widgets_values": [
+        10,
+        0.1
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CdlModelInfo",
+      "pos": [
+        800,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "summary",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "total_params",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "trainable_params",
+          "type": "INT",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlModelInfo"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 5,
+      "type": "CdlModelLayers",
+      "pos": [
+        800,
+        300
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "layers_str",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlModelLayers"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 6,
+      "type": "CdlModelMode",
+      "pos": [
+        800,
+        550
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "links": [
+            4
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlModelMode"
+      },
+      "widgets_values": [
+        "eval"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "CdlRandomTensor",
+      "pos": [
+        420,
+        350
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "tensor",
+          "type": "cdlTensor",
+          "links": [
+            5
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlRandomTensor"
+      },
+      "widgets_values": [
+        "1,1,28,28",
+        "normal",
+        0.0,
+        1.0,
+        0.0,
+        1.0,
+        -1
+      ]
+    },
+    {
+      "id": 8,
+      "type": "CdlModelForward",
+      "pos": [
+        1150,
+        200
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "link": 4
+        },
+        {
+          "name": "tensor",
+          "type": "cdlTensor",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "cdlTensor",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlModelForward"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "CdlReshape",
+      "pos": [
+        1500,
+        200
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "tensor",
+          "type": "cdlTensor",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "cdlTensor",
+          "links": [
+            7
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlReshape"
+      },
+      "widgets_values": [
+        "10"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "CdlBarChart",
+      "pos": [
+        1850,
+        200
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "values",
+          "type": "cdlTensor",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlBarChart"
+      },
+      "widgets_values": [
+        "",
+        "class index",
+        "logit",
+        false,
+        "#4673a6",
+        true,
+        7.0,
+        4.0
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      3,
+      0,
+      4,
+      0,
+      "cdlModel"
+    ],
+    [
+      2,
+      3,
+      0,
+      5,
+      0,
+      "cdlModel"
+    ],
+    [
+      3,
+      3,
+      0,
+      6,
+      0,
+      "cdlModel"
+    ],
+    [
+      4,
+      6,
+      0,
+      8,
+      0,
+      "cdlModel"
+    ],
+    [
+      5,
+      7,
+      0,
+      8,
+      1,
+      "cdlTensor"
+    ],
+    [
+      6,
+      8,
+      0,
+      9,
+      0,
+      "cdlTensor"
+    ],
+    [
+      7,
+      9,
+      0,
+      10,
+      0,
+      "cdlTensor"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.4,
+      "offset": [
+        20,
+        20
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "test"
+    }
+  }
+}

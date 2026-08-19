@@ -1,0 +1,341 @@
+{
+  "version": 0.4,
+  "last_node_id": 7,
+  "last_link_id": 6,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CdlDeviceInfo",
+      "pos": [
+        50,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "num_gpus",
+          "type": "INT",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "has_cuda",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDeviceInfo"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 2,
+      "type": "CdlTryGpu",
+      "pos": [
+        50,
+        300
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "device_str",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlTryGpu"
+      },
+      "widgets_values": [
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CdlTokenize",
+      "pos": [
+        420,
+        150
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "tokens_str",
+          "type": "STRING",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlTokenize"
+      },
+      "widgets_values": [
+        "the quick brown fox\njumps over the lazy dog",
+        "word"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CdlVocabBuild",
+      "pos": [
+        800,
+        150
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "tokens_text",
+          "type": "STRING",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "vocab",
+          "type": "cdlVocab",
+          "links": [
+            5
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "vocab_size",
+          "type": "INT",
+          "links": [
+            2,
+            4
+          ],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlVocabBuild"
+      },
+      "widgets_values": [
+        1,
+        "<pad>,<bos>,<eos>"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "CdlRNNScratch",
+      "pos": [
+        1150,
+        150
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "num_inputs",
+          "type": "INT",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "links": [
+            3
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlRNNScratch"
+      },
+      "widgets_values": [
+        64,
+        0.01
+      ]
+    },
+    {
+      "id": 6,
+      "type": "CdlRNNLMScratch",
+      "pos": [
+        1500,
+        150
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "rnn",
+          "type": "cdlModel",
+          "link": 3
+        },
+        {
+          "name": "vocab_size",
+          "type": "INT",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlRNNLMScratch"
+      },
+      "widgets_values": [
+        0.01
+      ]
+    },
+    {
+      "id": 7,
+      "type": "CdlRNNLMScratchPredict",
+      "pos": [
+        1850,
+        150
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "cdlModel",
+          "link": 6
+        },
+        {
+          "name": "vocab",
+          "type": "cdlVocab",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "prediction",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlRNNLMScratchPredict"
+      },
+      "widgets_values": [
+        "the ",
+        10
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      3,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      2,
+      4,
+      1,
+      5,
+      0,
+      "INT"
+    ],
+    [
+      3,
+      5,
+      0,
+      6,
+      0,
+      "cdlModel"
+    ],
+    [
+      4,
+      4,
+      1,
+      6,
+      1,
+      "INT"
+    ],
+    [
+      5,
+      4,
+      0,
+      7,
+      1,
+      "cdlVocab"
+    ],
+    [
+      6,
+      6,
+      0,
+      7,
+      0,
+      "cdlModel"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.4,
+      "offset": [
+        20,
+        20
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "test"
+    }
+  }
+}

@@ -1,0 +1,334 @@
+{
+  "version": 0.4,
+  "last_node_id": 7,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CdlDeviceInfo",
+      "pos": [
+        50,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "num_gpus",
+          "type": "INT",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "has_cuda",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDeviceInfo"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 2,
+      "type": "CdlTryGpu",
+      "pos": [
+        50,
+        300
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "device_str",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlTryGpu"
+      },
+      "widgets_values": [
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CdlFashionMNIST",
+      "pos": [
+        420,
+        150
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "train_loader",
+          "type": "cdlDataloader",
+          "links": [
+            1,
+            2,
+            4
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "test_loader",
+          "type": "cdlDataloader",
+          "links": [
+            3
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "class_names",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlFashionMNIST"
+      },
+      "widgets_values": [
+        64,
+        28
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CdlDataLoaderInfo",
+      "pos": [
+        800,
+        50
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "num_batches",
+          "type": "INT",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "dataset_size",
+          "type": "INT",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderInfo"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 5,
+      "type": "CdlDataLoaderPreview",
+      "pos": [
+        800,
+        300
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderPreview"
+      },
+      "widgets_values": [
+        2,
+        4,
+        32
+      ]
+    },
+    {
+      "id": 6,
+      "type": "CdlDataLoaderPreviewOutput",
+      "pos": [
+        800,
+        550
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderPreviewOutput"
+      },
+      "widgets_values": [
+        2,
+        4,
+        32
+      ]
+    },
+    {
+      "id": 7,
+      "type": "CdlDataLoaderStats",
+      "pos": [
+        800,
+        800
+      ],
+      "size": [
+        315,
+        200
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataloader",
+          "type": "cdlDataloader",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "stats_text",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "stats_image",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDataLoaderStats"
+      },
+      "widgets_values": [
+        10,
+        "t-shirt,trouser,pullover,dress,coat,sandal,shirt,sneaker,bag,ankle boot"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      3,
+      0,
+      4,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      2,
+      3,
+      0,
+      5,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      3,
+      3,
+      1,
+      6,
+      0,
+      "cdlDataloader"
+    ],
+    [
+      4,
+      3,
+      0,
+      7,
+      0,
+      "cdlDataloader"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.45,
+      "offset": [
+        20,
+        20
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "test"
+    }
+  }
+}
