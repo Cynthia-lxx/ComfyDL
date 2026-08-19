@@ -11,6 +11,45 @@
 
 **ComfyDL** 让你通过连接 ComfyUI 中的节点来构建深度学习工作流——从 CNN 到 BERT，以及更多——而无需编写代码。它深受 `d2l` 代码库启发，并持续自主开发更多有用的节点——可视化、富有教育意义，非常适合快速原型开发。拖拽、连接，即刻看到结果。
 
+## 使用示例
+
+一些真实 ComfyDL 工作流的截图，点击图片可放大查看。
+
+### RNN 语言模型
+从零开始搭建并查询一个字符/词级别的 RNN 语言模型，全程无需写代码。
+
+![RNN 语言模型](./assets/example_RNN.png)
+
+### 线性回归
+生成合成数据、拟合线性回归，并用直方图可视化预测值与残差分布。
+
+![线性回归](./assets/example_linear_regression.png)
+
+### LeNet 推理
+加载 LeNet 风格模型、执行前向推理，并用条形图展示各类别概率。
+
+![LeNet 推理](./assets/example_lenet_inference.png)
+
+### Fashion-MNIST 数据探索
+浏览 Fashion-MNIST 数据集，并在节点图中直接预览图片批次。
+
+![Fashion-MNIST 数据探索](./assets/example_fashion_MNIST_explore.png)
+
+### 迭代计时基准
+对张量运算（如 `sqrt`）进行基准测试并查看计时报告。
+
+![迭代计时基准](./assets/example_iteration_timer_benchmark.png)
+
+### 节点全景
+众多 ComfyDL 节点连接在一起的鸟瞰图。
+
+![节点全景](./assets/example_a_lot_of_nodes.png)
+
+### 神秘的 "?"
+一个带开关的小节点，会做点……什么。试一试就知道了~
+
+![神秘的 ?](./assets/example_what.png)
+
 ---
 
 ## 安装
