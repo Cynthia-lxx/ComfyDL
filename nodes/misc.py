@@ -238,7 +238,7 @@ class CdlWhat:
 
     def execute(self, OMG=False, any_input=None):
         if OMG:
-            self._open_url("https://www.bilibili.com/video/BV1GJ411x7h7")
+            self._open_url("https://vdse.bdstatic.com/192d9a98d782d9c74c96f09db9378d93.mp4")
         # Intentionally does nothing meaningful
         return ()
 
