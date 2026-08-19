@@ -580,8 +580,9 @@ class CdlDataLoaderStats:
     CATEGORY = "ComfyDL/Datasets"
 
     def execute(self, dataloader, num_classes, class_names=""):
-        counts = torch.zeros(num_classes, dtype=torch.int64)
-
+        # Collect all flattened labels first so the display mode can be
+        # decided from the actual data (discrete classes vs continuous values).
+        flat_labels = []
         for batch in dataloader:
             if isinstance(batch, (list, tuple)) and len(batch) == 2:
                 _, labels = batch
@@ -589,17 +590,45 @@ class CdlDataLoaderStats:
                 continue
 
             if labels.ndim > 1:
-                # Multi-dimensional labels (e.g., object detection): skip counting
-                continue
+                # Flatten a trailing singleton dim (e.g. regression targets (n, 1))
+                if labels.ndim == 2 and labels.shape[1] == 1:
+                    labels = labels.reshape(-1)
+                else:
+                    # Multi-dimensional labels (e.g., object detection): skip counting
+                    continue
 
-            labels_flat = labels.view(-1).long()
-            for lbl in labels_flat:
+            flat_labels.append(labels.reshape(-1).float())
+
+        labels_all = torch.cat(flat_labels) if flat_labels else torch.zeros(0, dtype=torch.float32)
+        total = labels_all.numel()
+
+        # Decide display mode: integer labels inside [0, num_classes) are
+        # treated as class indices (bar chart); anything else (continuous
+        # values or out-of-range integers) is bucketed into a histogram.
+        use_histogram = True
+        if total > 0:
+            is_integer = bool(torch.equal(labels_all, labels_all.round()))
+            in_class_range = bool(labels_all.min().item() >= 0
+                                  and labels_all.max().item() < num_classes)
+            use_histogram = not (is_integer and in_class_range)
+
+        counts = torch.zeros(num_classes, dtype=torch.int64)
+        bin_edges = None
+        if use_histogram:
+            if total > 0:
+                hist, bin_edges = np.histogram(
+                    labels_all.detach().cpu().numpy(), bins=num_classes)
+                counts = torch.as_tensor(hist, dtype=torch.int64)
+        else:
+            for lbl in labels_all.long():
                 if 0 <= lbl < num_classes:
                     counts[lbl] += 1
 
         # Build text summary
-        total = counts.sum().item()
-        if class_names:
+        if use_histogram and bin_edges is not None:
+            names = [f'[{bin_edges[i]:.2f}, {bin_edges[i + 1]:.2f})'
+                     for i in range(num_classes)]
+        elif class_names:
             names = [n.strip() for n in class_names.split(',')]
         else:
             names = [f'Class {i}' for i in range(num_classes)]
@@ -611,13 +640,17 @@ class CdlDataLoaderStats:
             lines.append(f'  {names[i]}: {cnt} {pct}')
         stats_text = '\n'.join(lines)
 
-        # Build bar chart
+        # Build chart
         fig, ax = plt.subplots(figsize=(max(6, num_classes * 0.5), 4))
         x = range(num_classes)
         bars = ax.bar(x, counts.numpy(), color='steelblue', edgecolor='white')
-        ax.set_xlabel('Class Index')
+        if use_histogram:
+            ax.set_xlabel('Value Range')
+            ax.set_title('Dataset Value Distribution')
+        else:
+            ax.set_xlabel('Class Index')
+            ax.set_title('Dataset Class Distribution')
         ax.set_ylabel('Count')
-        ax.set_title('Dataset Class Distribution')
         ax.set_xticks(list(x))
         if len(names) <= 20:
             ax.set_xticklabels([n[:8] for n in names], rotation=45, ha='right', fontsize=8)

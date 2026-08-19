@@ -144,6 +144,7 @@
         "Node name for S&R": "CdlVocabBuild"
       },
       "widgets_values": [
+        "the quick\nbrown fox\nthe lazy dog",
         1,
         "<pad>,<bos>,<eos>"
       ]
@@ -183,6 +184,7 @@
         "Node name for S&R": "CdlRNNScratch"
       },
       "widgets_values": [
+        32,
         64,
         0.01
       ]
@@ -227,6 +229,7 @@
         "Node name for S&R": "CdlRNNLMScratch"
       },
       "widgets_values": [
+        32,
         0.01
       ]
     },

@@ -1384,18 +1384,18 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ### Dataset Stats
 - **类名**：`CdlDataLoaderStats`
-- **功能**：遍历 `cdlDataloader`，统计类别分布。渲染柱状图显示各类别的样本数。
+- **功能**：遍历 `cdlDataloader`，统计标签分布。自动识别标签类型：整数且落在 `[0, num_classes)` 内的离散类别标签渲染为分类柱状图；连续数值标签（如回归目标，含 `(n,1)` 二维标签）自动按 `num_classes` 个区间分桶为直方图。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
   | `dataloader` | `cdlDataloader` | — | 待分析的 DataLoader |
-  | `num_classes` | `INT` | 10 | 预期类别数（1~1000） |
-  | `class_names` | `STRING` | `""` | 逗号分隔的类别名称（可选） |
+  | `num_classes` | `INT` | 10 | 预期类别数/分桶数（1~1000） |
+  | `class_names` | `STRING` | `""` | 逗号分隔的类别名称（可选；仅分类模式生效） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `stats_text` | `STRING` | 格式化后的类别统计文本摘要 |
-  | `stats_image` | `IMAGE` | 类别分布柱状图 `[1, H, W, C]` |
+  | `stats_text` | `STRING` | 格式化统计文本摘要（分类模式为各类别计数，直方图模式为各区间范围与计数） |
+  | `stats_image` | `IMAGE` | 标签分布图（分类柱状图或数值直方图）`[1, H, W, C]` |
 
 ---
 

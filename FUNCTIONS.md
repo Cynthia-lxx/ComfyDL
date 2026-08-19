@@ -1384,18 +1384,18 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 
 ### Dataset Stats
 - **Class**: `CdlDataLoaderStats`
-- **Purpose**: Iterates over a `cdlDataloader` and computes class distribution statistics. Renders a bar chart showing per-class counts.
+- **Purpose**: Iterates over a `cdlDataloader` and computes label distribution statistics. The label type is auto-detected: discrete integer class indices within `[0, num_classes)` are rendered as a per-class bar chart; continuous values (e.g. regression targets, including 2D `(n,1)` labels) are automatically bucketed into a histogram with `num_classes` bins.
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
   | `dataloader` | `cdlDataloader` | — | DataLoader to analyze |
-  | `num_classes` | `INT` | 10 | Expected number of classes (1~1000) |
-  | `class_names` | `STRING` | `""` | Comma-separated class names (optional) |
+  | `num_classes` | `INT` | 10 | Expected number of classes / histogram bins (1~1000) |
+  | `class_names` | `STRING` | `""` | Comma-separated class names (optional; classification mode only) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `stats_text` | `STRING` | Formatted text summary of class counts |
-  | `stats_image` | `IMAGE` | Bar chart of class distribution `[1, H, W, C]` |
+  | `stats_text` | `STRING` | Formatted text summary (per-class counts, or bin ranges + counts for histograms) |
+  | `stats_image` | `IMAGE` | Label distribution chart (class bar chart or value histogram) `[1, H, W, C]` |
 
 ---
 
