@@ -2,8 +2,9 @@
 <div align="center">
 <h1>ComfyDL</h1>
 <p>DeepLearning is just a few clicks away!</p>
+  <a href="./README_zh.md">中文版本 / Chinese</a>
 </div>
-[中文版本 / Chinese](./README_zh.md)
+
 
 ---
 
