@@ -3,6 +3,16 @@
 # ComfyUI 加载插件时会 import 本包；启动时自动扫描已注册节点并在控制台打印
 # 数量与分类统计。节点数量不硬编码，随后续开发自动更新。
 
+import os
+import sys
+
+# ComfyUI loads custom-node packages under synthetic module names, which breaks
+# relative imports (``from ..src.d2lcore ...``). Make the plugin root importable
+# so the fallback ``from src.d2lcore.torch import ...`` paths resolve.
+_PLUGIN_ROOT = os.path.dirname(os.path.abspath(__file__))
+if _PLUGIN_ROOT not in sys.path:
+    sys.path.insert(0, _PLUGIN_ROOT)
+
 from collections import Counter
 
 from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
