@@ -52,4 +52,9 @@ for mod_name in _module_files:
     except Exception as e:
         print(f"[ComfyDL] Warning: Failed to load {mod_name}: {e}")
 
-print("\033[92m[ComfyDL] Loaded "+str(len(NODE_CLASS_MAPPINGS))+" deep learning nodes.🤩\033[0m")
+_dl_loaded_msg = f"[ComfyDL] Loaded {len(NODE_CLASS_MAPPINGS)} deep learning nodes."
+try:
+    print("\033[92m" + _dl_loaded_msg + "\033[0m")
+except UnicodeEncodeError:
+    # Fall back to plain ASCII when the console encoding cannot handle ANSI text
+    print(_dl_loaded_msg)
