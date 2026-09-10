@@ -155,7 +155,7 @@
     },
     {
       "id": 5,
-      "type": "CdlImageResize",
+      "type": "ImageScale",
       "pos": [
         1150,
         50
@@ -185,12 +185,13 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "CdlImageResize"
+        "Node name for S&R": "ImageScale"
       },
       "widgets_values": [
+        "bilinear",
         112,
         112,
-        "bilinear"
+        "disabled"
       ]
     },
     {
@@ -231,7 +232,7 @@
     },
     {
       "id": 7,
-      "type": "CdlImageFlip",
+      "type": "ImageFlip",
       "pos": [
         1150,
         550
@@ -261,15 +262,15 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "CdlImageFlip"
+        "Node name for S&R": "ImageFlip"
       },
       "widgets_values": [
-        "horizontal"
+        "y-axis: horizontally"
       ]
     },
     {
       "id": 8,
-      "type": "CdlImageBlur",
+      "type": "ImageBlur",
       "pos": [
         1150,
         800
@@ -299,11 +300,11 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "CdlImageBlur"
+        "Node name for S&R": "ImageBlur"
       },
       "widgets_values": [
-        "gaussian",
-        5
+        5,
+        1.0
       ]
     },
     {

@@ -31,7 +31,7 @@ import ComfyDL  # noqa: E402
 # ComfyUI 视为 widget 的内置标量类型（其余类型走输入槽位）
 _WIDGET_TYPES = {'INT', 'FLOAT', 'STRING', 'BOOLEAN'}
 
-# 输出目录：与脚本同目录（ComfyDL/example_workflows/）
+# 输出目录：与脚本同目录（comfydl/example_workflows/）
 _OUT_FILE = Path(__file__).resolve().parent / 'ComfyDL_AllNodes_Generated.json'
 
 
@@ -123,7 +123,7 @@ def main():
         cls = mappings[name]
         node = build_node(cls, nid, 50, y)
         nodes.append(node)
-        cat_count[getattr(cls, 'CATEGORY', 'ComfyDL/Unknown')] += 1
+        cat_count[getattr(cls, 'CATEGORY', 'd2l/Unknown')] += 1
         y += 240
         nid += 1
 
