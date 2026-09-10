@@ -25,7 +25,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 1. ComfyDL / Device Utils (3 nodes)
+## 1. d2l / Device Utils (3 nodes)
 
 ### Device Info
 - **Class**: `CdlDeviceInfo`
@@ -63,7 +63,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 2. ComfyDL / CV Models (5 nodes)
+## 2. d2l / CV Models (5 nodes)
 
 ### Corr2D
 - **Class**: `CdlCorr2d`
@@ -142,7 +142,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 3. ComfyDL / GAN (2 nodes)
+## 3. d2l / GAN (2 nodes)
 
 ### Update Discriminator
 - **Class**: `CdlUpdateD`
@@ -178,7 +178,9 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 4. ComfyDL / Misc (4 nodes)
+## 4. ComfyUI / utilities (4 nodes)
+
+Merged into the ComfyUI core category `utilities` (frontend group: 实用工具). Class names keep the `Cdl` prefix.
 
 ### MessageBox
 - **Class**: `CdlMessageBox`
@@ -233,7 +235,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 5. ComfyDL / NLP Utils (5 nodes)
+## 5. d2l / NLP Utils (5 nodes)
 
 ### Tokenize
 - **Class**: `CdlTokenize`
@@ -310,7 +312,7 @@ ComfyUI standard types (used directly):
 
 ---
 
-## 6. ComfyDL / NLP Models (16 nodes)
+## 6. d2l / NLP Models (16 nodes)
 
 NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer and Seq2Seq building blocks. All builders return a `cdlModel` that can be wired into `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` etc. for inspection and inference. RNN/GRU forwards expect time-major inputs `(num_steps, batch_size, num_inputs)`; attention modules and the Transformer encoder expect batch-first inputs.
 
@@ -559,7 +561,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 
 ---
 
-## 7. ComfyDL / Tensor Basic (8 nodes)
+## 7. d2l / Tensor Basic (8 nodes)
 
 ### Tensor → String
 - **Class**: `CdlTensorToStr`
@@ -678,7 +680,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 
 ---
 
-## 8. ComfyDL / TorchOps (10 nodes)
+## 8. d2l / TorchOps (10 nodes)
 
 ### Linear Regression
 - **Class**: `CdlLinReg`
@@ -831,7 +833,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 
 ---
 
-## 9. ComfyDL / ObjectDetection (10 nodes)
+## 9. d2l / ObjectDetection (10 nodes)
 
 ### Box Corner→Center
 - **Class**: `CdlBoxCornerToCenter`
@@ -982,7 +984,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 
 ---
 
-## 10. ComfyDL / Segmentation (4 nodes)
+## 10. d2l / Segmentation (4 nodes)
 
 ### VOC Classes
 - **Class**: `CdlVocClasses`
@@ -1043,7 +1045,7 @@ The 21 classes: `background, aeroplane, bicycle, bird, boat, bottle, bus, car, c
 
 ---
 
-## 11. ComfyDL / Visualization (12 nodes)
+## 11. d2l / Visualization (12 nodes)
 
 Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix versions are ComfyUI output nodes (showing interactive plots directly in the UI), while non-suffix versions render plots as `IMAGE` tensors for downstream nodes.
 
@@ -1257,7 +1259,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 
 ---
 
-## 12. ComfyDL / Datasets (10 nodes)
+## 12. d2l / Datasets (10 nodes)
 
 Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics.
 
@@ -1409,7 +1411,7 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 
 ---
 
-## 13. ComfyDL / Model Utils (8 nodes)
+## 13. d2l / Model Utils (8 nodes)
 
 Self-developed model utility nodes (not from d2l). They help inspect, switch, run, clone and persist PyTorch models directly on the workflow graph. All nodes operate on the `cdlModel` type (any `nn.Module` instance).
 
@@ -1517,24 +1519,11 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 
 ---
 
-## 14. ComfyDL / Image Tools (9 nodes)
+## 14. ComfyUI / image/color (3 nodes)
 
-Self-developed general CV image nodes (not from d2l). All nodes consume and produce the native ComfyUI `IMAGE` format — float32 `[B, H, W, C]` with values in `[0, 1]` — and are implemented with `torch` + `torchvision.transforms.functional`. Exception: `Image Normalize` deliberately does not clip its output to `[0, 1]` (z-score range).
+Self-developed general CV image nodes (not from d2l), merged into the ComfyUI core category `image/color`. All nodes consume and produce the native ComfyUI `IMAGE` format — float32 `[B, H, W, C]` with values in `[0, 1]` — and are implemented with `torch` + `torchvision.transforms.functional`. Exception: `Image Normalize` deliberately does not clip its output to `[0, 1]` (z-score range).
 
-### Image Resize
-- **Class**: `CdlImageResize`
-- **Purpose**: Resizes each image to `(height, width)` using the selected interpolation mode. Setting a dimension to 0 keeps the input size on that axis.
-- **Inputs**:
-  | Name | Type | Default | Description |
-  |------|------|---------|-------------|
-  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
-  | `width` | `INT` | 512 | Target width (0 = keep input width) |
-  | `height` | `INT` | 512 | Target height (0 = keep input height) |
-  | `mode` | `COMBO` | `bilinear` | bilinear / nearest / bicubic / area |
-- **Outputs**:
-  | Name | Type | Description |
-  |------|------|-------------|
-  | `image` | `IMAGE` | Resized images `[B, H, W, C]` |
+> Geometry nodes removed in favour of the ComfyUI core equivalents: `Image Resize` → `ImageScale` / `ResizeImageMaskNode`, `Image Flip` → `ImageFlip`, `Image Blur` → `ImageBlur`, `Image Crop` → `ImageCrop` / `ImageCropV2`. `Image Rotate` was kept (the core `ImageRotate` only supports 90-degree steps) and moved to `image/transform`.
 
 ### Image Normalize
 - **Class**: `CdlImageNormalize`
@@ -1563,47 +1552,6 @@ Self-developed general CV image nodes (not from d2l). All nodes consume and prod
   |------|------|-------------|
   | `image` | `IMAGE` | 3-channel grayscale images `[B, H, W, C]` |
 
-### Image Flip
-- **Class**: `CdlImageFlip`
-- **Purpose**: Mirrors every image along the width axis (`horizontal`) or the height axis (`vertical`).
-- **Inputs**:
-  | Name | Type | Default | Description |
-  |------|------|---------|-------------|
-  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
-  | `direction` | `COMBO` | `horizontal` | horizontal / vertical |
-- **Outputs**:
-  | Name | Type | Description |
-  |------|------|-------------|
-  | `image` | `IMAGE` | Flipped images `[B, H, W, C]` |
-
-### Image Rotate
-- **Class**: `CdlImageRotate`
-- **Purpose**: Rotates every image by `angle` degrees (counter-clockwise) with bilinear interpolation and zero-filled borders. When `expand` is True the canvas is enlarged so rotated content is not clipped; otherwise the output keeps the input size.
-- **Inputs**:
-  | Name | Type | Default | Description |
-  |------|------|---------|-------------|
-  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
-  | `angle` | `FLOAT` | 90.0 | Rotation angle in degrees (-360~360) |
-  | `expand` | `BOOLEAN` | False | True = enlarge canvas to fit rotated content |
-- **Outputs**:
-  | Name | Type | Description |
-  |------|------|-------------|
-  | `image` | `IMAGE` | Rotated images `[B, H, W, C]` |
-
-### Image Crop
-- **Class**: `CdlImageCrop`
-- **Purpose**: Center-crops each image to the requested size. A requested dimension of 0 (or larger than the input) is clamped to the input size, so the output never exceeds the input.
-- **Inputs**:
-  | Name | Type | Default | Description |
-  |------|------|---------|-------------|
-  | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
-  | `height` | `INT` | 0 | Crop height (0 = keep input height) |
-  | `width` | `INT` | 0 | Crop width (0 = keep input width) |
-- **Outputs**:
-  | Name | Type | Description |
-  |------|------|-------------|
-  | `image` | `IMAGE` | Cropped images `[B, H, W, C]` |
-
 ### Image Adjust
 - **Class**: `CdlImageAdjust`
 - **Purpose**: Applies torchvision brightness, contrast and saturation adjustments with the given factors (1.0 = unchanged, >1 stronger, <1 weaker, 0 = none). Factors equal to 1.0 are skipped for speed.
@@ -1619,19 +1567,29 @@ Self-developed general CV image nodes (not from d2l). All nodes consume and prod
   |------|------|-------------|
   | `image` | `IMAGE` | Adjusted images `[B, H, W, C]` |
 
-### Image Blur
-- **Class**: `CdlImageBlur`
-- **Purpose**: Applies a Gaussian blur (`torchvision` gaussian_blur) or a mean (box) blur (`avg_pool2d`). `kernel_size` is auto-rounded up to the next odd number and clamped to at least 1.
+## 15. ComfyUI / image/transform (1 node)
+
+Kept as a ComfyUI core `image/transform` node: the core `ImageRotate` node only supports 90-degree steps, while this one accepts an arbitrary angle plus optional canvas expansion.
+
+### Image Rotate
+- **Class**: `CdlImageRotate`
+- **Purpose**: Rotates every image by `angle` degrees (counter-clockwise) with bilinear interpolation and zero-filled borders. When `expand` is True the canvas is enlarged so rotated content is not clipped; otherwise the output keeps the input size.
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
   | `image` | `IMAGE` | — | Input images `[B, H, W, C]` |
-  | `blur_type` | `COMBO` | `gaussian` | gaussian / mean |
-  | `kernel_size` | `INT` | 3 | Odd kernel size (1~99) |
+  | `angle` | `FLOAT` | 90.0 | Rotation angle in degrees (-360~360) |
+  | `expand` | `BOOLEAN` | False | True = enlarge canvas to fit rotated content |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `image` | `IMAGE` | Blurred images `[B, H, W, C]` |
+  | `image` | `IMAGE` | Rotated images `[B, H, W, C]` |
+
+---
+
+## 16. ComfyUI / image (1 node)
+
+Merged into the ComfyUI core category `image` (next to the core `GetImageSize` node).
 
 ### Image Stats
 - **Class**: `CdlImageStats`
@@ -1655,21 +1613,25 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**106 nodes** across 14 categories:
+**102 nodes** across 16 categories:
 
 | Category | Count | Description |
 |----------|-------|-------------|
-| ComfyDL/Device Utils | 3 | GPU/CPU device queries |
-| ComfyDL/CV Models | 5 | CNN fundamentals & model construction |
-| ComfyDL/GAN | 2 | GAN training updates |
-| ComfyDL/Image Tools | 9 | Resize, normalize, flip, rotate, crop, adjust, blur & stats |
-| ComfyDL/Misc | 4 | Windows MessageBox, NoOp pass-through, timing & a mysterious "?" |
-| ComfyDL/Model Utils | 8 | Model info, mode, forward, layers, params, clone & persistence |
-| ComfyDL/NLP Models | 16 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
-| ComfyDL/NLP Utils | 5 | Text tokenization & vocabularies |
-| ComfyDL/Tensor Basic | 8 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
-| ComfyDL/TorchOps | 10 | Loss, optimization, metrics |
-| ComfyDL/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
-| ComfyDL/Segmentation | 4 | VOC semantic segmentation tools |
-| ComfyDL/Visualization | 12 | Plots, charts & bounding box visualization |
-| ComfyDL/Datasets | 10 | Dataset download, loading, preview, and statistics |
+| d2l/Device Utils | 3 | GPU/CPU device queries |
+| d2l/CV Models | 5 | CNN fundamentals & model construction |
+| d2l/GAN | 2 | GAN training updates |
+| utilities | 4 | Windows MessageBox, NoOp pass-through, timing & a mysterious "?" (ComfyUI core category) |
+| d2l/Model Utils | 8 | Model info, mode, forward, layers, params, clone & persistence |
+| d2l/NLP Models | 16 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
+| d2l/NLP Utils | 5 | Text tokenization & vocabularies |
+| d2l/Tensor Basic | 8 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
+| d2l/TorchOps | 10 | Loss, optimization, metrics |
+| d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
+| d2l/Segmentation | 4 | VOC semantic segmentation tools |
+| d2l/Visualization | 12 | Plots, charts & bounding box visualization |
+| d2l/Datasets | 10 | Dataset download, loading, preview, and statistics |
+| image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
+| image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
+| image | 1 | Per-channel image batch statistics (ComfyUI core category) |
+
+> Counts list **ComfyDL nodes only**. `utilities`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.

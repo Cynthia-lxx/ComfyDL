@@ -76,7 +76,7 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ## Function Overview
 
-ComfyDL provides **106 nodes** across 14 categories:
+ComfyDL provides **102 nodes** across 16 categories:
 
 | Category | Count | Description |
 |---|---|---|
@@ -84,16 +84,18 @@ ComfyDL provides **106 nodes** across 14 categories:
 | **Datasets** | 10 | Dataset download, load, preview & stats |
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
-| **Image Tools** | 9 | Resize, normalize, flip, rotate, crop, adjust, blur & stats |
-| **Misc** | 4 | Windows MessageBox, NoOp pass-through, timing & a mysterious "?" |
 | **Model Utils** | 8 | Model info, mode, forward, layers, params, clone & persistence |
-| **NLP Models** | 16 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
+| **NLP Models** | 16 | RNN/GRU/RNNLM, attention & Seq2Seq building blocks |
 | **NLP Utils** | 5 | Text tokenization & vocabularies |
 | **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
 | **Segmentation** | 4 | VOC semantic segmentation tools |
-| **Tensor Basic** | 8 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
+| **Tensor Basic** | 8 | Tensor I/O, conv, transpose, broadcast, activation |
 | **TorchOps** | 10 | Loss, optimization, metrics |
 | **Visualization** | 12 | Plots, charts & bounding box visualization |
+| **image (Comfy core)** | 1 | Per-channel image batch statistics |
+| **image/color (Comfy core)** | 3 | Grayscale, normalize & brightness/contrast/saturation |
+| **image/transform (Comfy core)** | 1 | Arbitrary-angle rotation + canvas expand |
+| **utilities (Comfy core)** | 4 | MessageBox, NoOp pass-through & benchmark timer |
 
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).
 

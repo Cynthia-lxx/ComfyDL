@@ -10,14 +10,14 @@ FUNCTIONS.md / FUNCTIONS_zh.md / README.md / README_zh.md
 节点数量不硬编码：动态统计注册表，后续新增节点/类别会自动更新。
 
 覆盖位置：
-  1) FUNCTIONS(.zh).md 章节标题：`## N. ComfyDL / <Cat> (N nodes)` / `（N 个节点）`
-  2) FUNCTIONS(.zh).md 附录分类表：`| ComfyDL/<Cat> | N | ...`
+  1) FUNCTIONS(.zh).md 章节标题：`## N. d2l / <Cat> (N nodes)` / `## N. ComfyUI / <cat> ...`
+  2) FUNCTIONS(.zh).md 附录分类表：`| <category> | N | ...`（d2l/<Cat> 或核心分类名）
   3) FUNCTIONS(.zh).md 附录总数行：`**N nodes** across M categories` / `共 **N 个节点**，分属 M 个类别`
-  4) README(.zh).md 概述总数句与 11 类类别表格（整块重建）
+  4) README(.zh).md 概述总数句与类别表格（整块重建）
 
 用法:
-    python ComfyDL/_update_readme.py             # 同步（写回文档）
-    python ComfyDL/_update_readme.py --check     # 只校验，不写文件；存在差异退出码 1
+    python comfydl/_update_readme.py             # 同步（写回文档）
+    python comfydl/_update_readme.py --check     # 只校验，不写文件；存在差异退出码 1
 退出码:
     0 = 无差异(或已同步); 1 = check 模式存在差异 / 执行失败
 """
@@ -29,59 +29,75 @@ from pathlib import Path
 
 sys.dont_write_bytecode = True  # 不写入 .pyc
 
-_ROOT = Path(__file__).resolve().parent            # ComfyDL/
-_WORKSPACE = _ROOT.parent                          # f:/Dev/ComfyDL_Refs
+_ROOT = Path(__file__).resolve().parent            # comfydl/
+_WORKSPACE = _ROOT.parent                          # ComfyDL_UI/
 if str(_WORKSPACE) not in sys.path:
     sys.path.insert(0, str(_WORKSPACE))
 
-import ComfyDL  # noqa: E402  触发插件入口启动统计
+import comfydl  # noqa: E402  触发插件入口启动统计
 
 # CATEGORY -> 中文名（README 表格使用）
 _CAT_ZH = {
-    'ComfyDL/CV Models': 'CV 模型',
-    'ComfyDL/Datasets': '数据集',
-    'ComfyDL/Device Utils': '设备工具',
-    'ComfyDL/GAN': 'GAN',
-    'ComfyDL/Image Tools': '图像工具',
-    'ComfyDL/Misc': '杂项',
-    'ComfyDL/Model Utils': '模型工具',
-    'ComfyDL/NLP Utils': 'NLP 工具',
-    'ComfyDL/ObjectDetection': '目标检测',
-    'ComfyDL/Segmentation': '语义分割',
-    'ComfyDL/Tensor Basic': '张量基础',
-    'ComfyDL/TorchOps': '张量运算',
-    'ComfyDL/Visualization': '可视化',
+    'd2l/CV Models': 'CV 模型',
+    'd2l/Datasets': '数据集',
+    'd2l/Device Utils': '设备工具',
+    'd2l/GAN': 'GAN',
+    'd2l/Model Utils': '模型工具',
+    'd2l/NLP Models': 'NLP 模型',
+    'd2l/NLP Utils': 'NLP 工具',
+    'd2l/ObjectDetection': '目标检测',
+    'd2l/Segmentation': '语义分割',
+    'd2l/Tensor Basic': '张量基础',
+    'd2l/TorchOps': '张量运算',
+    'd2l/Visualization': '可视化',
+    'utilities': 'Comfy 实用工具',
+    'image/color': 'Comfy 图像/颜色',
+    'image/transform': 'Comfy 图像/变换',
+    'image': 'Comfy 图像',
+}
+# CATEGORY -> 英文名（README 英文表格使用；缺省回退为分类叶子名）
+_CAT_EN = {
+    'utilities': 'utilities (Comfy core)',
+    'image/color': 'image/color (Comfy core)',
+    'image/transform': 'image/transform (Comfy core)',
+    'image': 'image (Comfy core)',
 }
 # 分类说明（英文 / 中文，与 FUNCTIONS 附录描述一致）
 _CAT_DESC_EN = {
-    'ComfyDL/CV Models': 'CNN fundamentals & model construction',
-    'ComfyDL/Datasets': 'Dataset download, load, preview & stats',
-    'ComfyDL/Device Utils': 'GPU/CPU device utilities',
-    'ComfyDL/GAN': 'GAN training updates',
-    'ComfyDL/Image Tools': 'Resize, normalize, flip, rotate, crop, adjust, blur & stats',
-    'ComfyDL/Misc': 'Windows MessageBox & NoOp pass-through',
-    'ComfyDL/Model Utils': 'Model info, mode, forward, layers, params, clone & persistence',
-    'ComfyDL/NLP Utils': 'Text tokenization & vocabularies',
-    'ComfyDL/ObjectDetection': 'Anchor boxes, IoU, NMS',
-    'ComfyDL/Segmentation': 'VOC semantic segmentation tools',
-    'ComfyDL/Tensor Basic': 'Tensor I/O, conv, transpose, broadcast, activation',
-    'ComfyDL/TorchOps': 'Loss, optimization, metrics',
-    'ComfyDL/Visualization': 'Plots, charts & bounding box visualization',
+    'd2l/CV Models': 'CNN fundamentals & model construction',
+    'd2l/Datasets': 'Dataset download, load, preview & stats',
+    'd2l/Device Utils': 'GPU/CPU device utilities',
+    'd2l/GAN': 'GAN training updates',
+    'd2l/Model Utils': 'Model info, mode, forward, layers, params, clone & persistence',
+    'd2l/NLP Models': 'RNN/GRU/RNNLM, attention & Seq2Seq building blocks',
+    'd2l/NLP Utils': 'Text tokenization & vocabularies',
+    'd2l/ObjectDetection': 'Anchor boxes, IoU, NMS',
+    'd2l/Segmentation': 'VOC semantic segmentation tools',
+    'd2l/Tensor Basic': 'Tensor I/O, conv, transpose, broadcast, activation',
+    'd2l/TorchOps': 'Loss, optimization, metrics',
+    'd2l/Visualization': 'Plots, charts & bounding box visualization',
+    'utilities': 'MessageBox, NoOp pass-through & benchmark timer',
+    'image/color': 'Grayscale, normalize & brightness/contrast/saturation',
+    'image/transform': 'Arbitrary-angle rotation + canvas expand',
+    'image': 'Per-channel image batch statistics',
 }
 _CAT_DESC_ZH = {
-    'ComfyDL/CV Models': 'CNN 基础与模型构建',
-    'ComfyDL/Datasets': '数据集下载、加载、预览与统计',
-    'ComfyDL/Device Utils': 'GPU/CPU 设备查询',
-    'ComfyDL/GAN': 'GAN 训练更新',
-    'ComfyDL/Image Tools': '缩放、归一化、翻转、旋转、裁剪、调整、模糊与统计',
-    'ComfyDL/Misc': 'Windows MessageBox 和 NoOp 空操作',
-    'ComfyDL/Model Utils': '模型信息、模式、前向、层结构、参数、克隆与存取',
-    'ComfyDL/NLP Utils': '文本分词与词表',
-    'ComfyDL/ObjectDetection': '锚框、IoU、NMS',
-    'ComfyDL/Segmentation': 'VOC 语义分割工具',
-    'ComfyDL/Tensor Basic': '张量 I/O、卷积、转置、广播、激活函数',
-    'ComfyDL/TorchOps': '损失、优化、评估指标',
-    'ComfyDL/Visualization': '图表与边界框可视化',
+    'd2l/CV Models': 'CNN 基础与模型构建',
+    'd2l/Datasets': '数据集下载、加载、预览与统计',
+    'd2l/Device Utils': 'GPU/CPU 设备查询',
+    'd2l/GAN': 'GAN 训练更新',
+    'd2l/Model Utils': '模型信息、模式、前向、层结构、参数、克隆与存取',
+    'd2l/NLP Models': 'RNN/GRU/RNNLM、注意力与 Seq2Seq 构件',
+    'd2l/NLP Utils': '文本分词与词表',
+    'd2l/ObjectDetection': '锚框、IoU、NMS',
+    'd2l/Segmentation': 'VOC 语义分割工具',
+    'd2l/Tensor Basic': '张量 I/O、卷积、转置、广播、激活函数',
+    'd2l/TorchOps': '损失、优化、评估指标',
+    'd2l/Visualization': '图表与边界框可视化',
+    'utilities': 'MessageBox、NoOp 空操作与基准计时',
+    'image/color': '灰度、归一化与亮度/对比度/饱和度',
+    'image/transform': '任意角度旋转 + 画布扩展',
+    'image': '图像批次逐通道统计',
 }
 
 # 正则
@@ -93,10 +109,26 @@ _DATA_RE = re.compile(r'^\| \*\*.+?\*\* \| \d+ \|')
 def collect_stats():
     """实时统计注册表：{CATEGORY: count}。"""
     cats = Counter(
-        getattr(cls, 'CATEGORY', 'ComfyDL/Unknown')
-        for cls in ComfyDL.NODE_CLASS_MAPPINGS.values()
+        getattr(cls, 'CATEGORY', 'd2l/Unknown')
+        for cls in comfydl.NODE_CLASS_MAPPINGS.values()
     )
     return cats, sum(cats.values()), len(cats)
+
+
+def header_to_category(label):
+    """章节标题里的分类标签 -> 注册表分类键。
+
+    'd2l / Datasets' -> 'd2l/Datasets'；'ComfyUI / image/color' -> 'image/color'。
+    """
+    if ' / ' not in label:
+        return None
+    prefix, rest = label.split(' / ', 1)
+    prefix, rest = prefix.strip(), rest.strip()
+    if prefix == 'd2l':
+        return 'd2l/' + rest
+    if prefix == 'ComfyUI':
+        return rest
+    return None
 
 
 def process_functions_lines(lines, cats, total, num_cats, zh, changes):
@@ -104,21 +136,21 @@ def process_functions_lines(lines, cats, total, num_cats, zh, changes):
     new_lines = []
     for line in lines:
         updated = line
-        # 1) 章节标题：## N. ComfyDL / <Cat> (N nodes) / （N 个节点）
+        # 1) 章节标题：## N. d2l / <Cat> (N nodes) / ## N. ComfyUI / <cat> ...
         if zh:
-            m = re.match(r'^(## \d+\. ComfyDL / )(.+?)（(\d+) 个节点）$', line)
+            m = re.match(r'^(## \d+\. )(.+?)（(\d+) 个节点）$', line)
         else:
-            m = re.match(r'^(## \d+\. ComfyDL / )(.+?) \((\d+) nodes\)$', line)
+            m = re.match(r'^(## \d+\. )(.+?) \((\d+) nodes\)$', line)
         if m:
-            cat_key = 'ComfyDL/' + m.group(2)
+            cat_key = header_to_category(m.group(2))
             cnt = cats.get(cat_key)
             if cnt is not None and cnt != int(m.group(3)):
                 updated = m.group(1) + m.group(2) + (
                     f'（{cnt} 个节点）' if zh else f' ({cnt} nodes)'
                 )
                 changes.append(f'章节标题数量: {cat_key} {m.group(3)} -> {cnt}')
-        # 2) 附录分类表：| ComfyDL/<Cat> | N |
-        m = re.match(r'^\| (ComfyDL/.+?) \| (\d+) \|', line)
+        # 2) 附录分类表：| <category> | N |
+        m = re.match(r'^\| ([^|]+?) \| (\d+) \|', line)
         if m:
             key, cur = m.group(1).strip(), int(m.group(2))
             cnt = cats.get(key)
@@ -143,7 +175,7 @@ def process_functions_lines(lines, cats, total, num_cats, zh, changes):
 
 
 def process_readme_lines(lines, cats, zh, changes):
-    """处理 README(.zh).md：概述总数句 + 整块重建 11 类类别表格。"""
+    """处理 README(.zh).md：概述总数句 + 整块重建类别表格。"""
     total, num = sum(cats.values()), len(cats)
     new_lines = []
     in_table = False
@@ -157,14 +189,14 @@ def process_readme_lines(lines, cats, zh, changes):
                 continue
             # 表格结束：若旧数据行与统计不一致则重建
             desc = _CAT_DESC_ZH if zh else _CAT_DESC_EN
-            names = _CAT_ZH if zh else {}
+            names = _CAT_ZH if zh else _CAT_EN
             col1 = '类别' if zh else 'Category'
             col2 = '节点数' if zh else 'Count'
             col3 = '说明' if zh else 'Description'
             new_rows = []
             for cat in sorted(cats):
-                name = names.get(cat, cat.split('/', 1)[1]) if zh else cat.split('/', 1)[1]
-                new_rows.append(f'| **{name}** | {cats[cat]} | {desc.get(cat, "")} |')
+                leaf = cat.split('/', 1)[1] if '/' in cat else cat
+                new_rows.append(f'| **{names.get(cat, leaf)}** | {cats[cat]} | {desc.get(cat, "")} |')
             if old_rows != new_rows:
                 new_lines.append(f'| {col1} | {col2} | {col3} |')
                 new_lines.append('|---|---|---|')

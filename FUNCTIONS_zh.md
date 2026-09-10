@@ -25,7 +25,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 1. ComfyDL / Device Utils（3 个节点）
+## 1. d2l / Device Utils（3 个节点）
 
 ### Device Info
 - **类名**：`CdlDeviceInfo`
@@ -63,7 +63,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 2. ComfyDL / CV Models（5 个节点）
+## 2. d2l / CV Models（5 个节点）
 
 ### Corr2D
 - **类名**：`CdlCorr2d`
@@ -142,7 +142,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 3. ComfyDL / GAN（2 个节点）
+## 3. d2l / GAN（2 个节点）
 
 ### Update Discriminator
 - **类名**：`CdlUpdateD`
@@ -178,7 +178,9 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 4. ComfyDL / Misc（4 个节点）
+## 4. ComfyUI / utilities（4 个节点）
+
+已并入 ComfyUI 核心分类 `utilities`（前端分组：实用工具）。类名保留 `Cdl` 前缀。
 
 ### MessageBox
 - **类名**：`CdlMessageBox`
@@ -233,7 +235,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 5. ComfyDL / NLP Utils（5 个节点）
+## 5. d2l / NLP Utils（5 个节点）
 
 ### Tokenize
 - **类名**：`CdlTokenize`
@@ -310,7 +312,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 
 ---
 
-## 6. ComfyDL / NLP Models（16 个节点）
+## 6. d2l / NLP Models（16 个节点）
 
 NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer 与 Seq2Seq 构件。所有构建器都返回 `cdlModel`，可接入 `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` 等节点进行查看与推理。RNN/GRU 前向输入为时间优先 `(num_steps, batch_size, num_inputs)`；注意力模块与 Transformer 编码器为批次优先。
 
@@ -559,7 +561,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 7. ComfyDL / Tensor Basic（8 个节点）
+## 7. d2l / Tensor Basic（8 个节点）
 
 ### Tensor → String
 - **类名**：`CdlTensorToStr`
@@ -678,7 +680,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 8. ComfyDL / TorchOps（10 个节点）
+## 8. d2l / TorchOps（10 个节点）
 
 ### Linear Regression
 - **类名**：`CdlLinReg`
@@ -831,7 +833,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 9. ComfyDL / ObjectDetection（10 个节点）
+## 9. d2l / ObjectDetection（10 个节点）
 
 ### Box Corner→Center
 - **类名**：`CdlBoxCornerToCenter`
@@ -982,7 +984,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 10. ComfyDL / Segmentation（4 个节点）
+## 10. d2l / Segmentation（4 个节点）
 
 ### VOC Classes
 - **类名**：`CdlVocClasses`
@@ -1043,7 +1045,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 11. ComfyDL / Visualization（12 个节点）
+## 11. d2l / Visualization（12 个节点）
 
 可视化节点采用"双变体"设计模式：带 `(Output)` 后缀的版本是 ComfyUI 输出节点（直接在界面中显示交互式图表），不带后缀的版本将图表渲染为 `IMAGE` 张量，供下游节点使用。
 
@@ -1257,7 +1259,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 12. ComfyDL / Datasets（10 个节点）
+## 12. d2l / Datasets（10 个节点）
 
 数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。
 
@@ -1409,7 +1411,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 13. ComfyDL / Model Utils（8 个节点）
+## 13. d2l / Model Utils（8 个节点）
 
 自主开发的模型实用工具节点（非 d2l 内容）。用于在工作流中直接检查、切换、运行、克隆与持久化 PyTorch 模型。所有节点操作 `cdlModel` 类型（任意 `nn.Module` 实例）。
 
@@ -1517,24 +1519,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 14. ComfyDL / Image Tools（9 个节点）
+## 14. ComfyUI / image/color（3 个节点）
 
-自主开发的通用 CV 图像节点（非 d2l 内容）。所有节点消费并产出 ComfyUI 原生 `IMAGE` 格式——float32 `[B, H, W, C]`，值域 `[0, 1]`——用 `torch` + `torchvision.transforms.functional` 实现。例外：Image Normalize（图像归一化）故意不将输出裁剪到 `[0, 1]`（z-score 值域）。
+自主开发的通用 CV 图像节点（非 d2l 内容），并入 ComfyUI 核心分类 `image/color`。所有节点消费并产出 ComfyUI 原生 `IMAGE` 格式——float32 `[B, H, W, C]`，值域 `[0, 1]`——用 `torch` + `torchvision.transforms.functional` 实现。例外：Image Normalize（图像归一化）故意不将输出裁剪到 `[0, 1]`（z-score 值域）。
 
-### Image Resize（图像缩放）
-- **类名**：`CdlImageResize`
-- **功能**：使用所选插值模式将每张图像缩放到 `(height, width)`。某维设为 0 表示该轴保持输入尺寸。
-- **输入**：
-  | 名称 | 类型 | 默认值 | 说明 |
-  |------|------|---------|------|
-  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
-  | `width` | `INT` | 512 | 目标宽度（0 = 保持输入宽度） |
-  | `height` | `INT` | 512 | 目标高度（0 = 保持输入高度） |
-  | `mode` | `COMBO` | `bilinear` | bilinear / nearest / bicubic / area |
-- **输出**：
-  | 名称 | 类型 | 说明 |
-  |------|------|------|
-  | `image` | `IMAGE` | 缩放后的图像 `[B, H, W, C]` |
+> 几何类节点已由 ComfyUI 核心等价节点取代并删除：`Image Resize` → `ImageScale` / `ResizeImageMaskNode`，`Image Flip` → `ImageFlip`，`Image Blur` → `ImageBlur`，`Image Crop` → `ImageCrop` / `ImageCropV2`。`Image Rotate` 因核心 `ImageRotate` 仅支持 90 度步进而保留，移入 `image/transform`。
 
 ### Image Normalize（图像归一化）
 - **类名**：`CdlImageNormalize`
@@ -1563,47 +1552,6 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 3 通道灰度图像 `[B, H, W, C]` |
 
-### Image Flip（图像翻转）
-- **类名**：`CdlImageFlip`
-- **功能**：沿宽度轴（`horizontal`）或高度轴（`vertical`）镜像每张图像。
-- **输入**：
-  | 名称 | 类型 | 默认值 | 说明 |
-  |------|------|---------|------|
-  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
-  | `direction` | `COMBO` | `horizontal` | horizontal / vertical |
-- **输出**：
-  | 名称 | 类型 | 说明 |
-  |------|------|------|
-  | `image` | `IMAGE` | 翻转后的图像 `[B, H, W, C]` |
-
-### Image Rotate（图像旋转）
-- **类名**：`CdlImageRotate`
-- **功能**：以双线性插值和零填充边界将每张图像旋转 `angle` 度（逆时针）。`expand` 为 True 时画布会放大以容纳旋转内容；否则输出保持输入尺寸。
-- **输入**：
-  | 名称 | 类型 | 默认值 | 说明 |
-  |------|------|---------|------|
-  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
-  | `angle` | `FLOAT` | 90.0 | 旋转角度（度，-360~360） |
-  | `expand` | `BOOLEAN` | False | True = 放大画布以容纳旋转内容 |
-- **输出**：
-  | 名称 | 类型 | 说明 |
-  |------|------|------|
-  | `image` | `IMAGE` | 旋转后的图像 `[B, H, W, C]` |
-
-### Image Crop（图像裁剪）
-- **类名**：`CdlImageCrop`
-- **功能**：围绕中心将每张图像裁剪到指定尺寸。请求尺寸为 0（或大于输入）时钳制为输入尺寸，输出不会超过输入。
-- **输入**：
-  | 名称 | 类型 | 默认值 | 说明 |
-  |------|------|---------|------|
-  | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
-  | `height` | `INT` | 0 | 裁剪高度（0 = 保持输入高度） |
-  | `width` | `INT` | 0 | 裁剪宽度（0 = 保持输入宽度） |
-- **输出**：
-  | 名称 | 类型 | 说明 |
-  |------|------|------|
-  | `image` | `IMAGE` | 裁剪后的图像 `[B, H, W, C]` |
-
 ### Image Adjust（图像调整）
 - **类名**：`CdlImageAdjust`
 - **功能**：用给定因子应用 torchvision 亮度、对比度与饱和度调整（1.0 = 不变，>1 增强，<1 减弱，0 = 无）。等于 1.0 的因子会跳过以加速。
@@ -1619,19 +1567,29 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 调整后的图像 `[B, H, W, C]` |
 
-### Image Blur（图像模糊）
-- **类名**：`CdlImageBlur`
-- **功能**：应用高斯模糊（torchvision gaussian_blur）或均值（方框）模糊（`avg_pool2d`）。`kernel_size` 自动向上取整为奇数且至少为 1。
+## 15. ComfyUI / image/transform（1 个节点）
+
+保留为 ComfyUI 核心 `image/transform` 节点：核心 `ImageRotate` 仅支持 90 度步进，本节点支持任意角度并可放大画布。
+
+### Image Rotate（图像旋转）
+- **类名**：`CdlImageRotate`
+- **功能**：以双线性插值和零填充边界将每张图像旋转 `angle` 度（逆时针）。`expand` 为 True 时画布会放大以容纳旋转内容；否则输出保持输入尺寸。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
   | `image` | `IMAGE` | — | 输入图像 `[B, H, W, C]` |
-  | `blur_type` | `COMBO` | `gaussian` | gaussian / mean |
-  | `kernel_size` | `INT` | 3 | 奇数核大小（1~99） |
+  | `angle` | `FLOAT` | 90.0 | 旋转角度（度，-360~360） |
+  | `expand` | `BOOLEAN` | False | True = 放大画布以容纳旋转内容 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `image` | `IMAGE` | 模糊后的图像 `[B, H, W, C]` |
+  | `image` | `IMAGE` | 旋转后的图像 `[B, H, W, C]` |
+
+---
+
+## 16. ComfyUI / image（1 个节点）
+
+并入 ComfyUI 核心分类 `image`（与核心 `GetImageSize` 同级）。
 
 ### Image Stats（图像统计）
 - **类名**：`CdlImageStats`
@@ -1655,21 +1613,25 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **106 个节点**，分属 14 个类别：
+共 **102 个节点**，分属 16 个类别：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
-| ComfyDL/Device Utils | 3 | GPU/CPU 设备查询 |
-| ComfyDL/CV Models | 5 | CNN 基础与模型构建 |
-| ComfyDL/GAN | 2 | GAN 训练更新 |
-| ComfyDL/Image Tools | 9 | 缩放、归一化、翻转、旋转、裁剪、调整、模糊与统计 |
-| ComfyDL/Misc | 4 | Windows MessageBox、NoOp 空操作、计时与神秘的 "?" |
-| ComfyDL/Model Utils | 8 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
-| ComfyDL/NLP Models | 16 | RNN/GRU/RNNLM、注意力与 Seq2Seq 模型构件 |
-| ComfyDL/NLP Utils | 5 | 文本分词与词表 |
-| ComfyDL/Tensor Basic | 8 | 张量 I/O、卷积、转置、广播、重塑、激活函数 |
-| ComfyDL/TorchOps | 10 | 损失、优化、评估指标 |
-| ComfyDL/ObjectDetection | 10 | 锚框、IoU、NMS |
-| ComfyDL/Segmentation | 4 | VOC 语义分割工具 |
-| ComfyDL/Visualization | 12 | 图表与边界框可视化 |
-| ComfyDL/Datasets | 10 | 数据集下载、加载、预览与统计 |
+| d2l/Device Utils | 3 | GPU/CPU 设备查询 |
+| d2l/CV Models | 5 | CNN 基础与模型构建 |
+| d2l/GAN | 2 | GAN 训练更新 |
+| utilities | 4 | Windows MessageBox、NoOp 空操作、计时与神秘的 "?"（ComfyUI 核心分类） |
+| d2l/Model Utils | 8 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
+| d2l/NLP Models | 16 | RNN/GRU/RNNLM、注意力与 Seq2Seq 模型构件 |
+| d2l/NLP Utils | 5 | 文本分词与词表 |
+| d2l/Tensor Basic | 8 | 张量 I/O、卷积、转置、广播、重塑、激活函数 |
+| d2l/TorchOps | 10 | 损失、优化、评估指标 |
+| d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
+| d2l/Segmentation | 4 | VOC 语义分割工具 |
+| d2l/Visualization | 12 | 图表与边界框可视化 |
+| d2l/Datasets | 10 | 数据集下载、加载、预览与统计 |
+| image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
+| image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
+| image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
+
+> 表中数量只统计 **ComfyDL 自身节点**。`utilities`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
