@@ -26,7 +26,7 @@ def _print_startup_info():
         total = len(NODE_CLASS_MAPPINGS)
         display = len(NODE_DISPLAY_NAME_MAPPINGS)
         cats = Counter(
-            getattr(cls, "CATEGORY", "ComfyDL/Unknown")
+            getattr(cls, "CATEGORY", "d2l/Unknown")
             for cls in NODE_CLASS_MAPPINGS.values()
         )
         print(f"[ComfyDL] 已注册 {total} 个节点（显示名 {display} 个），共 {len(cats)} 个分类：")

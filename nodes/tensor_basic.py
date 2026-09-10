@@ -1,5 +1,5 @@
 """
-ComfyDL/Tensor Basic - Tensor utility nodes for pretty printing, parsing,
+d2l/Tensor Basic - Tensor utility nodes for pretty printing, parsing,
 and fundamental tensor operations.
 
 Nodes:
@@ -40,7 +40,7 @@ class CdlTensorToStr:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Tensor Basic"
+    CATEGORY = "d2l/Tensor Basic"
 
     def execute(self, tensor, max_elems, precision):
         t = tensor
@@ -100,7 +100,7 @@ class CdlStrToTensor:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("tensor",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Tensor Basic"
+    CATEGORY = "d2l/Tensor Basic"
 
     def execute(self, text, error_strategy):
         if not text or not text.strip():
@@ -167,7 +167,7 @@ class CdlConv2d:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Tensor Basic"
+    CATEGORY = "d2l/Tensor Basic"
 
     def execute(self, input_tensor, kernel, stride, padding):
         if kernel.dim() == 2:
@@ -207,7 +207,7 @@ class CdlTranspose:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Tensor Basic"
+    CATEGORY = "d2l/Tensor Basic"
 
     def execute(self, tensor, dim0, dim1):
         result = torch.transpose(tensor, dim0, dim1)
@@ -241,7 +241,7 @@ class CdlBroadcast:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Tensor Basic"
+    CATEGORY = "d2l/Tensor Basic"
 
     def execute(self, tensor, target_shape):
         if not target_shape or not target_shape.strip():
@@ -284,7 +284,7 @@ class CdlReshape:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Tensor Basic"
+    CATEGORY = "d2l/Tensor Basic"
 
     def execute(self, tensor, target_shape):
         if not target_shape or not target_shape.strip():
@@ -333,7 +333,7 @@ class CdlActivation:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Tensor Basic"
+    CATEGORY = "d2l/Tensor Basic"
 
     def execute(self, tensor, func, dim, negative_slope):
         if func == "relu":
@@ -393,7 +393,7 @@ class CdlRandomTensor:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("tensor",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Tensor Basic"
+    CATEGORY = "d2l/Tensor Basic"
 
     def execute(self, shape, dist, mean, std, low, high, seed):
         dims = [int(x.strip()) for x in str(shape).split(',') if x.strip()]

@@ -27,7 +27,7 @@ class CdlCorr2d:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/CV Models"
+    CATEGORY = "d2l/CV Models"
 
     def execute(self, input_tensor, kernel):
         h, w = kernel.shape
@@ -66,7 +66,7 @@ class CdlLeNet:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/CV Models"
+    CATEGORY = "d2l/CV Models"
 
     def execute(self, num_classes, lr):
         net = nn.Sequential(
@@ -105,7 +105,7 @@ class CdlResNet18:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/CV Models"
+    CATEGORY = "d2l/CV Models"
 
     def execute(self, num_classes, in_channels):
         import sys
@@ -160,7 +160,7 @@ class CdlResidual:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("block",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/CV Models"
+    CATEGORY = "d2l/CV Models"
 
     def execute(self, num_channels, use_1x1conv, strides):
         block = CdlResidual._make_block(num_channels, use_1x1conv, strides)
@@ -215,7 +215,7 @@ class CdlResNeXtBlock:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("block",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/CV Models"
+    CATEGORY = "d2l/CV Models"
 
     def execute(self, num_channels, groups, bot_mul, use_1x1conv, strides):
         block = _ResNeXtModule(num_channels, groups, bot_mul, use_1x1conv, strides)

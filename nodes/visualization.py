@@ -66,7 +66,7 @@ class CdlShowImages:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, images, num_rows, num_cols, scale, titles=None):
         n = min(images.shape[0], num_rows * num_cols)
@@ -133,7 +133,7 @@ class CdlShowHeatmapsOutput:
     RETURN_NAMES = ()
     FUNCTION = "execute"
     OUTPUT_NODE = True
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, matrices, xlabel, ylabel, figsize_w, figsize_h, cmap, titles=None):
         m = matrices.cpu().numpy()
@@ -195,7 +195,7 @@ class CdlShowHeatmaps:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, matrices, xlabel, ylabel, figsize_w, figsize_h, cmap, titles=None):
         m = matrices.cpu().numpy()
@@ -268,7 +268,7 @@ class CdlPlot:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, xlabel, ylabel, xscale, yscale, figsize_w, figsize_h,
                 X=None, Y=None, legend=None, xlim_min=-1.0, xlim_max=-1.0,
@@ -342,7 +342,7 @@ class CdlShowTrace2D:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, results):
         pts = results.cpu().numpy()
@@ -386,7 +386,7 @@ class CdlShowBboxes:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, image, bboxes, labels=None, colors="b,g,r,m,c"):
         color_list = [c.strip() for c in colors.split(',') if c.strip()]
@@ -455,7 +455,7 @@ class CdlHistogram:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, tensor, bins, density, color, alpha, title, xlabel, ylabel):
         data = tensor.cpu().numpy().flatten()
@@ -516,7 +516,7 @@ class CdlBarChart:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, values, labels, xlabel, ylabel, horizontal, color,
                 annotate, figsize_w, figsize_h):
@@ -607,7 +607,7 @@ class CdlScatter:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, X, Y, alpha, cmap, xlabel, ylabel, figsize_w, figsize_h,
                 color_map=None, size_map=None):
@@ -684,7 +684,7 @@ class CdlConfusionMatrix:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, matrix, class_labels, cmap, normalize, fmt, figsize_w, figsize_h):
         m = matrix.cpu().numpy()
@@ -766,7 +766,7 @@ class CdlPieChart:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, values, labels, donut, explode, pctdistance, shadow,
                 figsize_w, figsize_h):
@@ -847,7 +847,7 @@ class CdlAreaChart:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Visualization"
+    CATEGORY = "d2l/Visualization"
 
     def execute(self, Y, stacked, alpha, color_palette, xlabel, ylabel,
                 figsize_w, figsize_h, X_vals=None, labels=None):

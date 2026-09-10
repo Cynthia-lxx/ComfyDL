@@ -62,7 +62,7 @@ class CdlDotProductAttention:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, dropout):
         model = DotProductAttention(dropout)
@@ -98,7 +98,7 @@ class CdlAdditiveAttention:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, num_hiddens, dropout):
         model = AdditiveAttention(num_hiddens, dropout)
@@ -139,7 +139,7 @@ class CdlMultiHeadAttention:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, num_hiddens, num_heads, dropout, use_bias):
         if num_hiddens % num_heads != 0:
@@ -179,7 +179,7 @@ class CdlPositionalEncoding:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, num_hiddens, dropout, max_len):
         model = PositionalEncoding(num_hiddens, dropout, max_len)
@@ -214,7 +214,7 @@ class CdlPositionWiseFFN:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, ffn_num_hiddens, ffn_num_outputs):
         model = PositionWiseFFN(ffn_num_hiddens, ffn_num_outputs)
@@ -249,7 +249,7 @@ class CdlAddNorm:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, norm_shape, dropout):
         model = AddNorm(norm_shape, dropout)
@@ -291,7 +291,7 @@ class CdlTransformerEncoderBlock:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias):
         if num_hiddens % num_heads != 0:
@@ -342,7 +342,7 @@ class CdlTransformerEncoder:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, vocab_size, num_hiddens, ffn_num_hiddens, num_heads,
                 num_blks, dropout, use_bias):

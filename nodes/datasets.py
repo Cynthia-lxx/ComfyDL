@@ -10,7 +10,7 @@ d2lcore functions:
   - download_extract(name, folder)                    : Download and extract
 
 Node categories:
-  - ComfyDL/Datasets: All dataset-related nodes (download, load, preview, stats)
+  - d2l/Datasets: All dataset-related nodes (download, load, preview, stats)
 """
 
 import torch
@@ -80,7 +80,7 @@ class CdlLoadArray:
     RETURN_TYPES = ("cdlDataloader",)
     RETURN_NAMES = ("dataloader",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     def execute(self, batch_size, shuffle, features=None, labels=None):
         arrays = []
@@ -124,7 +124,7 @@ class CdlDataLoaderInfo:
     RETURN_TYPES = ("INT", "INT", "INT")
     RETURN_NAMES = ("num_batches", "batch_size", "dataset_size")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     def execute(self, dataloader):
         num_batches = len(dataloader)
@@ -181,7 +181,7 @@ class CdlDownload:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("file_path",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     @classmethod
     def IS_CHANGED(cls, url, save_dir="../data", sha1_hash=""):
@@ -234,7 +234,7 @@ class CdlDownloadExtract:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("extract_dir",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     @classmethod
     def IS_CHANGED(cls, name, subfolder=""):
@@ -290,7 +290,7 @@ class CdlFashionMNIST:
     RETURN_TYPES = ("cdlDataloader", "cdlDataloader", "STRING")
     RETURN_NAMES = ("train_loader", "test_loader", "class_names")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     def execute(self, batch_size, resize):
         rs = (resize, resize) if resize > 0 else None
@@ -335,7 +335,7 @@ class CdlBananasDetection:
     RETURN_TYPES = ("cdlDataloader", "cdlDataloader")
     RETURN_NAMES = ("train_loader", "val_loader")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     def execute(self, batch_size):
         train_iter, val_iter = load_data_bananas(batch_size)
@@ -381,7 +381,7 @@ class CdlVOCSegmentation:
     RETURN_TYPES = ("cdlDataloader", "cdlDataloader")
     RETURN_NAMES = ("train_loader", "test_loader")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     def execute(self, batch_size, crop_height, crop_width):
         train_iter, test_iter = load_data_voc(batch_size, (crop_height, crop_width))
@@ -431,7 +431,7 @@ class CdlDataLoaderPreview:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     def execute(self, dataloader, num_rows, num_cols, max_samples=32):
         # Gather a batch
@@ -529,7 +529,7 @@ class CdlDataLoaderPreviewOutput:
     RETURN_NAMES = ("image",)
     FUNCTION = "execute"
     OUTPUT_NODE = True
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     def execute(self, dataloader, num_rows, num_cols, max_samples=32):
         # Delegate to CdlDataLoaderPreview logic
@@ -577,7 +577,7 @@ class CdlDataLoaderStats:
     RETURN_TYPES = ("STRING", "IMAGE")
     RETURN_NAMES = ("stats_text", "stats_image")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Datasets"
+    CATEGORY = "d2l/Datasets"
 
     def execute(self, dataloader, num_classes, class_names=""):
         # Collect all flattened labels first so the display mode can be

@@ -85,7 +85,7 @@ class CdlRNNScratch:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, num_inputs, num_hiddens, sigma):
         model = RNNScratch(num_inputs, num_hiddens, sigma=sigma)
@@ -120,7 +120,7 @@ class CdlRNN:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, num_inputs, num_hiddens):
         model = RNN(num_inputs, num_hiddens)
@@ -159,7 +159,7 @@ class CdlGRU:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, num_inputs, num_hiddens, num_layers, dropout):
         model = GRU(num_inputs, num_hiddens, num_layers, dropout=dropout)
@@ -197,7 +197,7 @@ class CdlRNNLMScratch:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, rnn, vocab_size, lr):
         model = RNNLMScratch(rnn, vocab_size, lr=lr)
@@ -235,7 +235,7 @@ class CdlRNNLM:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, rnn, vocab_size, lr):
         model = RNNLM(rnn, vocab_size, lr=lr)
@@ -273,7 +273,7 @@ class CdlRNNLMScratchPredict:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("prediction",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, model, vocab, prefix, num_preds):
         if not hasattr(model, 'predict'):

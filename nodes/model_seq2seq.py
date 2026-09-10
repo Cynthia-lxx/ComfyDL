@@ -56,7 +56,7 @@ class CdlSeq2SeqEncoder:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, vocab_size, embed_size, num_hiddens, num_layers, dropout):
         model = Seq2SeqEncoder(vocab_size, embed_size, num_hiddens,
@@ -90,7 +90,7 @@ class CdlInitSeq2Seq:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Models"
+    CATEGORY = "d2l/NLP Models"
 
     def execute(self, model):
         model.apply(init_seq2seq)

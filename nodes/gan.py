@@ -37,7 +37,7 @@ class CdlUpdateD:
     RETURN_TYPES = ("FLOAT",)
     RETURN_NAMES = ("loss_D",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/GAN"
+    CATEGORY = "d2l/GAN"
 
     def execute(self, prompt=None, X=None, Z=None, net_D=None, net_G=None):
         if X is None or Z is None or net_D is None or net_G is None:
@@ -90,7 +90,7 @@ class CdlUpdateG:
     RETURN_TYPES = ("FLOAT", "cdlTensor")
     RETURN_NAMES = ("loss_G", "fake_X")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/GAN"
+    CATEGORY = "d2l/GAN"
 
     def execute(self, prompt=None, Z=None, net_D=None, net_G=None):
         if Z is None or net_D is None or net_G is None:

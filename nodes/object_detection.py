@@ -47,7 +47,7 @@ class CdlBoxCornerToCenter:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("boxes_ccwh",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, boxes):
         boxes = _ensure_2d(boxes)
@@ -83,7 +83,7 @@ class CdlBoxCenterToCorner:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("boxes_xyxy",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, boxes):
         boxes = _ensure_2d(boxes)
@@ -120,7 +120,7 @@ class CdlBoxIou:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("iou",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, boxes1, boxes2):
         boxes1 = _ensure_2d(boxes1)
@@ -160,7 +160,7 @@ class CdlNms:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("keep_indices",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, boxes, scores, iou_threshold):
         B = torch.argsort(scores, dim=-1, descending=True)
@@ -222,7 +222,7 @@ class CdlMultiboxPrior:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("anchors",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, sizes, ratios, data=None):
         sizes_list = [float(s.strip()) for s in sizes.split(",")]
@@ -286,7 +286,7 @@ class CdlOffsetBoxes:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("offsets",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, anchors, assigned_bb, eps):
         anchors = _ensure_2d(anchors)
@@ -327,7 +327,7 @@ class CdlOffsetInverse:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("predicted_bbox",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, anchors, offset_preds):
         anchors = _ensure_2d(anchors)
@@ -372,7 +372,7 @@ class CdlAssignAnchorToBbox:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("anchors_bbox_map",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, ground_truth, anchors, iou_threshold):
         ground_truth = _ensure_2d(ground_truth)
@@ -439,7 +439,7 @@ class CdlMultiboxTarget:
     RETURN_TYPES = ("cdlTensor", "cdlTensor", "cdlTensor")
     RETURN_NAMES = ("bbox_offset", "bbox_mask", "class_labels")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, anchors, labels):
         batch_size = labels.shape[0]
@@ -537,7 +537,7 @@ class CdlMultiboxDetection:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("detections",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/ObjectDetection"
+    CATEGORY = "d2l/ObjectDetection"
 
     def execute(self, cls_probs, offset_preds, anchors, nms_threshold, pos_threshold):
         device = cls_probs.device

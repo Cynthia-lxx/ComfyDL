@@ -4,7 +4,7 @@ import glob
 nodes_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nodes')
 
 replacements = [
-    ('CATEGORY = "d2lcore/', 'CATEGORY = "ComfyDL/'),
+    ('CATEGORY = "d2lcore/', 'CATEGORY = "d2l/'),
     ('"cdl ', '"'),
     ('"CDL_TENSOR"', '"cdlTensor"'),
     ('"CDL_MODEL"', '"cdlModel"'),

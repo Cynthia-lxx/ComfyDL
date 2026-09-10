@@ -45,7 +45,7 @@ class CdlLinReg:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("y_hat",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, X, w, b):
         result = torch.matmul(X, w) + b
@@ -74,7 +74,7 @@ class CdlSquaredLoss:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("loss",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, y_hat, y):
         y = y.reshape(y_hat.shape)
@@ -106,7 +106,7 @@ class CdlMaskedSoftmax:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, X, valid_lens=None):
         if valid_lens is None:
@@ -150,7 +150,7 @@ class CdlSequenceMask:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("masked",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, X, valid_len, mask_value):
         maxlen = X.size(1)
@@ -182,7 +182,7 @@ class CdlAccuracy:
     RETURN_TYPES = ("FLOAT", "INT")
     RETURN_NAMES = ("accuracy", "count")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, y_hat, y):
         if len(y_hat.shape) > 1 and y_hat.shape[1] > 1:
@@ -216,7 +216,7 @@ class CdlSyntheticData:
     RETURN_TYPES = ("cdlTensor", "cdlTensor")
     RETURN_NAMES = ("X", "y")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, num_features, num_examples, noise_std, seed):
         torch.manual_seed(seed)
@@ -254,7 +254,7 @@ class CdlTruncatePad:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("padded",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, num_steps, padding_token, sequence=None):
         if sequence is None:
@@ -293,7 +293,7 @@ class CdlBleu:
     RETURN_TYPES = ("FLOAT",)
     RETURN_NAMES = ("bleu_score",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, pred_seq, label_seq, max_n):
         pred_tokens = pred_seq.split(' ')
@@ -341,7 +341,7 @@ class CdlGradClipping:
     RETURN_TYPES = ("FLOAT",)
     RETURN_NAMES = ("norm",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, theta, model=None):
         if model is None:
@@ -388,7 +388,7 @@ class CdlSgdStep:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/TorchOps"
+    CATEGORY = "d2l/TorchOps"
 
     def execute(self, lr, batch_size, model=None):
         if model is None:

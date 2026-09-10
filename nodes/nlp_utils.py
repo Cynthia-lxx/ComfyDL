@@ -34,7 +34,7 @@ class CdlTokenize:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("tokens_str",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Utils"
+    CATEGORY = "d2l/NLP Utils"
 
     def execute(self, text, token_mode):
         lines = [line.strip() for line in text.split('\n') if line.strip()]
@@ -73,7 +73,7 @@ class CdlGetTokensAndSegments:
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("tokens", "segments")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Utils"
+    CATEGORY = "d2l/NLP Utils"
 
     def execute(self, tokens_a, tokens_b=None):
         tokens_a_list = [t.strip() for t in tokens_a.split(',') if t.strip()]
@@ -112,7 +112,7 @@ class CdlVocabBuild:
     RETURN_TYPES = ("cdlVocab", "INT")
     RETURN_NAMES = ("vocab", "vocab_size")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Utils"
+    CATEGORY = "d2l/NLP Utils"
 
     def execute(self, tokens_text, min_freq, reserved_tokens):
         # Parse input
@@ -168,7 +168,7 @@ class CdlVocabEncode:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("indices",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Utils"
+    CATEGORY = "d2l/NLP Utils"
 
     def execute(self, vocab, tokens):
         token_list = [t.strip() for t in tokens.split(',') if t.strip()]
@@ -200,7 +200,7 @@ class CdlVocabDecode:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("tokens_str",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/NLP Utils"
+    CATEGORY = "d2l/NLP Utils"
 
     def execute(self, vocab, indices):
         idx_to_token = vocab.get('idx_to_token', [])

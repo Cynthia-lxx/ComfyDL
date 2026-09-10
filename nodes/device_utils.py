@@ -30,7 +30,7 @@ class CdlDeviceInfo:
     RETURN_TYPES = ("INT", "INT")
     RETURN_NAMES = ("num_gpus", "has_cuda")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Device Utils"
+    CATEGORY = "d2l/Device Utils"
 
     def execute(self):
         num = torch.cuda.device_count()
@@ -59,7 +59,7 @@ class CdlTryGpu:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("device_str",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Device Utils"
+    CATEGORY = "d2l/Device Utils"
 
     def execute(self, gpu_index):
         if torch.cuda.device_count() >= gpu_index + 1:
@@ -88,7 +88,7 @@ class CdlTryAllGpus:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("device_str",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Device Utils"
+    CATEGORY = "d2l/Device Utils"
 
     def execute(self):
         n = torch.cuda.device_count()

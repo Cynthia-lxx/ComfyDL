@@ -1,5 +1,5 @@
 """
-ComfyDL/Model Utils - Self-developed model utility nodes.
+d2l/Model Utils - Self-developed model utility nodes.
 
 Not from d2l — these nodes help inspect, switch, run, clone and persist
 PyTorch models directly on the workflow graph. Everything is implemented
@@ -47,7 +47,7 @@ class CdlModelInfo:
     RETURN_TYPES = ("STRING", "INT", "INT")
     RETURN_NAMES = ("summary", "total_params", "trainable_params")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Model Utils"
+    CATEGORY = "d2l/Model Utils"
 
     def execute(self, model):
         total = _num_params(model)
@@ -93,7 +93,7 @@ class CdlModelMode:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Model Utils"
+    CATEGORY = "d2l/Model Utils"
 
     def execute(self, model, mode):
         if mode == "train":
@@ -132,7 +132,7 @@ class CdlModelForward:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Model Utils"
+    CATEGORY = "d2l/Model Utils"
 
     def execute(self, model, tensor):
         dev = next(model.parameters()).device
@@ -170,7 +170,7 @@ class CdlModelLayers:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("layers_str",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Model Utils"
+    CATEGORY = "d2l/Model Utils"
 
     def execute(self, model):
         lines = []
@@ -206,7 +206,7 @@ class CdlModelParams:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("params_str",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Model Utils"
+    CATEGORY = "d2l/Model Utils"
 
     def execute(self, model):
         lines = []
@@ -244,7 +244,7 @@ class CdlModelClone:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("clone",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Model Utils"
+    CATEGORY = "d2l/Model Utils"
 
     def execute(self, model):
         return (copy.deepcopy(model),)
@@ -279,7 +279,7 @@ class CdlModelSave:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("message",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Model Utils"
+    CATEGORY = "d2l/Model Utils"
 
     def execute(self, model, path):
         torch.save(model.state_dict(), path)
@@ -315,7 +315,7 @@ class CdlModelLoad:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Model Utils"
+    CATEGORY = "d2l/Model Utils"
 
     def execute(self, model, path):
         sd = torch.load(path, map_location="cpu")

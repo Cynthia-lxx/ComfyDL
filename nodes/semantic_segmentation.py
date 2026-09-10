@@ -44,7 +44,7 @@ class CdlVocClasses:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("class_names",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Segmentation"
+    CATEGORY = "d2l/Segmentation"
 
     def execute(self, index):
         if index >= 0 and index < len(VOC_CLASSES):
@@ -71,7 +71,7 @@ class CdlVocColormap2Label:
     RETURN_TYPES = ("cdlTensor",)
     RETURN_NAMES = ("colormap2label",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Segmentation"
+    CATEGORY = "d2l/Segmentation"
 
     def execute(self):
         colormap2label = torch.zeros(256 ** 3, dtype=torch.long)
@@ -104,7 +104,7 @@ class CdlVocLabelIndices:
     RETURN_TYPES = ("MASK",)
     RETURN_NAMES = ("label_mask",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Segmentation"
+    CATEGORY = "d2l/Segmentation"
 
     def execute(self, colormap, colormap2label):
         # colormap arrives as [B,H,W,C] in ComfyUI format
@@ -149,7 +149,7 @@ class CdlVocRandCrop:
     RETURN_TYPES = ("IMAGE", "IMAGE")
     RETURN_NAMES = ("cropped_feature", "cropped_label")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Segmentation"
+    CATEGORY = "d2l/Segmentation"
 
     def execute(self, feature, label, height, width, seed=0):
         import torchvision.transforms.functional as TF

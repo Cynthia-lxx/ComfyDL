@@ -1,9 +1,14 @@
 """
-ComfyDL/Misc - Miscellaneous utility nodes.
+Misc utility nodes - merged into the ComfyUI core "utilities" category.
+
+The four nodes below keep their Cdl* class names but are registered under the
+core category `utilities` (frontend group: 实用工具); the ComfyDL/Misc category
+no longer exists.
 
 Nodes:
   - MessageBox : Display a Windows message box via ctypes.MessageBoxW
   - NoOp       : Accept any input and do nothing (like Python's pass / asm NOP)
+  - Timer      : Benchmark a tensor operation and report the timing
   - What       : Meaningless node; toggling OMG opens a browser tab (try it and see)
 """
 
@@ -79,7 +84,7 @@ class CdlMessageBox:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("result",)
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Misc"
+    CATEGORY = "utilities"
 
     @classmethod
     def VALIDATE_INPUTS(cls, input_types):
@@ -136,7 +141,7 @@ class CdlNoOp:
 
     RETURN_TYPES = ()
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Misc"
+    CATEGORY = "utilities"
 
     @classmethod
     def VALIDATE_INPUTS(cls, input_types):
@@ -183,7 +188,7 @@ class CdlTimer:
     RETURN_TYPES = ("STRING", "FLOAT")
     RETURN_NAMES = ("report", "avg_seconds")
     FUNCTION = "execute"
-    CATEGORY = "ComfyDL/Misc"
+    CATEGORY = "utilities"
 
     def execute(self, tensor, operation, num_iters):
         fn = _OP_FUNCS[operation]
@@ -229,7 +234,7 @@ class CdlWhat:
     RETURN_TYPES = ()
     FUNCTION = "execute"
     OUTPUT_NODE = True
-    CATEGORY = "ComfyDL/Misc"
+    CATEGORY = "utilities"
 
     @classmethod
     def VALIDATE_INPUTS(cls, input_types):
