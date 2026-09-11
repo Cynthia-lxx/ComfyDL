@@ -1610,13 +1610,14 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 17. ComfyUI / Network & Layers（22 个节点）
+## 17. ComfyUI / Network & Layers（31 个节点）
 
-由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的两个模块
-`nodes_activation.py` 与 `nodes_layers.py` 中，在节点库中构成 **Comfy节点 → Network & Layers**
-分支，下分 `Activation` 与 `Basic` 两组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入
-的 dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，
-节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。
+由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的三个模块
+`nodes_activation.py`、`nodes_layers.py` 与 `nodes_normalization.py` 中，在节点库中构成
+**Comfy节点 → Network & Layers** 分支，下分 `Activation`、`Basic`、`Normalization` 与
+`Training` 四组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的 dtype/device 不变，
+并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，节点内部不做初始化，
+因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。
 
 ### 17.1 Activation（14 个节点）
 
@@ -1661,6 +1662,47 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 > `Linear` 已覆盖 `Dense` 层（同为仿射变换），`Add` 也已覆盖残差 / 跳连（残差即逐元素广播相加），
 > 因此不再单独提供 `Dense`、`Residual`、`Skip Connection` 节点。
 
+### 17.3 Normalization（7 个节点）
+
+核心归一化节点（`comfy_extras/nodes_normalization.py`）。每个节点恰好 1 个名为 `output` 的
+`TENSOR` 输出，保持输入的 dtype/device，且不保存任何状态：`weight` / `bias`（γ / β）都是普通张量
+输入，从插槽接入的 `running_mean` / `running_var` 也绝不会被就地改写（同一张量可能被图中其它节点
+共享）。`BatchNorm` 与 `InstanceNorm` 都是**按秩自适应**的——一个节点即覆盖 1d/2d/3d 三种形态，
+因为“沿哪些维度统计”完全由张量形状决定——它们自身不带训练/推理开关，而是跟随 `mode` 插槽。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|--------------|---------|
+| BatchNorm | `NormalizationBatchNorm` | `tensor`、`weight`（可选）、`bias`（可选）、`running_mean` / `running_var`（可选）、`mode`（可选 STRING 插槽） | `eps` FLOAT 1e-5 (0~1e-2) | 对 `(N, C, ...)` 的第 1 维做 `F.batch_norm`；秩 2/3/4/5 分别等价于 BatchNorm1d/1d/2d/3d |
+| InstanceNorm | `NormalizationInstanceNorm` | `tensor`、`weight`、`bias`、`running_mean` / `running_var`、`mode`（除 `tensor` 外均可选） | `eps` FLOAT 1e-5 (0~1e-2) | `F.instance_norm`，按样本且按通道统计；需要秩 ≥ 3 |
+| LayerNorm | `NormalizationLayerNorm` | `tensor`、`weight`（可选）、`bias`（可选） | `normalized_shape` STRING `"last"`、`eps` FLOAT 1e-5 | 对尾部维度做 `F.layer_norm`（`"8,16"` 表示最后两维） |
+| GroupNorm | `NormalizationGroupNorm` | `tensor`、`weight`（可选）、`bias`（可选） | `num_groups` INT 1 (1~64)、`eps` FLOAT 1e-5 | `F.group_norm`；`num_groups=1` 即在全部通道上归一化 |
+| RMSNorm | `NormalizationRMSNorm` | `tensor`、`weight`（可选） | `normalized_shape` STRING `"last"`、`eps` FLOAT 1e-6 | `F.rms_norm`；LLaMA 风格（不减均值、无偏置） |
+| WeightNorm | `NormalizationWeightNorm` | `weight`、`g`（可选） | `dim` INT 0 (-8~7)、`eps` FLOAT 1e-12 | 权重重参数化 `g * v / ‖v‖₂`，范数沿 `dim` 求取 |
+| SpectralNorm | `NormalizationSpectralNorm` | `weight`、`u` / `v`（可选） | `n_power_iterations` INT 1 (0~20)、`dim` INT 0、`eps` FLOAT 1e-12 | 用确定性幂迭代估计最大奇异值并据此除权重；同时输出 `sigma` |
+
+> 训练/推理开关是一条显式连线：`Training Mode`（17.4）把 `train` / `eval` 以 STRING 形式发布，
+> 接入 `BatchNorm` / `InstanceNorm` 的 `mode` 插槽。这里用连线不只是图个方便，而是正确性所需：
+> 节点的缓存签名包含它自己的输入**以及所有祖先节点的输入**，所以切换下拉框会让全部消费者失效重算；
+> 而“后台读取整个 prompt”的隐藏握手机制既不在签名里（算签名时甚至读不到 prompt），会让下游一直
+> 复用旧输出。`LayerNorm`、`GroupNorm`、`RMSNorm`、`WeightNorm`、`SpectralNorm` 刻意不带 `mode`
+> 插槽：它们的数学在训练与推理下完全一致。`eval` 模式若没有可用统计量，则回退使用本次调用的统计量；
+> 控件文本无法解析时（过期的 `normalized_shape`、不能整除的 `num_groups`、重复的维度等）会回退到
+> 既定默认值并打印提示，因此一个控件取值永远不会弄坏工作流。
+
+### 17.4 Training（2 个节点）
+
+两个小巧的“状态”节点（`comfy_extras/nodes_normalization.py`），把训练/推理决策与可持久化的运行
+统计量送入归一化节点。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|--------------|---------|
+| Training Mode | `TrainingMode` | — | `mode` COMBO train/eval（默认 `train`） | 把 `train` / `eval` 以 STRING 发布给 `BatchNorm` / `InstanceNorm` 的 `mode` 插槽 |
+| Training Run Stats | `TrainingRunStats` | — | `running_mean` STRING `"0.0"`、`running_var` STRING `"1.0"` | 可编辑的 `running_mean` / `running_var`，以两个 1 维 `TENSOR` 输出给统计量插槽 |
+
+> 运行统计量必须能在保存的工作流里留存，而控件是唯一能做到这一点的地方，因此它们以逗号分隔的数字
+> 形式输入——每通道一个值（`"0.1,0.2,0.3"`），或只给一个值由消费者广播到全部通道。两个节点都是
+> 数据源：只拖到画布上不接线是无害的，因为源节点只有在被消费者需要时才会被求值。
+
 ---
 
 ## 附录
@@ -1671,8 +1713,9 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **124 个节点**，分属 18 个类别（102 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
-节点 + 8 个核心 `Network & Layers/Basic` 节点）：
+共 **133 个节点**，分属 20 个类别（102 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
+节点 + 8 个核心 `Network & Layers/Basic` + 7 个核心 `Network & Layers/Normalization` + 2 个核心
+`Network & Layers/Training` 节点）：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1694,5 +1737,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
 | Network & Layers/Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
 | Network & Layers/Basic | 8 | `TENSOR` 类型上的核心基础层与张量运算（ComfyUI 核心分类） |
+| Network & Layers/Normalization | 7 | `TENSOR` 类型上的核心归一化（ComfyUI 核心分类） |
+| Network & Layers/Training | 2 | 归一化节点的训练/推理开关与运行统计量（ComfyUI 核心分类） |
 
-> 前 16 行统计 **ComfyDL 提供的 102 个节点**。`utilities`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation` 与 `Network & Layers/Basic` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。
+> 前 16 行统计 **ComfyDL 提供的 102 个节点**。`utilities`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation`、`Network & Layers/Basic`、`Network & Layers/Normalization` 与 `Network & Layers/Training` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。

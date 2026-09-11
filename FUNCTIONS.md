@@ -1611,16 +1611,16 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Network & Layers (22 nodes)
+## 17. ComfyUI / Network & Layers (31 nodes)
 
 Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
-They live in two `comfy_extras` modules — `nodes_activation.py` and `nodes_layers.py` — and
-form the **Comfy nodes → Network & Layers** branch of the node library, split into the
-`Activation` and `Basic` groups below. All of them exchange data on the shared `TENSOR` slot
-type, preserve the input dtype/device, and are stateless: learnable parameters such as
-`weight` and `bias` are tensors fed through input slots instead of being initialised inside
-the node, so a node is a pure function and can be wired straight to the ComfyDL tensor nodes
-listed above.
+They live in three `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py` and
+`nodes_normalization.py` — and form the **Comfy nodes → Network & Layers** branch of the node
+library, split into the `Activation`, `Basic`, `Normalization` and `Training` groups below. All
+of them exchange data on the shared `TENSOR` slot type, preserve the input dtype/device, and are
+stateless: learnable parameters such as `weight` and `bias` are tensors fed through input slots
+instead of being initialised inside the node, so a node is a pure function and can be wired
+straight to the ComfyDL tensor nodes listed above.
 
 ### 17.1 Activation (14 nodes)
 
@@ -1668,6 +1668,54 @@ as-is; `Reshape` / `Broadcast` fall back to returning the input tensor unchanged
 > residual / skip connection — both are a plain broadcast element-wise sum — so no separate
 > `Dense`, `Residual` or `Skip Connection` node is shipped.
 
+### 17.3 Normalization (7 nodes)
+
+Core normalization nodes (`comfy_extras/nodes_normalization.py`). Each node returns exactly one
+`TENSOR` output named `output`, preserves the input dtype/device and keeps no state:
+`weight` / `bias` (γ / β) are ordinary tensor inputs, and a `running_mean` / `running_var`
+tensor that is wired in is never modified in place, because the same tensor may be shared with
+other nodes. `BatchNorm` and `InstanceNorm` are **rank adaptive** — one node each covers the
+1d/2d/3d flavours, since the shape alone decides which dimensions the statistics are taken over
+— and they follow a `mode` slot instead of owning a train/eval switch of their own.
+
+| Node | Class | Inputs | Extra widget | Purpose |
+|------|-------|--------|--------------|---------|
+| BatchNorm | `NormalizationBatchNorm` | `tensor`, `weight` (optional), `bias` (optional), `running_mean` / `running_var` (optional), `mode` (optional STRING socket) | `eps` FLOAT 1e-5 (0~1e-2) | `F.batch_norm` over dimension 1 of `(N, C, ...)`; rank 2/3/4/5 behave like BatchNorm1d/1d/2d/3d |
+| InstanceNorm | `NormalizationInstanceNorm` | `tensor`, `weight`, `bias`, `running_mean` / `running_var`, `mode` — all optional except `tensor` | `eps` FLOAT 1e-5 (0~1e-2) | `F.instance_norm`, statistics per sample *and* per channel; needs rank ≥ 3 |
+| LayerNorm | `NormalizationLayerNorm` | `tensor`, `weight` (optional), `bias` (optional) | `normalized_shape` STRING `"last"`, `eps` FLOAT 1e-5 | `F.layer_norm` over the trailing dimensions (`"8,16"` = the last two) |
+| GroupNorm | `NormalizationGroupNorm` | `tensor`, `weight` (optional), `bias` (optional) | `num_groups` INT 1 (1~64), `eps` FLOAT 1e-5 | `F.group_norm`; `num_groups=1` normalizes over all channels |
+| RMSNorm | `NormalizationRMSNorm` | `tensor`, `weight` (optional) | `normalized_shape` STRING `"last"`, `eps` FLOAT 1e-6 | `F.rms_norm`; LLaMA-style (no mean subtraction, no bias) |
+| WeightNorm | `NormalizationWeightNorm` | `weight`, `g` (optional) | `dim` INT 0 (-8~7), `eps` FLOAT 1e-12 | Weight re-parameterization `g * v / ‖v‖₂` taken along `dim` |
+| SpectralNorm | `NormalizationSpectralNorm` | `weight`, `u` / `v` (optional) | `n_power_iterations` INT 1 (0~20), `dim` INT 0, `eps` FLOAT 1e-12 | Divides a weight by a deterministic power-iteration estimate of its largest singular value; also outputs `sigma` |
+
+> The train/eval switch is an explicit link: `Training Mode` (17.4) publishes `train` / `eval` as
+> a STRING wired into the `mode` slot of `BatchNorm` / `InstanceNorm`. A link is required for
+> correctness, not just for convenience — a node's cache signature covers its own inputs *and its
+> ancestors' inputs*, so flipping the dropdown invalidates every consumer, whereas a hidden
+> prompt-reading handshake is not part of the signature (and cannot even see the prompt while the
+> signature is built) and would keep replaying stale outputs. `LayerNorm`, `GroupNorm`, `RMSNorm`,
+> `WeightNorm` and `SpectralNorm` deliberately have no `mode` slot: their math is identical in
+> training and inference. An `eval` mode without usable statistics falls back to the statistics of
+> the current call, and unparsable widget text (a stale `normalized_shape`, an indivisible
+> `num_groups`, a repeated dimension) falls back to a documented default with a printed warning,
+> so a widget value never breaks a workflow.
+
+### 17.4 Training (2 nodes)
+
+The two small "state" nodes (`comfy_extras/nodes_normalization.py`) that carry the
+train/inference decision and the persistent running statistics into the normalization nodes.
+
+| Node | Class | Inputs | Extra widget | Purpose |
+|------|-------|--------|--------------|---------|
+| Training Mode | `TrainingMode` | — | `mode` COMBO train/eval (default `train`) | Publishes `train` / `eval` as a STRING for the `mode` slots of `BatchNorm` / `InstanceNorm` |
+| Training Run Stats | `TrainingRunStats` | — | `running_mean` STRING `"0.0"`, `running_var` STRING `"1.0"` | Editable `running_mean` / `running_var`, emitted as two 1-D `TENSOR`s for the statistics slots |
+
+> Running statistics have to survive in a saved workflow, and a widget is the only place that
+> does, so they are typed in as comma separated numbers — one value per channel
+> (`"0.1,0.2,0.3"`) or a single value that the consumer broadcasts to every channel. Both nodes
+> are sources: leaving one on the canvas without wiring it is harmless, because a source node is
+> only evaluated when a consumer asks for it.
+
 ---
 
 ## Appendix
@@ -1678,8 +1726,9 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**124 nodes** across 18 categories (102 provided by ComfyDL + 14 core `Network & Layers/Activation`
-+ 8 core `Network & Layers/Basic` nodes):
+**133 nodes** across 20 categories (102 provided by ComfyDL + 14 core `Network & Layers/Activation`
++ 8 core `Network & Layers/Basic` + 7 core `Network & Layers/Normalization` + 2 core
+`Network & Layers/Training` nodes):
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1701,5 +1750,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
 | Network & Layers/Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
+| Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
+| Network & Layers/Training | 2 | Train/eval switch & running statistics for the normalization nodes (ComfyUI core category) |
 
-> The first 16 rows list the **102 ComfyDL-provided nodes**. `utilities`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation` and `Network & Layers/Basic` are pure ComfyUI core categories with no ComfyDL nodes.
+> The first 16 rows list the **102 ComfyDL-provided nodes**. `utilities`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation`, `Network & Layers/Basic`, `Network & Layers/Normalization` and `Network & Layers/Training` are pure ComfyUI core categories with no ComfyDL nodes.

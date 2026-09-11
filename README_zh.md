@@ -74,8 +74,9 @@
 
 ## 功能概览
 
-内置节点库共 **124 个节点**，涵盖 18 个类别 —— 其中 **102 个由 ComfyDL 提供**，
-另加在其之上新增的 22 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个）：
+内置节点库共 **133 个节点**，涵盖 20 个类别 —— 其中 **102 个由 ComfyDL 提供**，
+另加在其之上新增的 31 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
++ `Normalization` 7 个 + `Training` 2 个）：
 
 | 类别 | 节点数 | 说明 |
 |---|---|---|
@@ -97,6 +98,8 @@
 | **Comfy 实用工具** | 4 | MessageBox、NoOp 空操作与基准计时 |
 | **Comfy Network & Layers/激活函数** | 14 | 核心激活函数（Sigmoid、ReLU、GELU、Softmax 等），共用 `TENSOR` 插槽类型 |
 | **Comfy Network & Layers/基础层** | 8 | 核心基础层与张量运算（Linear、Embedding、Flatten、Reshape、Broadcast、Concat、Add、Multiply） |
+| **Comfy Network & Layers/归一化** | 7 | 核心归一化（BatchNorm、InstanceNorm、LayerNorm、GroupNorm、RMSNorm、WeightNorm、SpectralNorm），共用 `TENSOR` 插槽类型 |
+| **Comfy Network & Layers/训练态** | 2 | 归一化节点的训练/推理开关与可编辑运行统计量 |
 
 > 完整节点参考，请参阅 **[FUNCTIONS.md](./FUNCTIONS.md)**（英文）或 **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)**（中文）。
 
