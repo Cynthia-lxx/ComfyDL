@@ -1617,16 +1617,16 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Network & Layers (31 nodes)
+## 17. ComfyUI / Network & Layers (32 nodes)
 
 Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
 They live in three `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py` and
 `nodes_normalization.py` — and form the **Comfy nodes → Network & Layers** branch of the node
-library, split into the `Activation`, `Basic`, `Normalization` and `Training` groups below. All
-of them exchange data on the shared `TENSOR` slot type, preserve the input dtype/device, and are
-stateless: learnable parameters such as `weight` and `bias` are tensors fed through input slots
-instead of being initialised inside the node, so a node is a pure function and can be wired
-straight to the ComfyDL tensor nodes listed above.
+library, split into the `Activation`, `Basic`, `Normalization`, `Regularization` and `Training`
+groups below. All of them exchange data on the shared `TENSOR` slot type, preserve the input
+dtype/device, and are stateless: learnable parameters such as `weight` and `bias` are tensors fed
+through input slots instead of being initialised inside the node, so a node is a pure function and
+can be wired straight to the ComfyDL tensor nodes listed above.
 
 ### 17.1 Activation (14 nodes)
 
@@ -1721,6 +1721,27 @@ train/inference decision and the persistent running statistics into the normaliz
 > (`"0.1,0.2,0.3"`) or a single value that the consumer broadcasts to every channel. Both nodes
 > are sources: leaving one on the canvas without wiring it is harmless, because a source node is
 > only evaluated when a consumer asks for it.
+
+### 17.5 Regularization (1 node)
+
+Core regularization nodes (`comfy_extras/nodes_normalization.py`). The node returns exactly one
+`TENSOR` output named `output`, preserves the input dtype/device and keeps no state.
+
+| Node | Class | Inputs | Extra widget | Purpose |
+|------|-------|--------|--------------|---------|
+| Dropout | `RegularizationDropout` | `tensor`, `mode` (optional STRING socket) | `p` FLOAT 0.5 (0~1), `seed` INT 0 (with a fixed / increment / decrement / randomize dropdown) | `F.dropout`, element-wise: zeroes each element with probability `p` and rescales the survivors by `1/(1-p)`; `eval` passes the input through |
+
+> Like the normalizers, `Dropout` is rank adaptive: the mask is drawn element by element, so one
+> node covers `(N, C)`, `(N, C, H, W)` and a bare scalar. Its mask comes from a `torch.Generator`
+> built for the tensor's own device and seeded by the `seed` widget, never from the process-wide
+> RNG: the same seed reproduces the mask bit for bit (so ComfyUI's caching stays meaningful) and
+> the RNG stream the host hands to other nodes is left alone. The dropdown next to the seed is what
+> moves the value between runs — `randomize` for a fresh mask on every run, `fixed` to freeze it.
+> Unlike `LayerNorm` / `GroupNorm` / `RMSNorm`, whose math is identical in both modes, `Dropout`
+> needs the train/eval switch, so it follows the same `mode` slot as `BatchNorm` / `InstanceNorm`
+> and passes the input through untouched in `eval`, which makes a leftover Dropout harmless in an
+> inference graph. A `p` of 0 or 1 short-circuits to the input or to zeros and draws no random
+> number at all.
 
 ---
 
@@ -1858,9 +1879,9 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**139 nodes** across 21 categories (108 provided by ComfyDL + 14 core `Network & Layers/Activation`
-+ 8 core `Network & Layers/Basic` + 7 core `Network & Layers/Normalization` + 2 core
-`Network & Layers/Training` nodes):
+**140 nodes** across 22 categories (108 provided by ComfyDL + 14 core `Network & Layers/Activation`
++ 8 core `Network & Layers/Basic` + 7 core `Network & Layers/Normalization` + 1 core
+`Network & Layers/Regularization` + 2 core `Network & Layers/Training` nodes):
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1884,6 +1905,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | Network & Layers/Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
+| Network & Layers/Regularization | 1 | Core element-wise dropout with a seeded mask (ComfyUI core category) |
 | Network & Layers/Training | 2 | Train/eval switch & running statistics for the normalization nodes (ComfyUI core category) |
 
-> The first 17 rows list the **108 ComfyDL-provided nodes**. `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation`, `Network & Layers/Basic`, `Network & Layers/Normalization` and `Network & Layers/Training` are pure ComfyUI core categories with no ComfyDL nodes.
+> The first 17 rows list the **108 ComfyDL-provided nodes**. `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation`, `Network & Layers/Basic`, `Network & Layers/Normalization`, `Network & Layers/Regularization` and `Network & Layers/Training` are pure ComfyUI core categories with no ComfyDL nodes.

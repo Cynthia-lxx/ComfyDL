@@ -1616,14 +1616,14 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 17. ComfyUI / Network & Layers（31 个节点）
+## 17. ComfyUI / Network & Layers（32 个节点）
 
 由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的三个模块
 `nodes_activation.py`、`nodes_layers.py` 与 `nodes_normalization.py` 中，在节点库中构成
-**Comfy节点 → Network & Layers** 分支，下分 `Activation`、`Basic`、`Normalization` 与
-`Training` 四组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的 dtype/device 不变，
-并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，节点内部不做初始化，
-因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。
+**Comfy节点 → Network & Layers** 分支，下分 `Activation`、`Basic`、`Normalization`、
+`Regularization` 与 `Training` 五组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的
+dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，
+节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。
 
 ### 17.1 Activation（14 个节点）
 
@@ -1708,6 +1708,24 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 > 运行统计量必须能在保存的工作流里留存，而控件是唯一能做到这一点的地方，因此它们以逗号分隔的数字
 > 形式输入——每通道一个值（`"0.1,0.2,0.3"`），或只给一个值由消费者广播到全部通道。两个节点都是
 > 数据源：只拖到画布上不接线是无害的，因为源节点只有在被消费者需要时才会被求值。
+
+### 17.5 Regularization（1 个节点）
+
+核心正则化节点（`comfy_extras/nodes_normalization.py`）。该节点恰好 1 个名为 `output` 的
+`TENSOR` 输出，保持输入的 dtype/device，且不保存任何状态。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|--------------|---------|
+| Dropout | `RegularizationDropout` | `tensor`、`mode`（可选 STRING 插槽） | `p` FLOAT 0.5 (0~1)、`seed` INT 0（带固定 / 递增 / 递减 / 随机化下拉） | `F.dropout`，逐元素：以概率 `p` 把元素置零，并把保留的元素按 `1/(1-p)` 放大；`eval` 模式原样透传输入 |
+
+> 与归一化节点一样，`Dropout` 按秩自适应：掩码是逐元素抽取的，一个节点即覆盖 `(N, C)`、
+> `(N, C, H, W)` 乃至 0 维标量。它的掩码来自一个按张量所在设备创建、由 `seed` 控件播种的
+> `torch.Generator`，而不是进程级全局 RNG：同一种子可逐比特复现掩码（因此 ComfyUI 的缓存依然有意义），
+> 宿主交给其它节点的随机流也不会被打乱。种子旁的下拉决定该值在两次运行之间如何变化——设为
+> `randomize` 则每次运行都得到新掩码，设为 `fixed` 则冻结掩码。
+> 与训练/推理数学完全一致的 `LayerNorm` / `GroupNorm` / `RMSNorm` 不同，`Dropout` 需要训练/推理开关，
+> 因此它跟随与 `BatchNorm` / `InstanceNorm` 相同的 `mode` 插槽，并在 `eval` 中原样透传输入，
+> 使得推理图里遗留一个 Dropout 节点无害。`p` 取 0 或 1 时会短路为原输入或全零，完全不做随机数抽取。
 
 ---
 
@@ -1840,9 +1858,9 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **139 个节点**，分属 21 个类别（108 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
-节点 + 8 个核心 `Network & Layers/Basic` + 7 个核心 `Network & Layers/Normalization` + 2 个核心
-`Network & Layers/Training` 节点）：
+共 **140 个节点**，分属 22 个类别（108 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
+节点 + 8 个核心 `Network & Layers/Basic` + 7 个核心 `Network & Layers/Normalization` + 1 个核心
+`Network & Layers/Regularization` + 2 个核心 `Network & Layers/Training` 节点）：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1866,6 +1884,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | Network & Layers/Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
 | Network & Layers/Basic | 8 | `TENSOR` 类型上的核心基础层与张量运算（ComfyUI 核心分类） |
 | Network & Layers/Normalization | 7 | `TENSOR` 类型上的核心归一化（ComfyUI 核心分类） |
+| Network & Layers/Regularization | 1 | 带种子掩码的核心逐元素 dropout（ComfyUI 核心分类） |
 | Network & Layers/Training | 2 | 归一化节点的训练/推理开关与运行统计量（ComfyUI 核心分类） |
 
-> 前 17 行统计 **ComfyDL 提供的 108 个节点**。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation`、`Network & Layers/Basic`、`Network & Layers/Normalization` 与 `Network & Layers/Training` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。
+> 前 17 行统计 **ComfyDL 提供的 108 个节点**。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation`、`Network & Layers/Basic`、`Network & Layers/Normalization`、`Network & Layers/Regularization` 与 `Network & Layers/Training` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。
