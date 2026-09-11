@@ -33,6 +33,7 @@ ComfyUI standard types (used directly):
 - `LORA_MODEL` — Tensor collection `dict[str, torch.Tensor]` (reserved, see §18)
 - `LOSS_MAP` — Tensor collection `{"loss": [torch.Tensor, ...]}` (reserved, see §18)
 - `ARRAY` — Plain Python `list`, used for the parallel metadata slots of §18
+- `MODEL`, `CLIP`, `VAE`, `CONDITIONING` — ComfyUI core model-protocol types, restored by §19
 - `INT`, `FLOAT`, `STRING`, `BOOLEAN` — Primitive scalar types
 
 ---
@@ -1654,13 +1655,13 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Network & Layers (32 nodes)
+## 17. ComfyUI / Network & Layers (36 nodes)
 
 Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
-They live in three `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py` and
-`nodes_normalization.py` — and form the **Comfy nodes → Network & Layers** branch of the node
-library, split into the `Activation`, `Basic`, `Normalization`, `Regularization` and `Training`
-groups below. All of them exchange data on the shared `TENSOR` slot type, preserve the input
+They live in five `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
+`nodes_normalization.py`, `nodes_pooling.py` and `nodes_convolution.py` — and form the
+**Comfy nodes → Network & Layers** branch of the node library, split into the `Activation`,
+`Basic`, `Normalization`, `Regularization`, `Training`, `Pooling` and `Convolution` groups below. All of them exchange data on the shared `TENSOR` slot type, preserve the input
 dtype/device, and are stateless: learnable parameters such as `weight` and `bias` are tensors fed
 through input slots instead of being initialised inside the node, so a node is a pure function and
 can be wired straight to the ComfyDL tensor nodes listed above.
@@ -1785,6 +1786,67 @@ Core regularization nodes (`comfy_extras/nodes_normalization.py`). The node retu
 > and passes the input through untouched in `eval`, which makes a leftover Dropout harmless in an
 > inference graph. A `p` of 0 or 1 short-circuits to the input or to zeros and draws no random
 > number at all.
+
+### 17.6 Pooling (2 nodes)
+
+Core pooling nodes (`comfy_extras/nodes_pooling.py`). One node covers the sliding-window family
+(`MaxPool{1,2,3}d` / `AvgPool{1,2,3}d`) and one the adaptive family (`AdaptiveAvgPool{1,2,3}d` /
+`AdaptiveMaxPool{1,2,3}d`), so twelve torch layer types collapse into two nodes: `mode` picks max
+or average, `dims` picks the rank, and each window widget below is applied to all `dims` spatial
+dimensions at once. A tensor that lacks the batch dimension is accepted too — the missing leading
+dimensions are added internally and dropped from the result again.
+
+| Node | Class | Inputs | Extra widgets | Purpose |
+|------|-------|--------|---------------|---------|
+| Pool | `PoolingSliding` | `tensor` | `dims` COMBO 1/2/3 (default 2), `mode` COMBO max/avg (default `max`), `kernel_size` INT 2 (1~64), `stride` INT 0 (0~64), `padding` INT 0 (0~32), `dilation` INT 1 (1~16), `ceil_mode` BOOLEAN false, `count_include_pad` BOOLEAN true | `F.max_pool{1,2,3}d` / `F.avg_pool{1,2,3}d`; `dims=2, kernel_size=2` reproduces `nn.MaxPool2d(2)` exactly |
+| Adaptive Pool | `PoolingAdaptive` | `tensor` | `dims` COMBO 1/2/3 (default 2), `mode` COMBO avg/max (default `avg`), `output_size` INT 1 (1~512) | `F.adaptive_max_pool{1,2,3}d` / `F.adaptive_avg_pool{1,2,3}d`; every spatial dimension becomes exactly `output_size` |
+
+> No `GlobalAvgPool` / `GlobalMaxPool` node is shipped: `output_size=1` **is** global pooling
+> (`dims=2, output_size=1` ≡ `nn.AdaptiveAvgPool2d(1)` ≡ the textbook **Global Average Pooling**,
+> `GAP`), so the adaptive node already covers it and its `mode` dropdown covers both reductions.
+> `stride=0` means "same as `kernel_size`", which is torch's own default. Two widgets are
+> mode-specific and ignored otherwise: `dilation` exists only for `mode=max` and `count_include_pad`
+> only for `mode=avg`, because `F.avg_pool*d` has no `dilation` argument and `F.max_pool*d` has no
+> `count_include_pad`; a non-default value of the ignored widget prints a note instead of silently
+> doing nothing.
+
+### 17.7 Convolution (2 nodes)
+
+Core convolution nodes (`comfy_extras/nodes_convolution.py`), the learnable spatial counterpart of
+the `Basic` layers above. They follow the same convention as `Linear`: nothing is initialised
+inside the node — `weight` and `bias` are ordinary `TENSOR` inputs, so the node is a pure function
+and one set of weights can be fed to several nodes. Consequently there is no `in_channels` /
+`out_channels` / `bias` switch: the channel counts are read off `weight.shape`, and "no bias" is
+expressed by leaving the optional `bias` slot unconnected.
+
+| Node | Class | Inputs | Extra widgets | Purpose |
+|------|-------|--------|---------------|---------|
+| Conv | `ConvolutionConv` | `tensor`, `weight` (`(out, in/groups, k...)`), `bias` (optional) | `dims` COMBO 1/2/3 (default 2), `groups` INT 1 (1~4096), `stride` INT 1 (1~64), `padding` INT 1 (0~64), `padding_mode` COMBO zeros/reflect/replicate/circular (default `zeros`), `dilation` INT 1 (1~32) | `F.conv{1,2,3}d`, with grouped / dilated kernels and four padding modes |
+| ConvTranspose | `ConvolutionConvTranspose` | `tensor`, `weight` (`(in, out/groups, k...)`), `bias` (optional) | `dims` COMBO 1/2/3 (default 2), `groups` INT 1 (1~4096), `stride` INT 2 (1~64), `padding` INT 0 (0~64), `output_padding` INT 0 (0~64), `dilation` INT 1 (1~32) | `F.conv_transpose{1,2,3}d` — the upsampling counterpart decoders and generators use |
+
+> **Parameter sharing** is the point of `Conv`: the *same* kernel is reused at every spatial
+> position, so the number of weights depends on the channel counts and the kernel size but never on
+> the image size — a 3×3 kernel needs nine weights per input/output channel whether the image is
+> 32×32 or 1024×1024. Only the rank and the kernel shape change between `dims=1/2/3`, which is why
+> one node covers all three.
+>
+> The weight shapes of the two nodes are **mirrored**: `Conv` takes `(out_channels,
+> in_channels/groups, k...)` while `ConvTranspose` takes `(in_channels, out_channels/groups, k...)`.
+> `groups = C_in` gives a depthwise convolution and `dilation > 1` widens the receptive field
+> without adding a single weight.
+>
+> `padding_mode` has to be implemented by hand: `F.conv{1,2,3}d` has **no** `padding_mode`
+> argument, only the `nn.Conv*d` *modules* have one. With `padding_mode != "zeros"` the input is
+> first padded with `F.pad(mode=reflect|replicate|circular)` and the convolution then runs with
+> `padding=0`, so the two never double-pad. `F.pad`'s `circular` mode needs an input of rank 3 or
+> more and a pad smaller than the corresponding dimension; when that does not hold the node prints
+> a readable message and falls back to zero padding instead of raising. `ConvTranspose` deliberately
+> has no `padding_mode` widget at all, because neither `nn.ConvTranspose*d` nor `F.conv_transpose*d`
+> supports one.
+>
+> Both nodes promote dtypes the way `Linear` does: when the input and the weight are both floating
+> point but different (fp16 activations with fp32 weights), the common type wins and the
+> computation happens there instead of raising a dtype-mismatch error.
 
 ---
 
@@ -1914,6 +1976,141 @@ silently promoting, which would make the round trip lossy.
 
 ---
 
+## 19. ComfyUI / model (22 nodes)
+
+The **model protocol layer** (`comfy_extras/nodes_model_loaders.py`, `nodes_model_merging.py` and
+`nodes_model_inference.py`). `MODEL`, `CLIP` and `VAE` are back in the graph as first-class values,
+so weights are again something a workflow can load, move around, blend and write back.
+
+What makes this layer different from the native implementation is that it works at the
+**state_dict** level instead of the module level. The dehydration pass removed the `ldm` model
+implementations, so nothing here recognises an architecture: a weight file is treated as a flat
+mapping of key → tensor, and the only structure the nodes understand is the well-known *key prefix*:
+
+| Prefix | Bucket |
+|---|---|
+| `diffusion_model.` (plus every unmatched key) | `MODEL` |
+| `first_stage_model.` | `VAE` |
+| `cond_stage_model.` / `conditioner.` / `text_encoders.` | `CLIP` |
+
+Every loader can therefore work with a plain `.safetensors` / `.ckpt` file. The buckets are held by
+containers that keep their tensors **by reference** (no copy, so the memory cost equals the file
+size) and round-trip their keys verbatim: whatever outer container prefix was stripped on the way
+in (`model.`, `state_dict.`, `module.` — auto-detected, or set explicitly with the `prefix_strip`
+widget) is written back on the way out. That is what makes `load → merge → save` produce a file
+whose keys match the input — the round trip is lossless by construction.
+
+The `MODEL` bucket is the one exception to "just weights": it is additionally wrapped in a
+`ModelPatcher` so it is a real `MODEL` value and stays type-compatible with the rest of ComfyUI. A
+bucket with no keys still yields a valid **empty** container rather than `None`, so a
+partially-populated checkpoint never breaks the links below it.
+
+**Two tiers of behaviour**, so it is clear what actually runs in this build:
+
+| Tier | Behaviour | Nodes |
+|---|---|---|
+| L1 — really executes | reads, splits, merges and writes real weights | the 5 loaders, the 7 merge nodes and the 4 save nodes (16) |
+| L2 — registered, not executable | the node exists with the native IO contract, so a workflow can be wired and validated, but running it raises a `RuntimeError` that names the missing module and how to restore it (never a bare `ModuleNotFoundError`) | `Load LoRA (Model and CLIP)`, `Load LoRA`, `VAE Decode`, `VAE Encode`, `CLIP Text Encode (Prompt)`, `CLIP Set Last Layer` (6) |
+
+L2 is deliberate: the IO contract is what lets a user lay out a full txt2img graph today, and each
+node states in its docstring and in its error message which piece of the removed engine it is
+waiting for. Restoring the dehydrated module turns each of them into a working node in place.
+
+### 19.1 Loaders (7 nodes)
+
+| Node | Class | Inputs | Widgets | Outputs / Purpose |
+|------|-------|--------|---------|-------------------|
+| Load Checkpoint | `CheckpointLoaderSimple` | `ckpt_name` COMBO (`models/checkpoints`) | `prefix_strip` STRING `"auto"` | `MODEL`, `CLIP`, `VAE` — splits one file into the three buckets |
+| Load Diffusion Model | `UNETLoader` | `unet_name` COMBO (`models/unet`, `models/diffusion_models`) | `prefix_strip` STRING `"auto"` | `MODEL` — the whole file is the diffusion model |
+| Load VAE | `VAELoader` | `vae_name` COMBO (`models/vae`) | `prefix_strip` STRING `"auto"` | `VAE` |
+| Load CLIP | `CLIPLoader` | `clip_name` COMBO (`models/text_encoders`, legacy `models/clip` is searched too) | `prefix_strip` STRING `"auto"` | `CLIP` |
+| Load CLIP (Dual) | `DualCLIPLoader` | `clip_name1`, `clip_name2` COMBO | `prefix_strip` STRING `"auto"` | `CLIP` — the union of both files, so two encoders arrive as one value |
+| Load LoRA (Model and CLIP) | `LoraLoader` | `model` MODEL, `clip` CLIP, `lora_name` COMBO (`models/loras`) | `strength_model` FLOAT 1.0, `strength_clip` FLOAT 1.0 | `MODEL`, `CLIP` — **L2** |
+| Load LoRA | `LoraLoaderModelOnly` | `model` MODEL, `lora_name` COMBO (`models/loras`) | `strength_model` FLOAT 1.0 | `MODEL` — **L2** |
+
+> `prefix_strip` is the only widget added on top of the native contract, and its `auto` default is
+> already usable, so no loader has to be edited before it runs.
+
+### 19.2 Merging (11 nodes)
+
+The merge nodes take the two inputs' keys, align them and do the arithmetic **directly on the
+tensors**, returning the result as a new container. They deliberately do not build a `ModelPatcher`
+patch list: a patch is only applied when the model is evaluated, which needs the removed engine.
+Doing the maths up front means the result is already final, deterministic and inspectable — and
+therefore saveable. Only keys both inputs share are blended; a key that exists in one input only is
+carried over unchanged and reported.
+
+| Node | Class | Inputs | Widgets | Result |
+|------|-------|--------|---------|--------|
+| ModelMergeSimple | `ModelMergeSimple` | `model1`, `model2` | `ratio` FLOAT 1.0 (0~1) | `model1 * ratio + model2 * (1 - ratio)` |
+| ModelMergeBlocks | `ModelMergeBlocks` | `model1`, `model2` | `input` FLOAT 1.0, `middle` FLOAT 1.0, `out` FLOAT 1.0 (0~1) | one ratio per UNet block group (`input_blocks` / `middle_block` / `output_blocks`); keys in no group use `input`, matching the native node |
+| ModelMergeAdd | `ModelMergeAdd` | `model1`, `model2` | — | `model1 + model2` |
+| ModelMergeSubtract | `ModelMergeSubtract` | `model1`, `model2` | `multiplier` FLOAT 1.0 (-10~10) | `model1 - multiplier * model2` (a negative multiplier adds it back) |
+| CLIPMergeSimple | `CLIPMergeSimple` | `clip1`, `clip2` | `ratio` FLOAT 1.0 (0~1) | the CLIP counterpart of `ModelMergeSimple` |
+| CLIPMergeAdd | `CLIPMergeAdd` | `clip1`, `clip2` | — | `clip1 + clip2` |
+| CLIPMergeSubtract | `CLIPMergeSubtract` | `clip1`, `clip2` | `multiplier` FLOAT 1.0 (-10~10) | `clip1 - multiplier * clip2` |
+
+> The `CLIP` merges skip `.position_ids` and `.logit_scale` and copy them from `clip1`: they are
+> indices / scalars rather than weights, which is exactly why the native nodes skip them too.
+
+The four save nodes write into `output/`. They have no outputs — the file is the result — and they
+count as output nodes, so a graph that ends in a save node still runs.
+
+| Node | Class | Inputs | Widget | Writes |
+|------|-------|--------|--------|--------|
+| ModelSave | `ModelSave` | `model` | `filename_prefix` `"comfydl/diffusion_models"` | the MODEL bucket only, keyed exactly like the model it came from |
+| VAESave | `VAESave` | `vae` | `filename_prefix` `"comfydl/vae"` | the VAE bucket, in the layout `Load VAE` expects back |
+| CLIPSave | `CLIPSave` | `clip` | `filename_prefix` `"comfydl/clip"` | the CLIP container as a single file (the native node would split a dual encoder into one file per family; `Load CLIP` / `Load CLIP (Dual)` read this single-file form back) |
+| Save Checkpoint | `CheckpointSave` | `model`, `clip`, `vae` | `filename_prefix` `"comfydl/checkpoints"` | all three buckets in one `.safetensors`, each with its original key prefix replayed |
+
+> `filename_prefix` accepts `%date%` style placeholders and defaults to a usable path, so a save
+> node works without being edited.
+
+### 19.3 Latent (2 nodes)
+
+Both are protocol placeholders (L2): the native IO contract is registered so a workflow validates,
+but decoding / encoding an image needs the autoencoder architecture that was dehydrated, so
+executing them raises a `RuntimeError` saying so.
+
+| Node | Class | Inputs | Output |
+|------|-------|--------|--------|
+| VAE Decode | `VAEDecode` | `samples` LATENT, `vae` VAE | `IMAGE` |
+| VAE Encode | `VAEEncode` | `pixels` IMAGE, `vae` VAE | `LATENT` |
+
+### 19.4 Conditioning (2 nodes)
+
+Protocol placeholders (L2) for the same reason: text encoding needs a text-encoder architecture.
+
+| Node | Class | Inputs | Widgets | Output |
+|------|-------|--------|---------|--------|
+| CLIP Text Encode (Prompt) | `CLIPTextEncode` | `text` STRING (multiline, default `"a photo of a cat"`), `clip` CLIP | — | `CONDITIONING` |
+| CLIP Set Last Layer | `CLIPSetLastLayer` | `clip` CLIP | `stop_at_clip_layer` INT -1 (-24~-1) | `CLIP` — truncates the encoder for the "clip skip" trick (`-2` is the usual choice) |
+
+> The host registry's `model/latent` category also holds the native `LatentCompositeMasked`, which
+> is not part of this refactor and is not listed here.
+
+---
+
+## 20. ComfyUI / 3d (1 node)
+
+`Preview3D` (`comfy_extras/nodes_preview_3d.py`) is the stock 3D preview node kept on its own,
+instead of as part of upstream's `Load3D` / Gaussian-splat family. The frontend binds its 3D canvas
+to the hard-coded node id `Preview3D`, so a custom node can never render 3D itself — it can only
+produce a file and hand it over. This node is that receiving end: it is what `CdlHeatmapsTo3D`
+feeds, and it is the only 3D node the dehydrated build needs.
+
+| Node | Class | Inputs | Output |
+|------|-------|--------|--------|
+| Preview 3D | `Preview3D` | `model_file` STRING \| `File3D` (`obj` / `glb` / `gltf` / `fbx` / `stl` / `usdz`), `camera_info` LOAD3D_CAMERA (optional), `bg_image` IMAGE (optional) | — |
+
+> It has no outputs: the preview travels through the node's `ui` payload, which the frontend routes
+> to the canvas. A `File3D` object is written to `output/` under a generated
+> `preview3d_<uuid>.<format>` name; a sibling `.mtl` (as produced by `CdlHeatmapsTo3D`) is written
+> by the producer rather than by this node, because the rename would otherwise leave the material
+> file behind.
+
+---
+
 ## Appendix
 
 ### Node Registration Mechanism
@@ -1922,9 +2119,8 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**109 nodes** across 20 categories (108 provided by ComfyDL + 14 core `Network & Layers/Activation`
-+ 8 core `Network & Layers/Basic` + 7 core `Network & Layers/Normalization` + 1 core
-`Network & Layers/Regularization` + 2 core `Network & Layers/Training` nodes):
+**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 59
+ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1953,7 +2149,23 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Regularization | 1 | Core element-wise dropout with a seeded mask (ComfyUI core category) |
 | Network & Layers/Training | 2 | Train/eval switch & running statistics for the normalization nodes (ComfyUI core category) |
+| Network & Layers/Pooling | 2 | Max / average pooling, sliding-window and adaptive (`output_size=1` is global pooling) (ComfyUI core category) |
+| Network & Layers/Convolution | 2 | Convolution & transposed convolution on the `TENSOR` type, weights wired in (ComfyUI core category) |
+| model/loaders | 7 | Checkpoint / diffusion-model / VAE / CLIP loaders at state_dict level (ComfyUI core category) |
+| model/merging | 11 | Key-aligned model & CLIP merging plus `.safetensors` saving (ComfyUI core category) |
+| model/latent | 2 | `VAE Decode` / `VAE Encode` protocol placeholders (ComfyUI core category) |
+| model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` protocol placeholders (ComfyUI core category) |
+| 3d | 1 | `Preview 3D`, the frontend-bound 3D preview canvas (ComfyUI core category) |
 
-> The first 20 rows list the **108 ComfyDL-provided nodes** (7 of them soft-archived into
+> The first 20 rows list the **109 ComfyDL-provided nodes** (7 of them soft-archived into
 > `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their display names carry a
-> `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation`, `Network & Layers/Basic`, `Network & Layers/Normalization`, `Network & Layers/Regularization` and `Network & Layers/Training` are pure ComfyUI core categories with no ComfyDL nodes.
+> `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
+>
+> The other 12 rows are pure ComfyUI core categories with no ComfyDL nodes: the seven
+> `Network & Layers/*` groups (36 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
+> The shipped library therefore totals **168 nodes across 32 categories** = 109 ComfyDL + 59 core.
+>
+> Two rows list fewer nodes than the host registry holds in that category, because the registry
+> also counts native nodes that this refactor did not touch: `model/latent` (whose third node is
+> `LatentCompositeMasked`), and `image`, `utilities`, `image/color`, `image/transform`, which mix
+> ComfyDL nodes with the native ones they were merged next to.

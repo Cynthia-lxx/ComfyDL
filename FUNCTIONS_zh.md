@@ -32,6 +32,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 - `LORA_MODEL` — 张量集合 `dict[str, torch.Tensor]`（预留，见 §18）
 - `LOSS_MAP` — 张量集合 `{"loss": [torch.Tensor, ...]}`（预留，见 §18）
 - `ARRAY` — 普通 Python `list`，用于 §18 的平行元数据槽
+- `MODEL`、`CLIP`、`VAE`、`CONDITIONING` — ComfyUI 核心的模型协议类型，由 §19 恢复
 - `INT`、`FLOAT`、`STRING`、`BOOLEAN` — 基本标量类型
 
 ---
@@ -1653,12 +1654,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 17. ComfyUI / Network & Layers（32 个节点）
+## 17. ComfyUI / Network & Layers（36 个节点）
 
-由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的三个模块
-`nodes_activation.py`、`nodes_layers.py` 与 `nodes_normalization.py` 中，在节点库中构成
-**Comfy节点 → Network & Layers** 分支，下分 `Activation`、`Basic`、`Normalization`、
-`Regularization` 与 `Training` 五组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的
+由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的五个模块
+`nodes_activation.py`、`nodes_layers.py`、`nodes_normalization.py`、`nodes_pooling.py` 与
+`nodes_convolution.py` 中，在节点库中构成 **Comfy节点 → Network & Layers** 分支，下分 `Activation`、
+`Basic`、`Normalization`、`Regularization`、`Training`、`Pooling` 与 `Convolution` 七组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的
 dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，
 节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。
 
@@ -1768,6 +1769,56 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 > 与训练/推理数学完全一致的 `LayerNorm` / `GroupNorm` / `RMSNorm` 不同，`Dropout` 需要训练/推理开关，
 > 因此它跟随与 `BatchNorm` / `InstanceNorm` 相同的 `mode` 插槽，并在 `eval` 中原样透传输入，
 > 使得推理图里遗留一个 Dropout 节点无害。`p` 取 0 或 1 时会短路为原输入或全零，完全不做随机数抽取。
+
+### 17.6 Pooling（2 个节点）
+
+核心池化节点（`comfy_extras/nodes_pooling.py`）。一个节点覆盖滑动窗口家族
+（`MaxPool{1,2,3}d` / `AvgPool{1,2,3}d`），另一个覆盖自适应家族
+（`AdaptiveAvgPool{1,2,3}d` / `AdaptiveMaxPool{1,2,3}d`）：`mode` 选最大或平均，`dims` 选秩，
+十二种 torch 层类型因此收敛为两个节点。下面的每个窗口控件都同时作用于 `dims` 个空间维。缺少
+batch 维的张量同样接受——内部补上缺少的前导维，结果再还原回去。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|--------------|---------|
+| Pool | `PoolingSliding` | `tensor` | `dims` COMBO 1/2/3（默认 2）、`mode` COMBO max/avg（默认 `max`）、`kernel_size` INT 2 (1~64)、`stride` INT 0 (0~64)、`padding` INT 0 (0~32)、`dilation` INT 1 (1~16)、`ceil_mode` BOOLEAN false、`count_include_pad` BOOLEAN true | `F.max_pool{1,2,3}d` / `F.avg_pool{1,2,3}d`；`dims=2, kernel_size=2` 与 `nn.MaxPool2d(2)` 完全等价 |
+| Adaptive Pool | `PoolingAdaptive` | `tensor` | `dims` COMBO 1/2/3（默认 2）、`mode` COMBO avg/max（默认 `avg`）、`output_size` INT 1 (1~512) | `F.adaptive_max_pool{1,2,3}d` / `F.adaptive_avg_pool{1,2,3}d`；每个空间维都被压到恰好 `output_size` |
+
+> 不单独提供 `GlobalAvgPool` / `GlobalMaxPool` 节点：`output_size=1` **就是**全局池化
+> （`dims=2, output_size=1` ≡ `nn.AdaptiveAvgPool2d(1)` ≡ 教科书里的 **Global Average Pooling**、`GAP`），
+> 自适应节点已经覆盖它，`mode` 下拉再覆盖两种归约。`stride=0` 表示「与 `kernel_size` 相同」，
+> 即 torch 自己的默认行为。有两个控件是模式专属的，另一种模式下会被忽略：`dilation` 只在
+> `mode=max` 下有效，`count_include_pad` 只在 `mode=avg` 下有效（`F.avg_pool*d` 没有 `dilation` 参数，
+> `F.max_pool*d` 没有 `count_include_pad`）；若被忽略的控件被设成非默认值，节点会打印提示，而不是
+> 静默失效。
+
+### 17.7 Convolution（2 个节点）
+
+核心卷积节点（`comfy_extras/nodes_convolution.py`），是上文 `Basic` 层在网络结构上的可学习对应物。
+它们与 `Linear` 遵循同一约定：节点内部不做任何初始化，`weight` 与 `bias` 都是普通 `TENSOR` 输入，
+因此节点是纯函数，同一组权重可以喂给多个节点。相应地也没有 `in_channels` / `out_channels` /
+`bias` 开关：通道数直接从 `weight.shape` 读出，「不要偏置」用不连 `bias` 可选插槽来表达。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|--------------|---------|
+| Conv | `ConvolutionConv` | `tensor`、`weight`（`(out, in/groups, k...)`）、`bias`（可选） | `dims` COMBO 1/2/3（默认 2）、`groups` INT 1 (1~4096)、`stride` INT 1 (1~64)、`padding` INT 1 (0~64)、`padding_mode` COMBO zeros/reflect/replicate/circular（默认 `zeros`）、`dilation` INT 1 (1~32) | `F.conv{1,2,3}d`，支持分组卷积、膨胀卷积与四种填充模式 |
+| ConvTranspose | `ConvolutionConvTranspose` | `tensor`、`weight`（`(in, out/groups, k...)`）、`bias`（可选） | `dims` COMBO 1/2/3（默认 2）、`groups` INT 1 (1~4096)、`stride` INT 2 (1~64)、`padding` INT 0 (0~64)、`output_padding` INT 0 (0~64)、`dilation` INT 1 (1~32) | `F.conv_transpose{1,2,3}d`，解码器与生成器所用的上采样对应物 |
+
+> `Conv` 的关键在于**参数共享**：*同一个*卷积核在所有空间位置上被复用，因此权重数量只与通道数和
+> 卷积核尺寸有关，而与图像尺寸无关——3×3 的核无论图像是 32×32 还是 1024×1024，每个输入/输出通道
+> 都只需要 9 个权重。`dims=1/2/3` 之间变的只是秩与核形状，这正是用一个节点覆盖三种秩的原因。
+>
+> 两个节点的权重形状是**镜像**的：`Conv` 收 `(out_channels, in_channels/groups, k...)`，而
+> `ConvTranspose` 收 `(in_channels, out_channels/groups, k...)`。`groups = C_in` 即深度卷积，
+> `dilation > 1` 在不增加任何权重的前提下扩大感受野。
+>
+> `padding_mode` 必须手工实现：`F.conv{1,2,3}d` **没有** `padding_mode` 参数，只有 `nn.Conv*d`
+> 模块才有。当 `padding_mode != "zeros"` 时，先用 `F.pad(mode=reflect|replicate|circular)` 填充输入，
+> 再以 `padding=0` 调用卷积，两者不会重复填充。`F.pad` 的 `circular` 需要输入秩 ≥ 3 且填充量小于
+> 对应维度尺寸；条件不满足时节点会打印可读提示并回退为补零，而不是抛出异常。`ConvTranspose`
+> 刻意不提供 `padding_mode` 控件，因为 `nn.ConvTranspose*d` 与 `F.conv_transpose*d` 都不支持它。
+>
+> 两个节点都像 `Linear` 一样做 dtype 提升：当输入与权重同为浮点但类型不同（fp16 激活 + fp32 权重）时，
+> 以更宽的类型为准，而不是抛 dtype 不匹配错误。
 
 ---
 
@@ -1892,6 +1943,128 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
 
 ---
 
+## 19. ComfyUI / model（22 个节点）
+
+**model 协议层**（`comfy_extras/nodes_model_loaders.py`、`nodes_model_merging.py` 与
+`nodes_model_inference.py`）。`MODEL`、`CLIP`、`VAE` 重新成为图中的一等数据，权重再次成为工作流可以
+加载、搬运、混合与写回的东西。
+
+这一层与原生实现最大的不同，是它在 **state_dict** 层面而不是模块层面工作。脱水阶段移除了 `ldm` 模型
+实现，因此这里不做任何结构识别：权重文件被当作 key → 张量的扁平映射，节点唯一理解的「结构」是那套
+约定俗成的**键前缀**：
+
+| 前缀 | 归入 |
+|---|---|
+| `diffusion_model.`（以及所有未匹配的键） | `MODEL` |
+| `first_stage_model.` | `VAE` |
+| `cond_stage_model.` / `conditioner.` / `text_encoders.` | `CLIP` |
+
+于是任何 loader 都能直接吃 `.safetensors` / `.ckpt` 文件。三组权重装进按**引用**持有张量的容器
+（不复制，内存占用即文件大小），并且逐字往返键集：载入时剥掉的外层容器前缀（`model.`、
+`state_dict.`、`module.`，自动探测，也可用 `prefix_strip` 控件显式指定）在保存时原样写回。这正是
+「载入 → 合并 → 保存」能产出与输入键集完全一致的文件的原因——往返在构造上就是无损的。
+
+`MODEL` 组是「只有权重」的唯一例外：它额外被包进 `ModelPatcher`，从而是一个真正的 `MODEL` 值，
+与 ComfyUI 其余部分保持类型兼容。某一组没有键时输出的是合法的**空**容器而不是 `None`，
+因此「只含部分权重」的 checkpoint 不会打断下游连线。
+
+**两档行为**，以便一眼看清本构建里什么能真正跑起来：
+
+| 档位 | 行为 | 节点 |
+|---|---|---|
+| L1——真实执行 | 真正读文件、拆组、合并、落盘 | 5 个 loader、7 个合并节点、4 个保存节点（共 16 个） |
+| L2——已注册但不可执行 | 节点存在且 IO 契约与原生一致，工作流可以连线并通过校验；但执行时会抛出 `RuntimeError`，说明缺少哪个模块、如何恢复（绝不会是裸的 `ModuleNotFoundError`） | `Load LoRA (Model and CLIP)`、`Load LoRA`、`VAE Decode`、`VAE Encode`、`CLIP Text Encode (Prompt)`、`CLIP Set Last Layer`（共 6 个） |
+
+L2 是刻意保留的：IO 契约让用户今天就能搭出完整文生图流程图，而每个节点都会在 docstring 与报错信息里
+写明自己在等被移除引擎的哪一块。将来把对应模块回捞回来，它们原地即成为可用节点。
+
+### 19.1 Loaders（7 个节点）
+
+| 节点 | 类名 | 输入 | 控件 | 输出 / 作用 |
+|------|-------|--------|---------|-------------------|
+| Load Checkpoint | `CheckpointLoaderSimple` | `ckpt_name` COMBO（`models/checkpoints`） | `prefix_strip` STRING `"auto"` | `MODEL`、`CLIP`、`VAE`——把一个文件拆进三个组 |
+| Load Diffusion Model | `UNETLoader` | `unet_name` COMBO（`models/unet`、`models/diffusion_models`） | `prefix_strip` STRING `"auto"` | `MODEL`——整个文件就是扩散模型 |
+| Load VAE | `VAELoader` | `vae_name` COMBO（`models/vae`） | `prefix_strip` STRING `"auto"` | `VAE` |
+| Load CLIP | `CLIPLoader` | `clip_name` COMBO（`models/text_encoders`，同时兼容旧的 `models/clip`） | `prefix_strip` STRING `"auto"` | `CLIP` |
+| Load CLIP (Dual) | `DualCLIPLoader` | `clip_name1`、`clip_name2` COMBO | `prefix_strip` STRING `"auto"` | `CLIP`——两个文件的并集，两个编码器作为一个值传递 |
+| Load LoRA (Model and CLIP) | `LoraLoader` | `model` MODEL、`clip` CLIP、`lora_name` COMBO（`models/loras`） | `strength_model` FLOAT 1.0、`strength_clip` FLOAT 1.0 | `MODEL`、`CLIP`——**L2** |
+| Load LoRA | `LoraLoaderModelOnly` | `model` MODEL、`lora_name` COMBO（`models/loras`） | `strength_model` FLOAT 1.0 | `MODEL`——**L2** |
+
+> 除文件选择器外，只比原生契约多了一个 `prefix_strip` 控件，且其默认值 `auto` 开箱可用，
+> 因此任何 loader 不改任何参数就能运行。
+
+### 19.2 Merging（11 个节点）
+
+合并节点取出两个输入的键、对齐，然后**直接对张量做运算**，把结果包成新容器返回。它们刻意不构造
+`ModelPatcher` 补丁列表：补丁只有在模型真正被求值时才生效，而那条路径需要被移除的引擎。把运算提前做完，
+结果就是最终、确定、可检视的——因此也可保存。只有两边都有的键会被混合；只存在于一侧的键原样带过去
+并给出报告。
+
+| 节点 | 类名 | 输入 | 控件 | 结果 |
+|------|-------|--------|---------|--------|
+| ModelMergeSimple | `ModelMergeSimple` | `model1`、`model2` | `ratio` FLOAT 1.0 (0~1) | `model1 * ratio + model2 * (1 - ratio)` |
+| ModelMergeBlocks | `ModelMergeBlocks` | `model1`、`model2` | `input` FLOAT 1.0、`middle` FLOAT 1.0、`out` FLOAT 1.0 (0~1) | 按 UNet 块分组（`input_blocks` / `middle_block` / `output_blocks`）各给一个比例；不属于任何分组的键使用 `input`，与原生节点一致 |
+| ModelMergeAdd | `ModelMergeAdd` | `model1`、`model2` | — | `model1 + model2` |
+| ModelMergeSubtract | `ModelMergeSubtract` | `model1`、`model2` | `multiplier` FLOAT 1.0 (-10~10) | `model1 - multiplier * model2`（乘数为负即为加回） |
+| CLIPMergeSimple | `CLIPMergeSimple` | `clip1`、`clip2` | `ratio` FLOAT 1.0 (0~1) | `ModelMergeSimple` 的 CLIP 版本 |
+| CLIPMergeAdd | `CLIPMergeAdd` | `clip1`、`clip2` | — | `clip1 + clip2` |
+| CLIPMergeSubtract | `CLIPMergeSubtract` | `clip1`、`clip2` | `multiplier` FLOAT 1.0 (-10~10) | `clip1 - multiplier * clip2` |
+
+> CLIP 合并会跳过 `.position_ids` 与 `.logit_scale` 并从 `clip1` 直接拷贝：它们是指标 / 标量而不是
+> 权重，原生节点跳过的也正是这两个键。
+
+四个保存节点把结果写进 `output/`。它们没有输出——文件本身就是结果——并计入输出节点，因此以保存节点
+收尾的图照样可以执行。
+
+| 节点 | 类名 | 输入 | 控件 | 写出内容 |
+|------|-------|--------|--------|--------|
+| ModelSave | `ModelSave` | `model` | `filename_prefix` `"comfydl/diffusion_models"` | 仅 MODEL 组，键与来源模型完全一致 |
+| VAESave | `VAESave` | `vae` | `filename_prefix` `"comfydl/vae"` | VAE 组，`Load VAE` 可直接读回的布局 |
+| CLIPSave | `CLIPSave` | `clip` | `filename_prefix` `"comfydl/clip"` | CLIP 容器写成单个文件（原生节点会把双编码器拆成每族一个文件；`Load CLIP` / `Load CLIP (Dual)` 都能读回这种单文件形式） |
+| Save Checkpoint | `CheckpointSave` | `model`、`clip`、`vae` | `filename_prefix` `"comfydl/checkpoints"` | 三组权重写进同一个 `.safetensors`，各自回加原本的键前缀 |
+
+> `filename_prefix` 支持 `%date%` 之类占位符，默认值即可用，因此保存节点不改参数也能落盘。
+
+### 19.3 Latent（2 个节点）
+
+两个都是协议占位节点（L2）：注册了与原生一致的 IO 契约，工作流可以通过校验；但解码 / 编码图像需要被
+脱水的自编码器结构，因此执行时会抛出说明这一点的 `RuntimeError`。
+
+| 节点 | 类名 | 输入 | 输出 |
+|------|-------|--------|--------|
+| VAE Decode | `VAEDecode` | `samples` LATENT、`vae` VAE | `IMAGE` |
+| VAE Encode | `VAEEncode` | `pixels` IMAGE、`vae` VAE | `LATENT` |
+
+### 19.4 Conditioning（2 个节点）
+
+同理的协议占位节点（L2）：文本编码需要文本编码器结构。
+
+| 节点 | 类名 | 输入 | 控件 | 输出 |
+|------|-------|--------|---------|--------|
+| CLIP Text Encode (Prompt) | `CLIPTextEncode` | `text` STRING（多行，默认 `"a photo of a cat"`）、`clip` CLIP | — | `CONDITIONING` |
+| CLIP Set Last Layer | `CLIPSetLastLayer` | `clip` CLIP | `stop_at_clip_layer` INT -1 (-24~-1) | `CLIP`——为 "clip skip" 技巧截断编码器（常用 `-2`） |
+
+> 宿主注册表的 `model/latent` 分类下还有原生节点 `LatentCompositeMasked`，不属于本次改动，此处不列。
+
+---
+
+## 20. ComfyUI / 3d（1 个节点）
+
+`Preview3D`（`comfy_extras/nodes_preview_3d.py`）是单独保留的官方 3D 预览节点，而不是上游那一整套
+`Load3D` / 高斯泼溅家族。前端把 3D 画布绑定在硬编码的节点 id `Preview3D` 上，因此自定义节点永远无法
+自己渲染 3D，只能产出文件并交给它。本节点就是那个接收端：`CdlHeatmapsTo3D` 的产出正喂给它，而它也是
+脱水版唯一需要的 3D 节点。
+
+| 节点 | 类名 | 输入 | 输出 |
+|------|-------|--------|--------|
+| Preview 3D | `Preview3D` | `model_file` STRING \| `File3D`（`obj` / `glb` / `gltf` / `fbx` / `stl` / `usdz`）、`camera_info` LOAD3D_CAMERA（可选）、`bg_image` IMAGE（可选） | — |
+
+> 它没有输出：预览通过节点的 `ui` 载荷传给前端画布。`File3D` 对象会以
+> `preview3d_<uuid>.<format>` 之名写进 `output/`；同名的 `.mtl`（`CdlHeatmapsTo3D` 会产出）
+> 由生产方自己写出，而不是由本节点写，否则重命名会把这个材质文件落单。
+
+---
+
 ## 附录
 
 ### 节点注册机制
@@ -1900,9 +2073,8 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **109 个节点**，分属 20 个类别（108 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
-节点 + 8 个核心 `Network & Layers/Basic` + 7 个核心 `Network & Layers/Normalization` + 1 个核心
-`Network & Layers/Regularization` + 2 个核心 `Network & Layers/Training` 节点）：
+共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 59 个 ComfyUI
+核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1931,5 +2103,20 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | Network & Layers/Normalization | 7 | `TENSOR` 类型上的核心归一化（ComfyUI 核心分类） |
 | Network & Layers/Regularization | 1 | 带种子掩码的核心逐元素 dropout（ComfyUI 核心分类） |
 | Network & Layers/Training | 2 | 归一化节点的训练/推理开关与运行统计量（ComfyUI 核心分类） |
+| Network & Layers/Pooling | 2 | `TENSOR` 类型上的最大 / 平均池化，滑动窗口与自适应（`output_size=1` 即全局池化）（ComfyUI 核心分类） |
+| Network & Layers/Convolution | 2 | `TENSOR` 类型上的卷积与转置卷积，权重走连线传入（ComfyUI 核心分类） |
+| model/loaders | 7 | state_dict 层面的 checkpoint / 扩散模型 / VAE / CLIP 加载（ComfyUI 核心分类） |
+| model/merging | 11 | 按键对齐的模型与 CLIP 合并，以及 `.safetensors` 落盘（ComfyUI 核心分类） |
+| model/latent | 2 | `VAE Decode` / `VAE Encode` 协议占位节点（ComfyUI 核心分类） |
+| model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` 协议占位节点（ComfyUI 核心分类） |
+| 3d | 1 | `Preview 3D`，前端绑定的 3D 预览画布（ComfyUI 核心分类） |
 
-> 前 20 行统计 **ComfyDL 提供的 108 个节点**（其中 7 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation`、`Network & Layers/Basic`、`Network & Layers/Normalization`、`Network & Layers/Regularization` 与 `Network & Layers/Training` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。
+> 前 20 行统计 **ComfyDL 提供的 109 个节点**（其中 7 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
+>
+> 其余 12 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：七个 `Network & Layers/*` 分组（36 个节点）、
+> 四个 `model/*` 分组（22 个节点）与 `3d`（1 个节点）。因此随宿主发布的节点库总计
+> **168 个节点、32 个分类** = 109 个 ComfyDL + 59 个核心节点。
+>
+> 有两行的数量少于宿主注册表在该分类下的实际节点数，因为注册表把本次改动未触及的原生节点也算在内：
+> `model/latent`（其第三个节点是 `LatentCompositeMasked`）以及 `image`、`utilities`、`image/color`、
+> `image/transform`（ComfyDL 节点与相邻的原生节点混在同一分类里）。
