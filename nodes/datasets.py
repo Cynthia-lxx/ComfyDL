@@ -60,7 +60,7 @@ class CdlLoadArray:
 
     d2lcore: load_array(data_arrays, batch_size, is_train)
 
-    Connect features and labels tensors (cdlTensor) to inputs, and this node
+    Connect features and labels tensors (TENSOR) to inputs, and this node
     outputs a cdlDataloader that downstream nodes can use for training/evaluation.
     """
 
@@ -72,8 +72,8 @@ class CdlLoadArray:
                 "shuffle": ("BOOLEAN", {"default": True}),
             },
             "optional": {
-                "features": ("cdlTensor",),
-                "labels": ("cdlTensor",),
+                "features": ("TENSOR",),
+                "labels": ("TENSOR",),
             }
         }
 

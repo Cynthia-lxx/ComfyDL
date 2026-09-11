@@ -40,11 +40,11 @@ class CdlBoxCornerToCenter:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "boxes": ("cdlTensor",),
+                "boxes": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("boxes_ccwh",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -76,11 +76,11 @@ class CdlBoxCenterToCorner:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "boxes": ("cdlTensor",),
+                "boxes": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("boxes_xyxy",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -112,12 +112,12 @@ class CdlBoxIou:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "boxes1": ("cdlTensor",),
-                "boxes2": ("cdlTensor",),
+                "boxes1": ("TENSOR",),
+                "boxes2": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("iou",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -151,13 +151,13 @@ class CdlNms:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "boxes": ("cdlTensor",),
-                "scores": ("cdlTensor",),
+                "boxes": ("TENSOR",),
+                "scores": ("TENSOR",),
                 "iou_threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("keep_indices",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -215,11 +215,11 @@ class CdlMultiboxPrior:
                 "ratios": ("STRING", {"default": "1,2,0.5", "placeholder": "comma-separated"}),
             },
             "optional": {
-                "data": ("cdlTensor",),
+                "data": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("anchors",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -277,13 +277,13 @@ class CdlOffsetBoxes:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "anchors": ("cdlTensor",),
-                "assigned_bb": ("cdlTensor",),
+                "anchors": ("TENSOR",),
+                "assigned_bb": ("TENSOR",),
                 "eps": ("FLOAT", {"default": 1e-6, "min": 1e-12, "max": 1e-3, "step": 1e-6}),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("offsets",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -319,12 +319,12 @@ class CdlOffsetInverse:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "anchors": ("cdlTensor",),
-                "offset_preds": ("cdlTensor",),
+                "anchors": ("TENSOR",),
+                "offset_preds": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("predicted_bbox",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -363,13 +363,13 @@ class CdlAssignAnchorToBbox:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "ground_truth": ("cdlTensor",),
-                "anchors": ("cdlTensor",),
+                "ground_truth": ("TENSOR",),
+                "anchors": ("TENSOR",),
                 "iou_threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("anchors_bbox_map",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -431,12 +431,12 @@ class CdlMultiboxTarget:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "anchors": ("cdlTensor",),
-                "labels": ("cdlTensor",),
+                "anchors": ("TENSOR",),
+                "labels": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor", "cdlTensor", "cdlTensor")
+    RETURN_TYPES = ("TENSOR", "TENSOR", "TENSOR")
     RETURN_NAMES = ("bbox_offset", "bbox_mask", "class_labels")
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"
@@ -526,15 +526,15 @@ class CdlMultiboxDetection:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "cls_probs": ("cdlTensor",),
-                "offset_preds": ("cdlTensor",),
-                "anchors": ("cdlTensor",),
+                "cls_probs": ("TENSOR",),
+                "offset_preds": ("TENSOR",),
+                "anchors": ("TENSOR",),
                 "nms_threshold": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "pos_threshold": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 1.0, "step": 0.001}),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("detections",)
     FUNCTION = "execute"
     CATEGORY = "d2l/ObjectDetection"

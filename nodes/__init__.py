@@ -15,19 +15,30 @@ Node Categories (matching d2l sections):
   - d2lcore/GAN             : GAN training functions (gan.py)
 """
 
-# Custom ComfyUI types with cdl prefix
-# These are used when native ComfyUI types don't match the format
+# Slot types used by the ComfyDL nodes.
+#
+# TENSOR / BBOX are the canonical Comfy core types (declared in
+# comfy/comfy_types/node_typing.py and registered in comfy_api/latest/_io.py).
+# The ComfyDL nodes use those names directly so they interoperate with the
+# core Activation nodes on the same slots.
 
-# cdlTensor: Generic torch tensor of any shape
-cdlTensor = "cdlTensor"
+# TENSOR: Generic torch tensor of any shape (was cdlTensor).
+TENSOR = "TENSOR"
+# BBOX: Bounding box tensor [N, 4] (was cdlBbox; same as the core IO.BBOX).
+BBOX = "BBOX"
+
+# Legacy aliases -- prefer the canonical names above in new code.
+cdlTensor = TENSOR
+cdlBbox = BBOX
+
+# No Comfy core counterpart exists for the types below, so they stay
+# ComfyDL-only and keep their original names.
 # cdlModel: d2l model instance (nn.Module subclass)
 cdlModel = "cdlModel"
 # cdlVocab: Vocabulary object
 cdlVocab = "cdlVocab"
 # cdlDataloader: PyTorch DataLoader
 cdlDataloader = "cdlDataloader"
-# cdlBbox: Bounding box tensor [N, 4]
-cdlBbox = "cdlBbox"
 
 # Node registration - imported by __init__.py at module load
 NODE_CLASS_MAPPINGS = {}

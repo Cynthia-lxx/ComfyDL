@@ -115,9 +115,9 @@ class CdlModelForward:
     device if they differ; the model is switched to eval mode first.
     Inputs:
         model (cdlModel): any nn.Module instance
-        tensor (cdlTensor): input tensor of the shape the model expects
+        tensor (TENSOR): input tensor of the shape the model expects
     Outputs:
-        output (cdlTensor): model(tensor) — shape depends on the model
+        output (TENSOR): model(tensor) — shape depends on the model
     """
 
     @classmethod
@@ -125,11 +125,11 @@ class CdlModelForward:
         return {
             "required": {
                 "model": ("cdlModel",),
-                "tensor": ("cdlTensor",),
+                "tensor": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Model Utils"

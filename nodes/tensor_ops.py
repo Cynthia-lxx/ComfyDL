@@ -36,13 +36,13 @@ class CdlLinReg:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "X": ("cdlTensor",),
-                "w": ("cdlTensor",),
-                "b": ("cdlTensor",),
+                "X": ("TENSOR",),
+                "w": ("TENSOR",),
+                "b": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("y_hat",)
     FUNCTION = "execute"
     CATEGORY = "d2l/TorchOps"
@@ -66,12 +66,12 @@ class CdlSquaredLoss:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "y_hat": ("cdlTensor",),
-                "y": ("cdlTensor",),
+                "y_hat": ("TENSOR",),
+                "y": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("loss",)
     FUNCTION = "execute"
     CATEGORY = "d2l/TorchOps"
@@ -96,14 +96,14 @@ class CdlMaskedSoftmax:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "X": ("cdlTensor",),
+                "X": ("TENSOR",),
             },
             "optional": {
-                "valid_lens": ("cdlTensor",),
+                "valid_lens": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
     CATEGORY = "d2l/TorchOps"
@@ -141,13 +141,13 @@ class CdlSequenceMask:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "X": ("cdlTensor",),
-                "valid_len": ("cdlTensor",),
+                "X": ("TENSOR",),
+                "valid_len": ("TENSOR",),
                 "mask_value": ("FLOAT", {"default": 0.0, "min": -1e9, "max": 1e9, "step": 0.1}),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("masked",)
     FUNCTION = "execute"
     CATEGORY = "d2l/TorchOps"
@@ -174,8 +174,8 @@ class CdlAccuracy:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "y_hat": ("cdlTensor",),
-                "y": ("cdlTensor",),
+                "y_hat": ("TENSOR",),
+                "y": ("TENSOR",),
             }
         }
 
@@ -213,7 +213,7 @@ class CdlSyntheticData:
             }
         }
 
-    RETURN_TYPES = ("cdlTensor", "cdlTensor")
+    RETURN_TYPES = ("TENSOR", "TENSOR")
     RETURN_NAMES = ("X", "y")
     FUNCTION = "execute"
     CATEGORY = "d2l/TorchOps"
@@ -247,11 +247,11 @@ class CdlTruncatePad:
                 "padding_token": ("INT", {"default": 0, "min": 0, "max": 100000, "step": 1}),
             },
             "optional": {
-                "sequence": ("cdlTensor",),
+                "sequence": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("padded",)
     FUNCTION = "execute"
     CATEGORY = "d2l/TorchOps"

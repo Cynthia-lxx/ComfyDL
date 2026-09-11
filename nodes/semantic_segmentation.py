@@ -68,7 +68,7 @@ class CdlVocColormap2Label:
             "required": {},
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("colormap2label",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Segmentation"
@@ -97,7 +97,7 @@ class CdlVocLabelIndices:
         return {
             "required": {
                 "colormap": ("IMAGE",),
-                "colormap2label": ("cdlTensor",),
+                "colormap2label": ("TENSOR",),
             }
         }
 

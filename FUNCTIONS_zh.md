@@ -6,17 +6,22 @@
 
 ---
 
-## 自定义数据类型
+## 数据类型
 
-ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递结构化数据：
+ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 | 类型名 | Python 类型 | 说明 |
 |-----------|-------------|------|
-| `cdlTensor` | `torch.Tensor` | 任意形状的 PyTorch 张量 |
-| `cdlModel` | `nn.Module` | PyTorch 模型实例 |
-| `cdlVocab` | `dict` | 词表字典，包含 `idx_to_token` 和 `token_to_idx` |
-| `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch 数据加载器 |
-| `cdlBbox` | `torch.Tensor [N,4]` | 边界框张量，格式为 `(x1, y1, x2, y2)` |
+| `TENSOR` | `torch.Tensor` | 任意形状的 PyTorch 张量 —— **ComfyUI 核心类型**，与内置 `Activation` 节点共用（原名 `cdlTensor`） |
+| `BBOX` | `torch.Tensor [N,4]` | 边界框张量，格式为 `(x1, y1, x2, y2)` —— **ComfyUI 核心类型**（原名 `cdlBbox`） |
+| `cdlModel` | `nn.Module` | PyTorch 模型实例 —— ComfyDL 专有，核心无同义类型 |
+| `cdlVocab` | `dict` | 词表字典，包含 `idx_to_token` 和 `token_to_idx` —— ComfyDL 专有 |
+| `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch 数据加载器 —— ComfyDL 专有 |
+
+`TENSOR` 与 `BBOX` 定义在 ComfyUI 核心中（`comfy/comfy_types/node_typing.py` 与
+`comfy_api/latest/_io.py`），因此 ComfyDL 节点可与核心节点（如 `Activation` 系列）在同一插槽上
+直接连线。`cdlModel` / `cdlVocab` / `cdlDataloader` 在核心中没有等价类型，保持 ComfyDL 专有；
+旧名 `cdlTensor` / `cdlBbox` 仍作为兼容别名从 `nodes/__init__.py` 导出。
 
 直接使用的 ComfyUI 标准类型：
 - `IMAGE` — 图像批次，`torch.Tensor [B, H, W, C]`
@@ -72,12 +77,12 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `input_tensor` | `cdlTensor` | 输入二维张量 |
-  | `kernel` | `cdlTensor` | 核二维张量 |
+  | `input_tensor` | `TENSOR` | 输入二维张量 |
+  | `kernel` | `TENSOR` | 核二维张量 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `output` | `cdlTensor` | 互相关结果 |
+  | `output` | `TENSOR` | 互相关结果 |
 
 ### LeNet
 - **类名**：`CdlLeNet`
@@ -151,8 +156,8 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `X` | `cdlTensor` | 真实数据批次（可选） |
-  | `Z` | `cdlTensor` | 噪声输入（可选） |
+  | `X` | `TENSOR` | 真实数据批次（可选） |
+  | `Z` | `TENSOR` | 噪声输入（可选） |
   | `net_D` | `cdlModel` | 判别器模型（可选） |
   | `net_G` | `cdlModel` | 生成器模型（可选） |
 - **输出**：
@@ -167,14 +172,14 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `Z` | `cdlTensor` | 噪声输入（可选） |
+  | `Z` | `TENSOR` | 噪声输入（可选） |
   | `net_D` | `cdlModel` | 判别器模型（可选） |
   | `net_G` | `cdlModel` | 生成器模型（可选） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `loss_G` | `FLOAT` | 生成器损失；若任一输入缺失则返回 0.0 |
-  | `fake_X` | `cdlTensor` | 生成器产生的假数据 |
+  | `fake_X` | `TENSOR` | 生成器产生的假数据 |
 
 ---
 
@@ -214,7 +219,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `tensor` | `TENSOR` | — | 输入张量 |
   | `operation` | `COMBO` | `sum` | 计时操作：sum / mean / abs / sqrt / neg |
   | `num_iters` | `INT` | 10 | 计时迭代次数（1~100000） |
 - **输出**：
@@ -294,7 +299,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `indices` | `cdlTensor` | 编码后的索引张量（`torch.int64`） |
+  | `indices` | `TENSOR` | 编码后的索引张量（`torch.int64`） |
 
 ### Vocab Decode
 - **类名**：`CdlVocabDecode`
@@ -304,7 +309,7 @@ ComfyDL 定义了 5 种 ComfyUI 自定义数据类型，用于在节点间传递
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `vocab` | `cdlVocab` | 词表字典 |
-  | `indices` | `cdlTensor` | 索引张量 |
+  | `indices` | `TENSOR` | 索引张量 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -569,7 +574,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `tensor` | `TENSOR` | — | 输入张量 |
   | `max_elems` | `INT` | 100 | 最大显示元素数（10~10000） |
   | `precision` | `INT` | 6 | 数值显示精度（1~16 位） |
 - **输出**：
@@ -588,7 +593,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `tensor` | `cdlTensor` | 解析后的张量（`torch.float32`） |
+  | `tensor` | `TENSOR` | 解析后的张量（`torch.float32`） |
 
 ### Conv2D
 - **类名**：`CdlConv2d`
@@ -596,14 +601,14 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `input_tensor` | `cdlTensor` | — | 输入张量 |
-  | `kernel` | `cdlTensor` | — | 卷积核 |
+  | `input_tensor` | `TENSOR` | — | 输入张量 |
+  | `kernel` | `TENSOR` | — | 卷积核 |
   | `stride` | `INT` | 1 | 卷积步幅（1~4） |
   | `padding` | `INT` | 0 | 零填充（0~10） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `output` | `cdlTensor` | 卷积结果 |
+  | `output` | `TENSOR` | 卷积结果 |
 
 ### Transpose
 - **类名**：`CdlTranspose`
@@ -611,13 +616,13 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `tensor` | `TENSOR` | — | 输入张量 |
   | `dim0` | `INT` | 0 | 第一个要交换的维度（0~5） |
   | `dim1` | `INT` | 1 | 第二个要交换的维度（0~5） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `output` | `cdlTensor` | 转置后的张量 |
+  | `output` | `TENSOR` | 转置后的张量 |
 
 ### Broadcast
 - **类名**：`CdlBroadcast`
@@ -625,12 +630,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `tensor` | `TENSOR` | — | 输入张量 |
   | `target_shape` | `STRING` | `""` | 目标形状，逗号分隔（如 ``"3,1,4"``） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `output` | `cdlTensor` | 广播后的张量 |
+  | `output` | `TENSOR` | 广播后的张量 |
 
 ### Reshape
 - **类名**：`CdlReshape`
@@ -638,12 +643,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `tensor` | `TENSOR` | — | 输入张量 |
   | `target_shape` | `STRING` | `""` | 目标形状，逗号分隔（如 ``"2,8"``） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `output` | `cdlTensor` | 变形后的张量 |
+  | `output` | `TENSOR` | 变形后的张量 |
 
 ### Activation
 - **类名**：`CdlActivation`
@@ -651,14 +656,14 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tensor` | `cdlTensor` | — | 输入张量 |
+  | `tensor` | `TENSOR` | — | 输入张量 |
   | `func` | `COMBO` | `relu` | 激活函数：relu / sigmoid / tanh / leaky_relu / elu / gelu / silu / softmax / softplus |
   | `dim` | `INT` | -1 | softmax 的维度（-4~4） |
   | `negative_slope` | `FLOAT` | 0.01 | leaky_relu 的负斜率（0~1） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `output` | `cdlTensor` | 激活后的张量 |
+  | `output` | `TENSOR` | 激活后的张量 |
 
 ### Random Tensor（随机张量）
 - **类名**：`CdlRandomTensor`
@@ -676,7 +681,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `tensor` | `cdlTensor` | 指定形状的随机张量 |
+  | `tensor` | `TENSOR` | 指定形状的随机张量 |
 
 ---
 
@@ -689,13 +694,13 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `X` | `cdlTensor` | 输入特征矩阵 |
-  | `w` | `cdlTensor` | 权重向量 |
-  | `b` | `cdlTensor` | 偏置向量/标量 |
+  | `X` | `TENSOR` | 输入特征矩阵 |
+  | `w` | `TENSOR` | 权重向量 |
+  | `b` | `TENSOR` | 偏置向量/标量 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `y_hat` | `cdlTensor` | 预测值 |
+  | `y_hat` | `TENSOR` | 预测值 |
 
 ### Squared Loss
 - **类名**：`CdlSquaredLoss`
@@ -704,12 +709,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `y_hat` | `cdlTensor` | 预测值 |
-  | `y` | `cdlTensor` | 真实值（自动重塑为与 `y_hat` 相同的形状） |
+  | `y_hat` | `TENSOR` | 预测值 |
+  | `y` | `TENSOR` | 真实值（自动重塑为与 `y_hat` 相同的形状） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `loss` | `cdlTensor` | 逐元素损失 |
+  | `loss` | `TENSOR` | 逐元素损失 |
 
 ### Masked Softmax
 - **类名**：`CdlMaskedSoftmax`
@@ -718,12 +723,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `X` | `cdlTensor` | 输入张量 |
-  | `valid_lens` | `cdlTensor` | 有效长度张量（可选；若未提供则执行普通 softmax） |
+  | `X` | `TENSOR` | 输入张量 |
+  | `valid_lens` | `TENSOR` | 有效长度张量（可选；若未提供则执行普通 softmax） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `output` | `cdlTensor` | 掩码 softmax 结果 |
+  | `output` | `TENSOR` | 掩码 softmax 结果 |
 
 ### Sequence Mask
 - **类名**：`CdlSequenceMask`
@@ -732,13 +737,13 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `X` | `cdlTensor` | — | 输入序列张量 |
-  | `valid_len` | `cdlTensor` | — | 每条序列的有效长度 |
+  | `X` | `TENSOR` | — | 输入序列张量 |
+  | `valid_len` | `TENSOR` | — | 每条序列的有效长度 |
   | `mask_value` | `FLOAT` | 0.0 | 掩码填充值（-1e9~1e9） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `masked` | `cdlTensor` | 掩码后的张量 |
+  | `masked` | `TENSOR` | 掩码后的张量 |
 
 ### Accuracy
 - **类名**：`CdlAccuracy`
@@ -747,8 +752,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `y_hat` | `cdlTensor` | 预测值（logits 或类别索引） |
-  | `y` | `cdlTensor` | 真实标签 |
+  | `y_hat` | `TENSOR` | 预测值（logits 或类别索引） |
+  | `y` | `TENSOR` | 真实标签 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -769,8 +774,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `X` | `cdlTensor` | 特征矩阵 `[num_examples, num_features]` |
-  | `y` | `cdlTensor` | 标签向量 `[num_examples, 1]` |
+  | `X` | `TENSOR` | 特征矩阵 `[num_examples, num_features]` |
+  | `y` | `TENSOR` | 标签向量 `[num_examples, 1]` |
 
 ### Truncate/Pad
 - **类名**：`CdlTruncatePad`
@@ -781,11 +786,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|---------|------|
   | `num_steps` | `INT` | 64 | 目标序列长度（1~10000） |
   | `padding_token` | `INT` | 0 | 填充 token 索引（0~100000） |
-  | `sequence` | `cdlTensor` | — | 输入索引序列（可选；缺失时返回全填充张量） |
+  | `sequence` | `TENSOR` | — | 输入索引序列（可选；缺失时返回全填充张量） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `padded` | `cdlTensor` | 截断/填充后的序列（`torch.int64`） |
+  | `padded` | `TENSOR` | 截断/填充后的序列（`torch.int64`） |
 
 ### BLEU Score
 - **类名**：`CdlBleu`
@@ -842,11 +847,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `boxes` | `cdlTensor` | 角点格式边界框 `[N,4]`（左上角 + 右下角） |
+  | `boxes` | `TENSOR` | 角点格式边界框 `[N,4]`（左上角 + 右下角） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `boxes_ccwh` | `cdlTensor` | 中心格式边界框 `[N,4]`（中心 + 宽 + 高） |
+  | `boxes_ccwh` | `TENSOR` | 中心格式边界框 `[N,4]`（中心 + 宽 + 高） |
 
 ### Box Center→Corner
 - **类名**：`CdlBoxCenterToCorner`
@@ -855,11 +860,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `boxes` | `cdlTensor` | 中心格式边界框 `[N,4]`（中心 + 宽 + 高） |
+  | `boxes` | `TENSOR` | 中心格式边界框 `[N,4]`（中心 + 宽 + 高） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `boxes_xyxy` | `cdlTensor` | 角点格式边界框 `[N,4]`（左上角 + 右下角） |
+  | `boxes_xyxy` | `TENSOR` | 角点格式边界框 `[N,4]`（左上角 + 右下角） |
 
 ### Box IoU
 - **类名**：`CdlBoxIou`
@@ -868,12 +873,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `boxes1` | `cdlTensor` | 第一组框 `[N1,4]`（左上角 + 右下角） |
-  | `boxes2` | `cdlTensor` | 第二组框 `[N2,4]`（左上角 + 右下角） |
+  | `boxes1` | `TENSOR` | 第一组框 `[N1,4]`（左上角 + 右下角） |
+  | `boxes2` | `TENSOR` | 第二组框 `[N2,4]`（左上角 + 右下角） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `iou` | `cdlTensor` | IoU 矩阵 `[N1, N2]` |
+  | `iou` | `TENSOR` | IoU 矩阵 `[N1, N2]` |
 
 ### NMS
 - **类名**：`CdlNms`
@@ -882,13 +887,13 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `boxes` | `cdlTensor` | — | 边界框 `[N,4]`（左上角 + 右下角） |
-  | `scores` | `cdlTensor` | — | 每个框的置信度分数 |
+  | `boxes` | `TENSOR` | — | 边界框 `[N,4]`（左上角 + 右下角） |
+  | `scores` | `TENSOR` | — | 每个框的置信度分数 |
   | `iou_threshold` | `FLOAT` | 0.5 | IoU 阈值（0~1） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `keep_indices` | `cdlTensor` | 被保留框的索引（`torch.int64`） |
+  | `keep_indices` | `TENSOR` | 被保留框的索引（`torch.int64`） |
 
 ### Multibox Prior
 - **类名**：`CdlMultiboxPrior`
@@ -899,11 +904,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|---------|------|
   | `sizes` | `STRING` | `"0.75,0.5,0.25"` | 锚框尺寸列表，逗号分隔 |
   | `ratios` | `STRING` | `"1,2,0.5"` | 宽高比列表，逗号分隔 |
-  | `data` | `cdlTensor` | — | 输入数据（可选；用于推断空间尺寸；缺失时默认为 561×728） |
+  | `data` | `TENSOR` | — | 输入数据（可选；用于推断空间尺寸；缺失时默认为 561×728） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `anchors` | `cdlTensor` | 锚框 `[1, H*W*bpp, 4]`，归一化坐标（左上角 + 右下角） |
+  | `anchors` | `TENSOR` | 锚框 `[1, H*W*bpp, 4]`，归一化坐标（左上角 + 右下角） |
 
 ### Offset Boxes
 - **类名**：`CdlOffsetBoxes`
@@ -912,13 +917,13 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `anchors` | `cdlTensor` | — | 锚框 `[N,4]`（左上角 + 右下角） |
-  | `assigned_bb` | `cdlTensor` | — | 分配的真实框 `[N,4]`（左上角 + 右下角） |
+  | `anchors` | `TENSOR` | — | 锚框 `[N,4]`（左上角 + 右下角） |
+  | `assigned_bb` | `TENSOR` | — | 分配的真实框 `[N,4]`（左上角 + 右下角） |
   | `eps` | `FLOAT` | 1e-6 | 防止除零的小 epsilon（1e-12~1e-3） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `offsets` | `cdlTensor` | 偏移量 `[N,4]`（dx, dy, dw, dh） |
+  | `offsets` | `TENSOR` | 偏移量 `[N,4]`（dx, dy, dw, dh） |
 
 ### Offset Inverse
 - **类名**：`CdlOffsetInverse`
@@ -927,12 +932,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `anchors` | `cdlTensor` | 锚框 `[N,4]`（左上角 + 右下角） |
-  | `offset_preds` | `cdlTensor` | 预测偏移量 `[N,4]` |
+  | `anchors` | `TENSOR` | 锚框 `[N,4]`（左上角 + 右下角） |
+  | `offset_preds` | `TENSOR` | 预测偏移量 `[N,4]` |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `predicted_bbox` | `cdlTensor` | 预测框 `[N,4]`（左上角 + 右下角） |
+  | `predicted_bbox` | `TENSOR` | 预测框 `[N,4]`（左上角 + 右下角） |
 
 ### Assign Anchor→BBox
 - **类名**：`CdlAssignAnchorToBbox`
@@ -941,13 +946,13 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `ground_truth` | `cdlTensor` | — | 真实框 `[M,4]`（左上角 + 右下角） |
-  | `anchors` | `cdlTensor` | — | 锚框 `[N,4]`（左上角 + 右下角） |
+  | `ground_truth` | `TENSOR` | — | 真实框 `[M,4]`（左上角 + 右下角） |
+  | `anchors` | `TENSOR` | — | 锚框 `[N,4]`（左上角 + 右下角） |
   | `iou_threshold` | `FLOAT` | 0.5 | IoU 阈值（0~1） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `anchors_bbox_map` | `cdlTensor` | 锚框→真实框映射 `[N,]`，-1 表示无匹配（`torch.int64`） |
+  | `anchors_bbox_map` | `TENSOR` | 锚框→真实框映射 `[N,]`，-1 表示无匹配（`torch.int64`） |
 
 ### Multibox Target
 - **类名**：`CdlMultiboxTarget`
@@ -956,14 +961,14 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `anchors` | `cdlTensor` | 锚框 `[1, N, 4]`（左上角 + 右下角） |
-  | `labels` | `cdlTensor` | 标签 `[B, M, 5]`，格式 `[class_id, x1, y1, x2, y2]` |
+  | `anchors` | `TENSOR` | 锚框 `[1, N, 4]`（左上角 + 右下角） |
+  | `labels` | `TENSOR` | 标签 `[B, M, 5]`，格式 `[class_id, x1, y1, x2, y2]` |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `bbox_offset` | `cdlTensor` | 边界框偏移目标 `[B, N*4]` |
-  | `bbox_mask` | `cdlTensor` | 边界框偏移掩码 `[B, N*4]`（匹配锚框为 1.0） |
-  | `class_labels` | `cdlTensor` | 锚框类别标签 `[B, N]`（背景=0，类别从 1 开始） |
+  | `bbox_offset` | `TENSOR` | 边界框偏移目标 `[B, N*4]` |
+  | `bbox_mask` | `TENSOR` | 边界框偏移掩码 `[B, N*4]`（匹配锚框为 1.0） |
+  | `class_labels` | `TENSOR` | 锚框类别标签 `[B, N]`（背景=0，类别从 1 开始） |
 
 ### Multibox Detection
 - **类名**：`CdlMultiboxDetection`
@@ -972,15 +977,15 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `cls_probs` | `cdlTensor` | — | 类别概率 `[B, num_classes, N]` |
-  | `offset_preds` | `cdlTensor` | — | 偏移预测 `[B, N*4]` |
-  | `anchors` | `cdlTensor` | — | 锚框 `[1, N, 4]` |
+  | `cls_probs` | `TENSOR` | — | 类别概率 `[B, num_classes, N]` |
+  | `offset_preds` | `TENSOR` | — | 偏移预测 `[B, N*4]` |
+  | `anchors` | `TENSOR` | — | 锚框 `[1, N, 4]` |
   | `nms_threshold` | `FLOAT` | 0.5 | NMS IoU 阈值（0~1） |
   | `pos_threshold` | `FLOAT` | 0.01 | 正样本置信度阈值（0~1） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `detections` | `cdlTensor` | 检测结果 `[B, N, 6]`，格式 `[class_id, confidence, x1, y1, x2, y2]`（class_id=-1 表示背景） |
+  | `detections` | `TENSOR` | 检测结果 `[B, N, 6]`，格式 `[class_id, confidence, x1, y1, x2, y2]`（class_id=-1 表示背景） |
 
 ---
 
@@ -1009,7 +1014,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `colormap2label` | `cdlTensor` | 颜色→类别索引查找表 `[16777216]`（`torch.int64`） |
+  | `colormap2label` | `TENSOR` | 颜色→类别索引查找表 `[16777216]`（`torch.int64`） |
 
 ### VOC Label Indices
 - **类名**：`CdlVocLabelIndices`
@@ -1019,7 +1024,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `colormap` | `IMAGE` | VOC 标签彩色图像 `[B, H, W, C]`，使用第一张图像 |
-  | `colormap2label` | `cdlTensor` | 颜色→标签查找表 |
+  | `colormap2label` | `TENSOR` | 颜色→标签查找表 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -1066,7 +1071,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `matrices` | `cdlTensor` | — | 矩阵张量（2D=[H,W]→1×1，3D=[N,H,W]→N×1，4D=[N,M,H,W]） |
+  | `matrices` | `TENSOR` | — | 矩阵张量（2D=[H,W]→1×1，3D=[N,H,W]→N×1，4D=[N,M,H,W]） |
   | `xlabel` | `STRING` | `""` | X 轴标签 |
   | `ylabel` | `STRING` | `""` | Y 轴标签 |
   | `figsize_w` | `FLOAT` | 2.5 | 每列宽度（0.5~20.0） |
@@ -1098,8 +1103,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `yscale` | `COMBO` | `linear` | Y 轴刻度：`linear` / `log` |
   | `figsize_w` | `FLOAT` | 6.0 | 图宽度（1.0~30.0） |
   | `figsize_h` | `FLOAT` | 4.0 | 图高度（1.0~30.0） |
-  | `X` | `cdlTensor` | — | X 轴数据（可选，一维或二维） |
-  | `Y` | `cdlTensor` | — | Y 轴数据（可选） |
+  | `X` | `TENSOR` | — | X 轴数据（可选，一维或二维） |
+  | `Y` | `TENSOR` | — | Y 轴数据（可选） |
   | `legend` | `STRING` | `""` | 图例标签，逗号分隔（可选） |
   | `xlim_min` | `FLOAT` | -1.0 | X 轴下界（仅当 xlim_min < xlim_max 时生效） |
   | `xlim_max` | `FLOAT` | -1.0 | X 轴上界 |
@@ -1117,7 +1122,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `results` | `cdlTensor` | 优化轨迹点 `[N, 2]`，每行是一个 (x1, x2) 坐标 |
+  | `results` | `TENSOR` | 优化轨迹点 `[N, 2]`，每行是一个 (x1, x2) 坐标 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -1131,7 +1136,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
   | `image` | `IMAGE` | — | 背景图像 `[B, H, W, C]`（使用第一张图像） |
-  | `bboxes` | `cdlTensor` | — | 边界框 `[N, 4]`，归一化坐标（左上角 + 右下角） |
+  | `bboxes` | `TENSOR` | — | 边界框 `[N, 4]`，归一化坐标（左上角 + 右下角） |
   | `labels` | `STRING` | `""` | 框标签，逗号分隔（可选） |
   | `colors` | `STRING` | `"b,g,r,m,c"` | matplotlib 颜色，逗号分隔（可选） |
 - **输出**：
@@ -1145,7 +1150,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `tensor` | `cdlTensor` | — | 输入张量（内部展平） |
+  | `tensor` | `TENSOR` | — | 输入张量（内部展平） |
   | `bins` | `INT` | 30 | 直方图分桶数 |
   | `density` | `BOOLEAN` | False | 为 True 时显示密度而非计数 |
   | `color` | `STRING` | `"#4673a6"` | 条形颜色 |
@@ -1164,7 +1169,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `values` | `cdlTensor` | — | 柱状高度（1-D 张量） |
+  | `values` | `TENSOR` | — | 柱状高度（1-D 张量） |
   | `labels` | `STRING` | `""` | 分类标签，逗号分隔 |
   | `xlabel` | `STRING` | `""` | x 轴标签 |
   | `ylabel` | `STRING` | `""` | y 轴标签 |
@@ -1184,16 +1189,16 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `X` | `cdlTensor` | — | X 坐标（展平） |
-  | `Y` | `cdlTensor` | — | Y 坐标（展平） |
+  | `X` | `TENSOR` | — | X 坐标（展平） |
+  | `Y` | `TENSOR` | — | Y 坐标（展平） |
   | `alpha` | `FLOAT` | 0.6 | 点透明度 |
   | `cmap` | `STRING` | `"viridis"` | ``color_map`` 的 colormap |
   | `xlabel` | `STRING` | `""` | x 轴标签 |
   | `ylabel` | `STRING` | `""` | y 轴标签 |
   | `figsize_w` | `FLOAT` | 6.0 | 图宽 |
   | `figsize_h` | `FLOAT` | 5.0 | 图高 |
-  | `color_map` | `cdlTensor` | — | 逐点颜色值（可选） |
-  | `size_map` | `cdlTensor` | — | 逐点大小值（可选） |
+  | `color_map` | `TENSOR` | — | 逐点颜色值（可选） |
+  | `size_map` | `TENSOR` | — | 逐点大小值（可选） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -1205,7 +1210,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `matrix` | `cdlTensor` | — | 混淆矩阵（N×N 或展平） |
+  | `matrix` | `TENSOR` | — | 混淆矩阵（N×N 或展平） |
   | `class_labels` | `STRING` | `""` | 类别名称，逗号分隔 |
   | `cmap` | `STRING` | `"Blues"` | colormap 名称 |
   | `normalize` | `BOOLEAN` | False | 将行归一化到 [0,1] |
@@ -1223,7 +1228,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `values` | `cdlTensor` | — | 扇区值（1-D 张量） |
+  | `values` | `TENSOR` | — | 扇区值（1-D 张量） |
   | `labels` | `STRING` | `""` | 扇区标签，逗号分隔 |
   | `donut` | `BOOLEAN` | False | 空心中心（甜甜圈图） |
   | `explode` | `STRING` | `""` | 每扇区分裂 0/1，逗号分隔 |
@@ -1242,7 +1247,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `Y` | `cdlTensor` | — | 序列数据，`[T]` 或 `[N, T]` |
+  | `Y` | `TENSOR` | — | 序列数据，`[T]` 或 `[N, T]` |
   | `stacked` | `BOOLEAN` | False | 堆叠而非叠加 |
   | `alpha` | `FLOAT` | 0.5 | 填充透明度 |
   | `color_palette` | `STRING` | `"tab10"` | matplotlib 调色盘名称 |
@@ -1250,7 +1255,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `ylabel` | `STRING` | `""` | y 轴标签 |
   | `figsize_w` | `FLOAT` | 7.0 | 图宽 |
   | `figsize_h` | `FLOAT` | 4.0 | 图高 |
-  | `X_vals` | `cdlTensor` | — | 自定义 x 轴值（可选） |
+  | `X_vals` | `TENSOR` | — | 自定义 x 轴值（可选） |
   | `labels` | `STRING` | `""` | 序列图例标签，逗号分隔（可选） |
 - **输出**：
   | 名称 | 类型 | 说明 |
@@ -1266,14 +1271,14 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 ### Load Array → DataLoader
 - **类名**：`CdlLoadArray`
 - **d2lcore 函数**：`load_array(data_arrays, batch_size, is_train)`
-- **功能**：将一个或多个张量封装为 PyTorch DataLoader。将 `cdlTensor` 特征和/或标签连接到可选输入槽；节点输出 `cdlDataloader`。
+- **功能**：将一个或多个张量封装为 PyTorch DataLoader。将 `TENSOR` 特征和/或标签连接到可选输入槽；节点输出 `cdlDataloader`。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
   | `batch_size` | `INT` | 32 | 批大小（1~4096） |
   | `shuffle` | `BOOLEAN` | True | 每个 epoch 是否打乱数据 |
-  | `features` | `cdlTensor` | — | 特征张量 X（可选） |
-  | `labels` | `cdlTensor` | — | 标签张量 y（可选） |
+  | `features` | `TENSOR` | — | 特征张量 X（可选） |
+  | `labels` | `TENSOR` | — | 标签张量 y（可选） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -1449,11 +1454,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
-  | `tensor` | `cdlTensor` | 模型期望形状的输入张量 |
+  | `tensor` | `TENSOR` | 模型期望形状的输入张量 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `output` | `cdlTensor` | `model(tensor)`——形状取决于模型 |
+  | `output` | `TENSOR` | `model(tensor)`——形状取决于模型 |
 
 ### Model Layers（模型层结构）
 - **类名**：`CdlModelLayers`
@@ -1605,6 +1610,32 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
+## 17. ComfyUI / Activation（14 个节点）
+
+由宿主运行时提供的核心激活函数节点（`comfy_extras/nodes_activation.py`，不属于 ComfyDL 子模块）。
+每个节点恰好 1 个名为 `tensor` 的 `TENSOR` 输入与 1 个名为 `output` 的 `TENSOR` 输出，
+保持输入的 dtype/device 不变，且无可学习参数。它们在节点库中构成 **Comfy节点** 下的
+`Activation` 分组，并与上述 ComfyDL 节点共用 `TENSOR` 插槽类型。
+
+| 节点 | 类名 | 额外控件 | 作用 |
+|------|-------|--------------|---------|
+| Sigmoid | `ActivationSigmoid` | — | `1 / (1 + exp(-x))`；输出范围 (0, 1) |
+| Tanh | `ActivationTanh` | — | `tanh(x)`；输出范围 (-1, 1) |
+| ReLU | `ActivationReLU` | — | `max(0, x)` |
+| Leaky ReLU | `ActivationLeakyReLU` | `negative_slope` FLOAT 0.01 (0~1) | 负半轴保留小斜率的 ReLU |
+| ELU | `ActivationELU` | `alpha` FLOAT 1.0 (0~100) | `x > 0` 时为 `x`，否则 `alpha * (exp(x) - 1)` |
+| SELU | `ActivationSELU` | — | 自归一化 ELU（标准 scale/alpha 常数） |
+| GELU | `ActivationGELU` | `approximate` COMBO none/tanh | 高斯误差线性单元 |
+| SiLU | `ActivationSiLU` | — | `x * sigmoid(x)`（swish） |
+| Mish | `ActivationMish` | — | `x * tanh(softplus(x))` |
+| Softplus | `ActivationSoftplus` | — | `log(1 + exp(x))`（beta=1, threshold=20） |
+| ReLU6 | `ActivationReLU6` | — | `min(max(0, x), 6)` |
+| Hard Swish | `ActivationHardSwish` | — | `x * relu6(x + 3) / 6` |
+| Identity | `ActivationIdentity` | — | 原样透传输入张量（零拷贝） |
+| Softmax | `ActivationSoftmax` | `dim` INT -1 (-4~4) | 沿 `dim` 归一化（越界时按张量秩钳制） |
+
+---
+
 ## 附录
 
 ### 节点注册机制
@@ -1613,7 +1644,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **102 个节点**，分属 16 个类别：
+共 **116 个节点**，分属 17 个类别（102 个由 ComfyDL 提供 + 14 个 ComfyUI 核心 `Activation` 节点）：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1633,5 +1664,6 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
+| Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
 
-> 表中数量只统计 **ComfyDL 自身节点**。`utilities`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
+> 前 16 行统计 **ComfyDL 提供的 102 个节点**。`utilities`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Activation` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。

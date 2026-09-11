@@ -19,12 +19,12 @@ class CdlCorr2d:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input_tensor": ("cdlTensor",),
-                "kernel": ("cdlTensor",),
+                "input_tensor": ("TENSOR",),
+                "kernel": ("TENSOR",),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
     CATEGORY = "d2l/CV Models"

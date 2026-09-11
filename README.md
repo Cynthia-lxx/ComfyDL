@@ -76,7 +76,8 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ## Function Overview
 
-ComfyDL provides **102 nodes** across 16 categories:
+The built-in node library ships **116 nodes** across 17 categories — **102 provided by ComfyDL**
+plus 14 ComfyUI core `Activation` nodes that were added on top of it:
 
 | Category | Count | Description |
 |---|---|---|
@@ -96,6 +97,7 @@ ComfyDL provides **102 nodes** across 16 categories:
 | **image/color (Comfy core)** | 3 | Grayscale, normalize & brightness/contrast/saturation |
 | **image/transform (Comfy core)** | 1 | Arbitrary-angle rotation + canvas expand |
 | **utilities (Comfy core)** | 4 | MessageBox, NoOp pass-through & benchmark timer |
+| **Activation (Comfy core)** | 14 | Core activations (Sigmoid, ReLU, GELU, Softmax, …) on the shared `TENSOR` slot type |
 
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).
 

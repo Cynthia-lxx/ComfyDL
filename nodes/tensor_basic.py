@@ -31,7 +31,7 @@ class CdlTensorToStr:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tensor": ("cdlTensor",),
+                "tensor": ("TENSOR",),
                 "max_elems": ("INT", {"default": 100, "min": 10, "max": 10000, "step": 10}),
                 "precision": ("INT", {"default": 6, "min": 1, "max": 16, "step": 1}),
             }
@@ -97,7 +97,7 @@ class CdlStrToTensor:
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("tensor",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Tensor Basic"
@@ -157,14 +157,14 @@ class CdlConv2d:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "input_tensor": ("cdlTensor",),
-                "kernel": ("cdlTensor",),
+                "input_tensor": ("TENSOR",),
+                "kernel": ("TENSOR",),
                 "stride": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
                 "padding": ("INT", {"default": 0, "min": 0, "max": 10, "step": 1}),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Tensor Basic"
@@ -198,13 +198,13 @@ class CdlTranspose:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tensor": ("cdlTensor",),
+                "tensor": ("TENSOR",),
                 "dim0": ("INT", {"default": 0, "min": 0, "max": 5, "step": 1}),
                 "dim1": ("INT", {"default": 1, "min": 0, "max": 5, "step": 1}),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Tensor Basic"
@@ -230,7 +230,7 @@ class CdlBroadcast:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tensor": ("cdlTensor",),
+                "tensor": ("TENSOR",),
                 "target_shape": ("STRING", {
                     "default": "2,3", "multiline": False,
                     "placeholder": "e.g. 3,1,4",
@@ -238,7 +238,7 @@ class CdlBroadcast:
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Tensor Basic"
@@ -273,7 +273,7 @@ class CdlReshape:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tensor": ("cdlTensor",),
+                "tensor": ("TENSOR",),
                 "target_shape": ("STRING", {
                     "default": "3,2", "multiline": False,
                     "placeholder": "e.g. 2,8",
@@ -281,7 +281,7 @@ class CdlReshape:
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Tensor Basic"
@@ -323,14 +323,14 @@ class CdlActivation:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tensor": ("cdlTensor",),
+                "tensor": ("TENSOR",),
                 "func": (cls.ACTIVATION_LIST, {"default": "relu"}),
                 "dim": ("INT", {"default": -1, "min": -4, "max": 4, "step": 1}),
                 "negative_slope": ("FLOAT", {"default": 0.01, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Tensor Basic"
@@ -390,7 +390,7 @@ class CdlRandomTensor:
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("tensor",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Tensor Basic"

@@ -6,17 +6,23 @@ This document details every custom node in ComfyDL: what it does, its inputs, an
 
 ---
 
-## Custom Data Types
+## Data Types
 
-ComfyDL defines 5 custom ComfyUI data types for passing structured data between nodes:
+ComfyDL nodes exchange structured data through the following ComfyUI slot types:
 
 | Type Name | Python Type | Description |
 |-----------|-------------|-------------|
-| `cdlTensor` | `torch.Tensor` | PyTorch tensor of arbitrary shape |
-| `cdlModel` | `nn.Module` | PyTorch model instance |
-| `cdlVocab` | `dict` | Vocabulary dictionary containing `idx_to_token` and `token_to_idx` |
-| `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch data loader |
-| `cdlBbox` | `torch.Tensor [N,4]` | Bounding box tensor in `(x1, y1, x2, y2)` format |
+| `TENSOR` | `torch.Tensor` | PyTorch tensor of arbitrary shape — **ComfyUI core type**, shared with the built-in `Activation` nodes (formerly `cdlTensor`) |
+| `BBOX` | `torch.Tensor [N,4]` | Bounding box tensor in `(x1, y1, x2, y2)` format — **ComfyUI core type** (formerly `cdlBbox`) |
+| `cdlModel` | `nn.Module` | PyTorch model instance — ComfyDL-only, no core counterpart |
+| `cdlVocab` | `dict` | Vocabulary dictionary containing `idx_to_token` and `token_to_idx` — ComfyDL-only |
+| `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch data loader — ComfyDL-only |
+
+`TENSOR` and `BBOX` are declared in the ComfyUI core (`comfy/comfy_types/node_typing.py`
+and `comfy_api/latest/_io.py`), so ComfyDL nodes and core nodes (such as the `Activation`
+family) can be wired together directly on the same slots. `cdlModel` / `cdlVocab` /
+`cdlDataloader` have no core equivalent and stay ComfyDL-specific; the previous names
+`cdlTensor` / `cdlBbox` are still exported as legacy aliases from `nodes/__init__.py`.
 
 ComfyUI standard types (used directly):
 - `IMAGE` — Image batch, `torch.Tensor [B, H, W, C]`
@@ -72,12 +78,12 @@ ComfyUI standard types (used directly):
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `input_tensor` | `cdlTensor` | Input 2D tensor |
-  | `kernel` | `cdlTensor` | Kernel 2D tensor |
+  | `input_tensor` | `TENSOR` | Input 2D tensor |
+  | `kernel` | `TENSOR` | Kernel 2D tensor |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `output` | `cdlTensor` | Cross-correlation result |
+  | `output` | `TENSOR` | Cross-correlation result |
 
 ### LeNet
 - **Class**: `CdlLeNet`
@@ -151,8 +157,8 @@ ComfyUI standard types (used directly):
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `X` | `cdlTensor` | Real data batch (optional) |
-  | `Z` | `cdlTensor` | Noise input (optional) |
+  | `X` | `TENSOR` | Real data batch (optional) |
+  | `Z` | `TENSOR` | Noise input (optional) |
   | `net_D` | `cdlModel` | Discriminator model (optional) |
   | `net_G` | `cdlModel` | Generator model (optional) |
 - **Outputs**:
@@ -167,14 +173,14 @@ ComfyUI standard types (used directly):
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `Z` | `cdlTensor` | Noise input (optional) |
+  | `Z` | `TENSOR` | Noise input (optional) |
   | `net_D` | `cdlModel` | Discriminator model (optional) |
   | `net_G` | `cdlModel` | Generator model (optional) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
   | `loss_G` | `FLOAT` | Generator loss; returns 0.0 if any input is missing |
-  | `fake_X` | `cdlTensor` | Fake data produced by the generator |
+  | `fake_X` | `TENSOR` | Fake data produced by the generator |
 
 ---
 
@@ -214,7 +220,7 @@ Merged into the ComfyUI core category `utilities` (frontend group: 实用工具)
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tensor` | `cdlTensor` | — | Input tensor to operate on |
+  | `tensor` | `TENSOR` | — | Input tensor to operate on |
   | `operation` | `COMBO` | `sum` | Operation to benchmark: sum / mean / abs / sqrt / neg |
   | `num_iters` | `INT` | 10 | Number of timed iterations (1~100000) |
 - **Outputs**:
@@ -294,7 +300,7 @@ Merged into the ComfyUI core category `utilities` (frontend group: 实用工具)
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `indices` | `cdlTensor` | Encoded index tensor (`torch.int64`) |
+  | `indices` | `TENSOR` | Encoded index tensor (`torch.int64`) |
 
 ### Vocab Decode
 - **Class**: `CdlVocabDecode`
@@ -304,7 +310,7 @@ Merged into the ComfyUI core category `utilities` (frontend group: 实用工具)
   | Name | Type | Description |
   |------|------|-------------|
   | `vocab` | `cdlVocab` | Vocabulary dictionary |
-  | `indices` | `cdlTensor` | Index tensor |
+  | `indices` | `TENSOR` | Index tensor |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -569,7 +575,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `tensor` | `TENSOR` | — | Input tensor |
   | `max_elems` | `INT` | 100 | Maximum elements to display (10~10000) |
   | `precision` | `INT` | 6 | Numeric display precision (1~16 digits) |
 - **Outputs**:
@@ -588,7 +594,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `tensor` | `cdlTensor` | Parsed tensor (`torch.float32`) |
+  | `tensor` | `TENSOR` | Parsed tensor (`torch.float32`) |
 
 ### Conv2D
 - **Class**: `CdlConv2d`
@@ -596,14 +602,14 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `input_tensor` | `cdlTensor` | — | Input tensor |
-  | `kernel` | `cdlTensor` | — | Convolution kernel |
+  | `input_tensor` | `TENSOR` | — | Input tensor |
+  | `kernel` | `TENSOR` | — | Convolution kernel |
   | `stride` | `INT` | 1 | Convolution stride (1~4) |
   | `padding` | `INT` | 0 | Zero padding (0~10) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `output` | `cdlTensor` | Convolved result |
+  | `output` | `TENSOR` | Convolved result |
 
 ### Transpose
 - **Class**: `CdlTranspose`
@@ -611,13 +617,13 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `tensor` | `TENSOR` | — | Input tensor |
   | `dim0` | `INT` | 0 | First dimension to swap (0~5) |
   | `dim1` | `INT` | 1 | Second dimension to swap (0~5) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `output` | `cdlTensor` | Transposed tensor |
+  | `output` | `TENSOR` | Transposed tensor |
 
 ### Broadcast
 - **Class**: `CdlBroadcast`
@@ -625,12 +631,12 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `tensor` | `TENSOR` | — | Input tensor |
   | `target_shape` | `STRING` | `"2,3"` | Target shape, comma-separated (e.g. ``"3,1,4"``) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `output` | `cdlTensor` | Broadcasted tensor |
+  | `output` | `TENSOR` | Broadcasted tensor |
 
 ### Reshape
 - **Class**: `CdlReshape`
@@ -638,12 +644,12 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `tensor` | `TENSOR` | — | Input tensor |
   | `target_shape` | `STRING` | `"3,2"` | Target shape, comma-separated (e.g. ``"2,8"``) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `output` | `cdlTensor` | Reshaped tensor |
+  | `output` | `TENSOR` | Reshaped tensor |
 
 ### Activation
 - **Class**: `CdlActivation`
@@ -651,14 +657,14 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tensor` | `cdlTensor` | — | Input tensor |
+  | `tensor` | `TENSOR` | — | Input tensor |
   | `func` | `COMBO` | `relu` | Activation: relu / sigmoid / tanh / leaky_relu / elu / gelu / silu / softmax / softplus |
   | `dim` | `INT` | -1 | Dimension for softmax (-4~4) |
   | `negative_slope` | `FLOAT` | 0.01 | Slope for leaky_relu (0~1) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `output` | `cdlTensor` | Activated tensor |
+  | `output` | `TENSOR` | Activated tensor |
 
 ### Random Tensor
 - **Class**: `CdlRandomTensor`
@@ -676,7 +682,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `tensor` | `cdlTensor` | Random tensor of the requested shape |
+  | `tensor` | `TENSOR` | Random tensor of the requested shape |
 
 ---
 
@@ -689,13 +695,13 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `X` | `cdlTensor` | Input feature matrix |
-  | `w` | `cdlTensor` | Weight vector |
-  | `b` | `cdlTensor` | Bias vector/scalar |
+  | `X` | `TENSOR` | Input feature matrix |
+  | `w` | `TENSOR` | Weight vector |
+  | `b` | `TENSOR` | Bias vector/scalar |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `y_hat` | `cdlTensor` | Predicted values |
+  | `y_hat` | `TENSOR` | Predicted values |
 
 ### Squared Loss
 - **Class**: `CdlSquaredLoss`
@@ -704,12 +710,12 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `y_hat` | `cdlTensor` | Predicted values |
-  | `y` | `cdlTensor` | Ground truth values (auto-reshaped to match `y_hat` shape) |
+  | `y_hat` | `TENSOR` | Predicted values |
+  | `y` | `TENSOR` | Ground truth values (auto-reshaped to match `y_hat` shape) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `loss` | `cdlTensor` | Element-wise loss |
+  | `loss` | `TENSOR` | Element-wise loss |
 
 ### Masked Softmax
 - **Class**: `CdlMaskedSoftmax`
@@ -718,12 +724,12 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `X` | `cdlTensor` | Input tensor |
-  | `valid_lens` | `cdlTensor` | Valid length tensor (optional; if not provided, normal softmax is performed) |
+  | `X` | `TENSOR` | Input tensor |
+  | `valid_lens` | `TENSOR` | Valid length tensor (optional; if not provided, normal softmax is performed) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `output` | `cdlTensor` | Masked softmax result |
+  | `output` | `TENSOR` | Masked softmax result |
 
 ### Sequence Mask
 - **Class**: `CdlSequenceMask`
@@ -732,13 +738,13 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `X` | `cdlTensor` | — | Input sequence tensor |
-  | `valid_len` | `cdlTensor` | — | Effective length for each sequence |
+  | `X` | `TENSOR` | — | Input sequence tensor |
+  | `valid_len` | `TENSOR` | — | Effective length for each sequence |
   | `mask_value` | `FLOAT` | 0.0 | Mask fill value (-1e9~1e9) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `masked` | `cdlTensor` | Masked tensor |
+  | `masked` | `TENSOR` | Masked tensor |
 
 ### Accuracy
 - **Class**: `CdlAccuracy`
@@ -747,8 +753,8 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `y_hat` | `cdlTensor` | Predictions (logits or class indices) |
-  | `y` | `cdlTensor` | Ground truth labels |
+  | `y_hat` | `TENSOR` | Predictions (logits or class indices) |
+  | `y` | `TENSOR` | Ground truth labels |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -769,8 +775,8 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `X` | `cdlTensor` | Feature matrix `[num_examples, num_features]` |
-  | `y` | `cdlTensor` | Label vector `[num_examples, 1]` |
+  | `X` | `TENSOR` | Feature matrix `[num_examples, num_features]` |
+  | `y` | `TENSOR` | Label vector `[num_examples, 1]` |
 
 ### Truncate/Pad
 - **Class**: `CdlTruncatePad`
@@ -781,11 +787,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   |------|------|---------|-------------|
   | `num_steps` | `INT` | 64 | Target sequence length (1~10000) |
   | `padding_token` | `INT` | 0 | Padding token index (0~100000) |
-  | `sequence` | `cdlTensor` | — | Input index sequence (optional; returns all-padding tensor when absent) |
+  | `sequence` | `TENSOR` | — | Input index sequence (optional; returns all-padding tensor when absent) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `padded` | `cdlTensor` | Truncated/padded sequence (`torch.int64`) |
+  | `padded` | `TENSOR` | Truncated/padded sequence (`torch.int64`) |
 
 ### BLEU Score
 - **Class**: `CdlBleu`
@@ -842,11 +848,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `boxes` | `cdlTensor` | Corner-format boxes `[N,4]` (top-left + bottom-right) |
+  | `boxes` | `TENSOR` | Corner-format boxes `[N,4]` (top-left + bottom-right) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `boxes_ccwh` | `cdlTensor` | Center-format boxes `[N,4]` (center + width + height) |
+  | `boxes_ccwh` | `TENSOR` | Center-format boxes `[N,4]` (center + width + height) |
 
 ### Box Center→Corner
 - **Class**: `CdlBoxCenterToCorner`
@@ -855,11 +861,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `boxes` | `cdlTensor` | Center-format boxes `[N,4]` (center + width + height) |
+  | `boxes` | `TENSOR` | Center-format boxes `[N,4]` (center + width + height) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `boxes_xyxy` | `cdlTensor` | Corner-format boxes `[N,4]` (top-left + bottom-right) |
+  | `boxes_xyxy` | `TENSOR` | Corner-format boxes `[N,4]` (top-left + bottom-right) |
 
 ### Box IoU
 - **Class**: `CdlBoxIou`
@@ -868,12 +874,12 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `boxes1` | `cdlTensor` | First set of boxes `[N1,4]` (top-left + bottom-right) |
-  | `boxes2` | `cdlTensor` | Second set of boxes `[N2,4]` (top-left + bottom-right) |
+  | `boxes1` | `TENSOR` | First set of boxes `[N1,4]` (top-left + bottom-right) |
+  | `boxes2` | `TENSOR` | Second set of boxes `[N2,4]` (top-left + bottom-right) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `iou` | `cdlTensor` | IoU matrix `[N1, N2]` |
+  | `iou` | `TENSOR` | IoU matrix `[N1, N2]` |
 
 ### NMS
 - **Class**: `CdlNms`
@@ -882,13 +888,13 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `boxes` | `cdlTensor` | — | Boxes `[N,4]` (top-left + bottom-right) |
-  | `scores` | `cdlTensor` | — | Confidence scores for each box |
+  | `boxes` | `TENSOR` | — | Boxes `[N,4]` (top-left + bottom-right) |
+  | `scores` | `TENSOR` | — | Confidence scores for each box |
   | `iou_threshold` | `FLOAT` | 0.5 | IoU threshold (0~1) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `keep_indices` | `cdlTensor` | Indices of kept boxes (`torch.int64`) |
+  | `keep_indices` | `TENSOR` | Indices of kept boxes (`torch.int64`) |
 
 ### Multibox Prior
 - **Class**: `CdlMultiboxPrior`
@@ -899,11 +905,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   |------|------|---------|-------------|
   | `sizes` | `STRING` | `"0.75,0.5,0.25"` | Anchor size list, comma-separated |
   | `ratios` | `STRING` | `"1,2,0.5"` | Aspect ratio list, comma-separated |
-  | `data` | `cdlTensor` | — | Input data (optional; used to infer spatial dimensions; defaults to 561×728 when absent) |
+  | `data` | `TENSOR` | — | Input data (optional; used to infer spatial dimensions; defaults to 561×728 when absent) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `anchors` | `cdlTensor` | Anchors `[1, H*W*bpp, 4]`, normalized coordinates (top-left + bottom-right) |
+  | `anchors` | `TENSOR` | Anchors `[1, H*W*bpp, 4]`, normalized coordinates (top-left + bottom-right) |
 
 ### Offset Boxes
 - **Class**: `CdlOffsetBoxes`
@@ -912,13 +918,13 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `anchors` | `cdlTensor` | — | Anchors `[N,4]` (top-left + bottom-right) |
-  | `assigned_bb` | `cdlTensor` | — | Assigned ground-truth boxes `[N,4]` (top-left + bottom-right) |
+  | `anchors` | `TENSOR` | — | Anchors `[N,4]` (top-left + bottom-right) |
+  | `assigned_bb` | `TENSOR` | — | Assigned ground-truth boxes `[N,4]` (top-left + bottom-right) |
   | `eps` | `FLOAT` | 1e-6 | Small epsilon to prevent division by zero (1e-12~1e-3) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `offsets` | `cdlTensor` | Offsets `[N,4]` (dx, dy, dw, dh) |
+  | `offsets` | `TENSOR` | Offsets `[N,4]` (dx, dy, dw, dh) |
 
 ### Offset Inverse
 - **Class**: `CdlOffsetInverse`
@@ -927,12 +933,12 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `anchors` | `cdlTensor` | Anchors `[N,4]` (top-left + bottom-right) |
-  | `offset_preds` | `cdlTensor` | Predicted offsets `[N,4]` |
+  | `anchors` | `TENSOR` | Anchors `[N,4]` (top-left + bottom-right) |
+  | `offset_preds` | `TENSOR` | Predicted offsets `[N,4]` |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `predicted_bbox` | `cdlTensor` | Predicted boxes `[N,4]` (top-left + bottom-right) |
+  | `predicted_bbox` | `TENSOR` | Predicted boxes `[N,4]` (top-left + bottom-right) |
 
 ### Assign Anchor→BBox
 - **Class**: `CdlAssignAnchorToBbox`
@@ -941,13 +947,13 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `ground_truth` | `cdlTensor` | — | Ground-truth boxes `[M,4]` (top-left + bottom-right) |
-  | `anchors` | `cdlTensor` | — | Anchors `[N,4]` (top-left + bottom-right) |
+  | `ground_truth` | `TENSOR` | — | Ground-truth boxes `[M,4]` (top-left + bottom-right) |
+  | `anchors` | `TENSOR` | — | Anchors `[N,4]` (top-left + bottom-right) |
   | `iou_threshold` | `FLOAT` | 0.5 | IoU threshold (0~1) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `anchors_bbox_map` | `cdlTensor` | Anchor→ground-truth mapping `[N,]`, -1 means no match (`torch.int64`) |
+  | `anchors_bbox_map` | `TENSOR` | Anchor→ground-truth mapping `[N,]`, -1 means no match (`torch.int64`) |
 
 ### Multibox Target
 - **Class**: `CdlMultiboxTarget`
@@ -956,14 +962,14 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `anchors` | `cdlTensor` | Anchors `[1, N, 4]` (top-left + bottom-right) |
-  | `labels` | `cdlTensor` | Labels `[B, M, 5]`, format `[class_id, x1, y1, x2, y2]` |
+  | `anchors` | `TENSOR` | Anchors `[1, N, 4]` (top-left + bottom-right) |
+  | `labels` | `TENSOR` | Labels `[B, M, 5]`, format `[class_id, x1, y1, x2, y2]` |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `bbox_offset` | `cdlTensor` | Bounding box offset targets `[B, N*4]` |
-  | `bbox_mask` | `cdlTensor` | Bounding box offset masks `[B, N*4]` (1.0 for matched anchors) |
-  | `class_labels` | `cdlTensor` | Anchor class labels `[B, N]` (background=0, classes start from 1) |
+  | `bbox_offset` | `TENSOR` | Bounding box offset targets `[B, N*4]` |
+  | `bbox_mask` | `TENSOR` | Bounding box offset masks `[B, N*4]` (1.0 for matched anchors) |
+  | `class_labels` | `TENSOR` | Anchor class labels `[B, N]` (background=0, classes start from 1) |
 
 ### Multibox Detection
 - **Class**: `CdlMultiboxDetection`
@@ -972,15 +978,15 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `cls_probs` | `cdlTensor` | — | Class probabilities `[B, num_classes, N]` |
-  | `offset_preds` | `cdlTensor` | — | Offset predictions `[B, N*4]` |
-  | `anchors` | `cdlTensor` | — | Anchors `[1, N, 4]` |
+  | `cls_probs` | `TENSOR` | — | Class probabilities `[B, num_classes, N]` |
+  | `offset_preds` | `TENSOR` | — | Offset predictions `[B, N*4]` |
+  | `anchors` | `TENSOR` | — | Anchors `[1, N, 4]` |
   | `nms_threshold` | `FLOAT` | 0.5 | NMS IoU threshold (0~1) |
   | `pos_threshold` | `FLOAT` | 0.01 | Positive confidence threshold (0~1) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `detections` | `cdlTensor` | Detection results `[B, N, 6]`, format `[class_id, confidence, x1, y1, x2, y2]` (class_id=-1 means background) |
+  | `detections` | `TENSOR` | Detection results `[B, N, 6]`, format `[class_id, confidence, x1, y1, x2, y2]` (class_id=-1 means background) |
 
 ---
 
@@ -1009,7 +1015,7 @@ The 21 classes: `background, aeroplane, bicycle, bird, boat, bottle, bus, car, c
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `colormap2label` | `cdlTensor` | Color→class index lookup table `[16777216]` (`torch.int64`) |
+  | `colormap2label` | `TENSOR` | Color→class index lookup table `[16777216]` (`torch.int64`) |
 
 ### VOC Label Indices
 - **Class**: `CdlVocLabelIndices`
@@ -1019,7 +1025,7 @@ The 21 classes: `background, aeroplane, bicycle, bird, boat, bottle, bus, car, c
   | Name | Type | Description |
   |------|------|-------------|
   | `colormap` | `IMAGE` | VOC label color image `[B, H, W, C]`, uses the first image |
-  | `colormap2label` | `cdlTensor` | Color→label lookup table |
+  | `colormap2label` | `TENSOR` | Color→label lookup table |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -1066,7 +1072,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `matrices` | `cdlTensor` | — | Matrix tensor (2D=[H,W]→1×1, 3D=[N,H,W]→N×1, 4D=[N,M,H,W]) |
+  | `matrices` | `TENSOR` | — | Matrix tensor (2D=[H,W]→1×1, 3D=[N,H,W]→N×1, 4D=[N,M,H,W]) |
   | `xlabel` | `STRING` | `""` | X-axis label |
   | `ylabel` | `STRING` | `""` | Y-axis label |
   | `figsize_w` | `FLOAT` | 2.5 | Per-column width (0.5~20.0) |
@@ -1098,8 +1104,8 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
   | `yscale` | `COMBO` | `linear` | Y-axis scale: `linear` / `log` |
   | `figsize_w` | `FLOAT` | 6.0 | Figure width (1.0~30.0) |
   | `figsize_h` | `FLOAT` | 4.0 | Figure height (1.0~30.0) |
-  | `X` | `cdlTensor` | — | X-axis data (optional, 1D or 2D) |
-  | `Y` | `cdlTensor` | — | Y-axis data (optional) |
+  | `X` | `TENSOR` | — | X-axis data (optional, 1D or 2D) |
+  | `Y` | `TENSOR` | — | Y-axis data (optional) |
   | `legend` | `STRING` | `""` | Legend labels, comma-separated (optional) |
   | `xlim_min` | `FLOAT` | -1.0 | X-axis lower bound (only effective when xlim_min < xlim_max) |
   | `xlim_max` | `FLOAT` | -1.0 | X-axis upper bound |
@@ -1117,7 +1123,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `results` | `cdlTensor` | Optimization trajectory points `[N, 2]`, each row is a (x1, x2) coordinate |
+  | `results` | `TENSOR` | Optimization trajectory points `[N, 2]`, each row is a (x1, x2) coordinate |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -1131,7 +1137,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
   | `image` | `IMAGE` | — | Background image `[B, H, W, C]` (first image used) |
-  | `bboxes` | `cdlTensor` | — | Boxes `[N, 4]`, normalized coordinates (top-left + bottom-right) |
+  | `bboxes` | `TENSOR` | — | Boxes `[N, 4]`, normalized coordinates (top-left + bottom-right) |
   | `labels` | `STRING` | `""` | Box labels, comma-separated (optional) |
   | `colors` | `STRING` | `"b,g,r,m,c"` | matplotlib colors, comma-separated (optional) |
 - **Outputs**:
@@ -1145,7 +1151,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `tensor` | `cdlTensor` | — | Input tensor (flattened internally) |
+  | `tensor` | `TENSOR` | — | Input tensor (flattened internally) |
   | `bins` | `INT` | 30 | Number of histogram bins |
   | `density` | `BOOLEAN` | False | If True show density instead of count |
   | `color` | `STRING` | `"#4673a6"` | Bar face colour |
@@ -1164,7 +1170,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `values` | `cdlTensor` | — | Bar heights (1-D tensor) |
+  | `values` | `TENSOR` | — | Bar heights (1-D tensor) |
   | `labels` | `STRING` | `""` | Category labels, comma-separated |
   | `xlabel` | `STRING` | `""` | x-axis label |
   | `ylabel` | `STRING` | `""` | y-axis label |
@@ -1184,16 +1190,16 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `X` | `cdlTensor` | — | X coordinates (flattened) |
-  | `Y` | `cdlTensor` | — | Y coordinates (flattened) |
+  | `X` | `TENSOR` | — | X coordinates (flattened) |
+  | `Y` | `TENSOR` | — | Y coordinates (flattened) |
   | `alpha` | `FLOAT` | 0.6 | Point transparency |
   | `cmap` | `STRING` | `"viridis"` | Colormap for ``color_map`` |
   | `xlabel` | `STRING` | `""` | x-axis label |
   | `ylabel` | `STRING` | `""` | y-axis label |
   | `figsize_w` | `FLOAT` | 6.0 | Figure width |
   | `figsize_h` | `FLOAT` | 5.0 | Figure height |
-  | `color_map` | `cdlTensor` | — | Per-point colour values (optional) |
-  | `size_map` | `cdlTensor` | — | Per-point size values (optional) |
+  | `color_map` | `TENSOR` | — | Per-point colour values (optional) |
+  | `size_map` | `TENSOR` | — | Per-point size values (optional) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -1205,7 +1211,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `matrix` | `cdlTensor` | — | Confusion matrix (N×N or flat) |
+  | `matrix` | `TENSOR` | — | Confusion matrix (N×N or flat) |
   | `class_labels` | `STRING` | `""` | Class names, comma-separated |
   | `cmap` | `STRING` | `"Blues"` | Colormap name |
   | `normalize` | `BOOLEAN` | False | Normalise rows to [0,1] |
@@ -1223,7 +1229,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `values` | `cdlTensor` | — | Slice values (1-D tensor) |
+  | `values` | `TENSOR` | — | Slice values (1-D tensor) |
   | `labels` | `STRING` | `""` | Slice labels, comma-separated |
   | `donut` | `BOOLEAN` | False | Hollow centre (donut chart) |
   | `explode` | `STRING` | `""` | Comma-separated 0/1 per slice |
@@ -1242,7 +1248,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `Y` | `cdlTensor` | — | Series data, `[T]` or `[N, T]` |
+  | `Y` | `TENSOR` | — | Series data, `[T]` or `[N, T]` |
   | `stacked` | `BOOLEAN` | False | Stack series instead of overlay |
   | `alpha` | `FLOAT` | 0.5 | Fill transparency |
   | `color_palette` | `STRING` | `"tab10"` | matplotlib palette name |
@@ -1250,7 +1256,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
   | `ylabel` | `STRING` | `""` | y-axis label |
   | `figsize_w` | `FLOAT` | 7.0 | Figure width |
   | `figsize_h` | `FLOAT` | 4.0 | Figure height |
-  | `X_vals` | `cdlTensor` | — | Custom x-axis values (optional) |
+  | `X_vals` | `TENSOR` | — | Custom x-axis values (optional) |
   | `labels` | `STRING` | `""` | Series legend labels, comma-separated (optional) |
 - **Outputs**:
   | Name | Type | Description |
@@ -1266,14 +1272,14 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 ### Load Array → DataLoader
 - **Class**: `CdlLoadArray`
 - **d2lcore function**: `load_array(data_arrays, batch_size, is_train)`
-- **Purpose**: Wraps one or more tensors into a PyTorch DataLoader. Connect `cdlTensor` features and/or labels to the optional slots; the node outputs a `cdlDataloader`.
+- **Purpose**: Wraps one or more tensors into a PyTorch DataLoader. Connect `TENSOR` features and/or labels to the optional slots; the node outputs a `cdlDataloader`.
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
   | `batch_size` | `INT` | 32 | Batch size (1~4096) |
   | `shuffle` | `BOOLEAN` | True | Shuffle data on each epoch |
-  | `features` | `cdlTensor` | — | Feature tensor X (optional) |
-  | `labels` | `cdlTensor` | — | Label tensor y (optional) |
+  | `features` | `TENSOR` | — | Feature tensor X (optional) |
+  | `labels` | `TENSOR` | — | Label tensor y (optional) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -1449,11 +1455,11 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
   | Name | Type | Description |
   |------|------|-------------|
   | `model` | `cdlModel` | Any `nn.Module` instance |
-  | `tensor` | `cdlTensor` | Input tensor of the shape the model expects |
+  | `tensor` | `TENSOR` | Input tensor of the shape the model expects |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `output` | `cdlTensor` | `model(tensor)` — shape depends on the model |
+  | `output` | `TENSOR` | `model(tensor)` — shape depends on the model |
 
 ### Model Layers
 - **Class**: `CdlModelLayers`
@@ -1605,6 +1611,34 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
+## 17. ComfyUI / Activation (14 nodes)
+
+Core activation-function nodes shipped by the host runtime
+(`comfy_extras/nodes_activation.py`, not part of the ComfyDL submodule). Each node takes
+exactly one `TENSOR` input named `tensor` and returns exactly one `TENSOR` output named
+`output`, preserves the input dtype/device, and has no learnable parameters. They form
+the `Activation` group under **Comfy nodes** in the node library and share the `TENSOR`
+slot type with the ComfyDL nodes listed above.
+
+| Node | Class | Extra widget | Purpose |
+|------|-------|--------------|---------|
+| Sigmoid | `ActivationSigmoid` | — | `1 / (1 + exp(-x))`; output range (0, 1) |
+| Tanh | `ActivationTanh` | — | `tanh(x)`; output range (-1, 1) |
+| ReLU | `ActivationReLU` | — | `max(0, x)` |
+| Leaky ReLU | `ActivationLeakyReLU` | `negative_slope` FLOAT 0.01 (0~1) | ReLU with a small slope for `x < 0` |
+| ELU | `ActivationELU` | `alpha` FLOAT 1.0 (0~100) | `x` if `x > 0`, else `alpha * (exp(x) - 1)` |
+| SELU | `ActivationSELU` | — | Self-normalizing ELU (standard scale/alpha constants) |
+| GELU | `ActivationGELU` | `approximate` COMBO none/tanh | Gaussian error linear unit |
+| SiLU | `ActivationSiLU` | — | `x * sigmoid(x)` (swish) |
+| Mish | `ActivationMish` | — | `x * tanh(softplus(x))` |
+| Softplus | `ActivationSoftplus` | — | `log(1 + exp(x))` (beta=1, threshold=20) |
+| ReLU6 | `ActivationReLU6` | — | `min(max(0, x), 6)` |
+| Hard Swish | `ActivationHardSwish` | — | `x * relu6(x + 3) / 6` |
+| Identity | `ActivationIdentity` | — | Zero-copy pass-through of the input tensor |
+| Softmax | `ActivationSoftmax` | `dim` INT -1 (-4~4) | Normalizes along `dim` (clamped to the tensor rank) |
+
+---
+
 ## Appendix
 
 ### Node Registration Mechanism
@@ -1613,7 +1647,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**102 nodes** across 16 categories:
+**116 nodes** across 17 categories (102 provided by ComfyDL + 14 ComfyUI core `Activation` nodes):
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1633,5 +1667,6 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
+| Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
 
-> Counts list **ComfyDL nodes only**. `utilities`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
+> The first 16 rows list the **102 ComfyDL-provided nodes**. `utilities`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Activation` is a pure ComfyUI core category with no ComfyDL nodes.

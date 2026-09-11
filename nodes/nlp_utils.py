@@ -165,7 +165,7 @@ class CdlVocabEncode:
             }
         }
 
-    RETURN_TYPES = ("cdlTensor",)
+    RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("indices",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Utils"
@@ -193,7 +193,7 @@ class CdlVocabDecode:
         return {
             "required": {
                 "vocab": ("cdlVocab",),
-                "indices": ("cdlTensor",),
+                "indices": ("TENSOR",),
             }
         }
 

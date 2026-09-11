@@ -179,7 +179,7 @@ class CdlTimer:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tensor": ("cdlTensor",),
+                "tensor": ("TENSOR",),
                 "operation": (list(_OP_FUNCS.keys()), {"default": "sum"}),
                 "num_iters": ("INT", {"default": 10, "min": 1, "max": 100000, "step": 1}),
             }

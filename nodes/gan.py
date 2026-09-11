@@ -24,8 +24,8 @@ class CdlUpdateD:
         return {
             "required": {},
             "optional": {
-                "X": ("cdlTensor",),
-                "Z": ("cdlTensor",),
+                "X": ("TENSOR",),
+                "Z": ("TENSOR",),
                 "net_D": ("cdlModel",),
                 "net_G": ("cdlModel",),
             },
@@ -78,7 +78,7 @@ class CdlUpdateG:
         return {
             "required": {},
             "optional": {
-                "Z": ("cdlTensor",),
+                "Z": ("TENSOR",),
                 "net_D": ("cdlModel",),
                 "net_G": ("cdlModel",),
             },
@@ -87,7 +87,7 @@ class CdlUpdateG:
             }
         }
 
-    RETURN_TYPES = ("FLOAT", "cdlTensor")
+    RETURN_TYPES = ("FLOAT", "TENSOR")
     RETURN_NAMES = ("loss_G", "fake_X")
     FUNCTION = "execute"
     CATEGORY = "d2l/GAN"

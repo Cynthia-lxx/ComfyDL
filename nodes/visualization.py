@@ -117,7 +117,7 @@ class CdlShowHeatmapsOutput:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "matrices": ("cdlTensor",),
+                "matrices": ("TENSOR",),
                 "xlabel": ("STRING", {"default": "", "placeholder": "x-axis label"}),
                 "ylabel": ("STRING", {"default": "", "placeholder": "y-axis label"}),
                 "figsize_w": ("FLOAT", {"default": 2.5, "min": 0.5, "max": 20.0, "step": 0.5}),
@@ -180,7 +180,7 @@ class CdlShowHeatmaps:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "matrices": ("cdlTensor",),
+                "matrices": ("TENSOR",),
                 "xlabel": ("STRING", {"default": "", "placeholder": "x-axis label"}),
                 "ylabel": ("STRING", {"default": "", "placeholder": "y-axis label"}),
                 "figsize_w": ("FLOAT", {"default": 2.5, "min": 0.5, "max": 20.0, "step": 0.5}),
@@ -255,8 +255,8 @@ class CdlPlot:
                 "figsize_h": ("FLOAT", {"default": 4.0, "min": 1.0, "max": 30.0, "step": 0.5}),
             },
             "optional": {
-                "X": ("cdlTensor",),  # [N,] or [L,N] for multiple curves
-                "Y": ("cdlTensor",),
+                "X": ("TENSOR",),  # [N,] or [L,N] for multiple curves
+                "Y": ("TENSOR",),
                 "legend": ("STRING", {"default": "", "placeholder": "comma-separated legend labels"}),
                 "xlim_min": ("FLOAT", {"default": -1.0, "min": -1e9, "max": 1e9, "step": 0.1}),
                 "xlim_max": ("FLOAT", {"default": -1.0, "min": -1e9, "max": 1e9, "step": 0.1}),
@@ -335,7 +335,7 @@ class CdlShowTrace2D:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "results": ("cdlTensor",),  # [N, 2] tensor of (x1, x2) points
+                "results": ("TENSOR",),  # [N, 2] tensor of (x1, x2) points
             }
         }
 
@@ -375,7 +375,7 @@ class CdlShowBboxes:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "bboxes": ("cdlTensor",),
+                "bboxes": ("TENSOR",),
             },
             "optional": {
                 "labels": ("STRING", {"default": "", "placeholder": "comma-separated labels"}),
@@ -441,7 +441,7 @@ class CdlHistogram:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "tensor": ("cdlTensor",),
+                "tensor": ("TENSOR",),
                 "bins": ("INT", {"default": 30, "min": 5, "max": 200, "step": 1}),
                 "density": ("BOOLEAN", {"default": False}),
                 "color": ("STRING", {"default": "#4673a6", "placeholder": "bar face color"}),
@@ -501,7 +501,7 @@ class CdlBarChart:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "values": ("cdlTensor",),
+                "values": ("TENSOR",),
                 "labels": ("STRING", {"default": "", "placeholder": "comma-separated category labels"}),
                 "xlabel": ("STRING", {"default": "", "placeholder": "x-axis label"}),
                 "ylabel": ("STRING", {"default": "", "placeholder": "y-axis label"}),
@@ -589,8 +589,8 @@ class CdlScatter:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "X": ("cdlTensor",),
-                "Y": ("cdlTensor",),
+                "X": ("TENSOR",),
+                "Y": ("TENSOR",),
                 "alpha": ("FLOAT", {"default": 0.6, "min": 0.1, "max": 1.0, "step": 0.05}),
                 "cmap": ("STRING", {"default": "viridis", "placeholder": "matplotlib colormap name"}),
                 "xlabel": ("STRING", {"default": "", "placeholder": "x-axis label"}),
@@ -599,8 +599,8 @@ class CdlScatter:
                 "figsize_h": ("FLOAT", {"default": 5.0, "min": 2.0, "max": 20.0, "step": 0.5}),
             },
             "optional": {
-                "color_map": ("cdlTensor",),
-                "size_map": ("cdlTensor",),
+                "color_map": ("TENSOR",),
+                "size_map": ("TENSOR",),
             }
         }
 
@@ -671,7 +671,7 @@ class CdlConfusionMatrix:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "matrix": ("cdlTensor",),
+                "matrix": ("TENSOR",),
                 "class_labels": ("STRING", {"default": "", "placeholder": "comma-separated class names"}),
                 "cmap": ("STRING", {"default": "Blues", "placeholder": "matplotlib colormap name"}),
                 "normalize": ("BOOLEAN", {"default": False}),
@@ -752,7 +752,7 @@ class CdlPieChart:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "values": ("cdlTensor",),
+                "values": ("TENSOR",),
                 "labels": ("STRING", {"default": "", "placeholder": "comma-separated slice labels"}),
                 "donut": ("BOOLEAN", {"default": False}),
                 "explode": ("STRING", {"default": "", "placeholder": "comma-separated 0/1 per slice"}),
@@ -829,7 +829,7 @@ class CdlAreaChart:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "Y": ("cdlTensor",),
+                "Y": ("TENSOR",),
                 "stacked": ("BOOLEAN", {"default": False}),
                 "alpha": ("FLOAT", {"default": 0.5, "min": 0.1, "max": 1.0, "step": 0.05}),
                 "color_palette": ("STRING", {"default": "tab10", "placeholder": "matplotlib palette name"}),
@@ -839,7 +839,7 @@ class CdlAreaChart:
                 "figsize_h": ("FLOAT", {"default": 4.0, "min": 2.0, "max": 20.0, "step": 0.5}),
             },
             "optional": {
-                "X_vals": ("cdlTensor",),
+                "X_vals": ("TENSOR",),
                 "labels": ("STRING", {"default": "", "placeholder": "comma-separated series labels (for stacked)"}),
             }
         }

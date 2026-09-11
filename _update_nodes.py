@@ -4,13 +4,22 @@ import glob
 nodes_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nodes')
 
 replacements = [
+    # Legacy category/prefix cleanup (already applied to the tree).
     ('CATEGORY = "d2lcore/', 'CATEGORY = "d2l/'),
     ('"cdl ', '"'),
-    ('"CDL_TENSOR"', '"cdlTensor"'),
+    # Reform step 1: the ComfyDL slot types were merged into the Comfy core
+    # types (TENSOR/BBOX) so that ComfyDL nodes interoperate with the core
+    # Activation nodes.  The renames below are already applied to nodes/*.py;
+    # keeping them here makes this script a complete, re-runnable migration
+    # record (cdlModel / cdlVocab / cdlDataloader have no core counterpart and
+    # keep their names).
+    ('"CDL_TENSOR"', '"TENSOR"'),
+    ('"CDL_BBOX"', '"BBOX"'),
     ('"CDL_MODEL"', '"cdlModel"'),
     ('"CDL_VOCAB"', '"cdlVocab"'),
     ('"CDL_DATALOADER"', '"cdlDataloader"'),
-    ('"CDL_BBOX"', '"cdlBbox"'),
+    ('"cdlTensor"', '"TENSOR"'),
+    ('"cdlBbox"', '"BBOX"'),
 ]
 
 for path in glob.glob(os.path.join(nodes_dir, '*.py')):
