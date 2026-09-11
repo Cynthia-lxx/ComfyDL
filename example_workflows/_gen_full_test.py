@@ -49,7 +49,7 @@ def gen_default(param, type_spec):
         return meta.get('default', '')
     if isinstance(t, list):  # combo 下拉
         return t[0]
-    return None  # cdlTensor / cdlModel / IMAGE ... 走输入槽
+    return None  # TENSOR / cdlModel / IMAGE ... 走输入槽
 
 
 def is_widget(type_spec):

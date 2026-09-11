@@ -238,7 +238,7 @@
       "outputs": [
         {
           "name": "tensor",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "links": [
             5
           ],
@@ -280,14 +280,14 @@
         },
         {
           "name": "tensor",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "link": 5
         }
       ],
       "outputs": [
         {
           "name": "output",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "links": [
             6
           ],
@@ -316,14 +316,14 @@
       "inputs": [
         {
           "name": "tensor",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "link": 6
         }
       ],
       "outputs": [
         {
           "name": "output",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "links": [
             7
           ],
@@ -354,7 +354,7 @@
       "inputs": [
         {
           "name": "values",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "link": 7
         }
       ],
@@ -449,7 +449,7 @@
       0,
       8,
       1,
-      "cdlTensor"
+      "TENSOR"
     ],
     [
       6,
@@ -457,7 +457,7 @@
       0,
       9,
       0,
-      "cdlTensor"
+      "TENSOR"
     ],
     [
       7,
@@ -465,7 +465,7 @@
       0,
       10,
       0,
-      "cdlTensor"
+      "TENSOR"
     ],
     [
       8,

@@ -21,7 +21,7 @@
       "outputs": [
         {
           "name": "X",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "links": [
             1
           ],
@@ -29,7 +29,7 @@
         },
         {
           "name": "y",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "links": [
             2
           ],
@@ -63,12 +63,12 @@
       "inputs": [
         {
           "name": "features",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "link": 1
         },
         {
           "name": "labels",
-          "type": "cdlTensor",
+          "type": "TENSOR",
           "link": 2
         }
       ],
@@ -287,7 +287,7 @@
       0,
       2,
       0,
-      "cdlTensor"
+      "TENSOR"
     ],
     [
       2,
@@ -295,7 +295,7 @@
       1,
       2,
       1,
-      "cdlTensor"
+      "TENSOR"
     ],
     [
       3,

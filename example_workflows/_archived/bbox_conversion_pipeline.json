@@ -12,7 +12,7 @@
       "mode": 0,
       "inputs": [],
       "outputs": [
-        {"name": "anchors", "type": "cdlTensor", "links": [1], "slot_index": 0}
+        {"name": "anchors", "type": "TENSOR", "links": [1], "slot_index": 0}
       ],
       "properties": {"Node name for S&R": "Multibox Prior"},
       "widgets_values": [
@@ -29,10 +29,10 @@
       "order": 1,
       "mode": 0,
       "inputs": [
-        {"name": "boxes", "type": "cdlTensor", "link": 1}
+        {"name": "boxes", "type": "TENSOR", "link": 1}
       ],
       "outputs": [
-        {"name": "boxes_ccwh", "type": "cdlTensor", "links": [2], "slot_index": 0}
+        {"name": "boxes_ccwh", "type": "TENSOR", "links": [2], "slot_index": 0}
       ],
       "properties": {"Node name for S&R": "Box Corner→Center"},
       "widgets_values": []
@@ -46,18 +46,18 @@
       "order": 2,
       "mode": 0,
       "inputs": [
-        {"name": "boxes", "type": "cdlTensor", "link": 2}
+        {"name": "boxes", "type": "TENSOR", "link": 2}
       ],
       "outputs": [
-        {"name": "boxes_xyxy", "type": "cdlTensor", "links": null}
+        {"name": "boxes_xyxy", "type": "TENSOR", "links": null}
       ],
       "properties": {"Node name for S&R": "Box Center→Corner"},
       "widgets_values": []
     }
   ],
   "links": [
-    [1, 1, 0, 2, 0, "cdlTensor"],
-    [2, 2, 0, 3, 0, "cdlTensor"]
+    [1, 1, 0, 2, 0, "TENSOR"],
+    [2, 2, 0, 3, 0, "TENSOR"]
   ],
   "groups": [],
   "config": {},
