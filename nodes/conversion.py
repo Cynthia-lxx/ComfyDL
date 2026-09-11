@@ -53,6 +53,26 @@ NODE_DISPLAY_NAME_MAPPINGS = {}
 #: so they appear next to the built-in nodes rather than under the ``d2l/*`` tree.
 CATEGORY = "utilities/conversion"
 
+#: ``python_module`` reported to the frontend for every node of this module.
+#: The node library does not read ``CATEGORY`` to decide whether a node is built
+#: in: it splits ``python_module`` on ``.`` and only accepts ``nodes``,
+#: ``comfy_extras`` and ``comfy_api_nodes`` as the Comfy Core prefix -- everything
+#: else (``comfydl.*`` included) is filed under the "Extensions" section, which is
+#: why these six nodes would not show up next to the core ``utilities`` nodes they
+#: are documented with.  ``nodes.py:init_builtin_dl_nodes()`` copies it into
+#: ``RELATIVE_PYTHON_MODULE``; nothing resolves this string as a real package.
+PYTHON_MODULE = "comfy_extras.nodes_comfydl_conversion"
+
+
+class _CoreMergedNode(io.ComfyNode):
+    """Base class of the six nodes above: ComfyDL code, Comfy core placement.
+
+    Carries the ``python_module`` the frontend needs in order to treat the node as
+    a core node rather than as an unknown extension (see ``PYTHON_MODULE``).
+    """
+
+    PYTHON_MODULE = PYTHON_MODULE
+
 #: Fallback sample rate used when an AUDIO value carries no usable
 #: ``sampler_rate`` (44.1 kHz is the most common rate in practice).
 DEFAULT_SAMPLER_RATE = 44100
@@ -233,7 +253,7 @@ def _split_tensors(flat: torch.Tensor, shapes, dtypes, what: str) -> list:
 # Generic collect: Comfy value -> TENSOR
 # --------------------------------------------------------------------------- #
 
-class CdlValueToTensor(io.ComfyNode):
+class CdlValueToTensor(_CoreMergedNode):
     """Convert any supported Comfy semantic value into a generic ``TENSOR``.
 
     What it does:
@@ -340,7 +360,7 @@ NODE_DISPLAY_NAME_MAPPINGS["CdlValueToTensor"] = "Value \u2192 Tensor"
 # Generic dispatch: TENSOR -> Comfy values (one concrete slot per type)
 # --------------------------------------------------------------------------- #
 
-class CdlTensorToValue(io.ComfyNode):
+class CdlTensorToValue(_CoreMergedNode):
     """Expose a generic ``TENSOR`` on one concrete Comfy socket per type.
 
     What it does:
@@ -505,7 +525,7 @@ NODE_DISPLAY_NAME_MAPPINGS["CdlTensorToValue"] = "Tensor \u2192 Value"
 # these nodes are documented as reserved / experimental.
 # --------------------------------------------------------------------------- #
 
-class CdlLoraModelToTensor(io.ComfyNode):
+class CdlLoraModelToTensor(_CoreMergedNode):
     """Pack a ``LORA_MODEL`` dictionary into one ``TENSOR`` plus metadata.
 
     What it does:
@@ -583,7 +603,7 @@ NODE_CLASS_MAPPINGS["CdlLoraModelToTensor"] = CdlLoraModelToTensor
 NODE_DISPLAY_NAME_MAPPINGS["CdlLoraModelToTensor"] = "LoRA Model \u2192 Tensor"
 
 
-class CdlTensorToLoraModel(io.ComfyNode):
+class CdlTensorToLoraModel(_CoreMergedNode):
     """Unpack a ``TENSOR`` plus metadata back into a ``LORA_MODEL`` dictionary.
 
     What it does:
@@ -657,7 +677,7 @@ NODE_DISPLAY_NAME_MAPPINGS["CdlTensorToLoraModel"] = "Tensor \u2192 LoRA Model"
 # only the shape and dtype layout has to travel on the side.
 # --------------------------------------------------------------------------- #
 
-class CdlLossMapToTensor(io.ComfyNode):
+class CdlLossMapToTensor(_CoreMergedNode):
     """Pack a ``LOSS_MAP`` into one ``TENSOR`` plus shape/dtype metadata.
 
     What it does:
@@ -735,7 +755,7 @@ NODE_CLASS_MAPPINGS["CdlLossMapToTensor"] = CdlLossMapToTensor
 NODE_DISPLAY_NAME_MAPPINGS["CdlLossMapToTensor"] = "Loss Map \u2192 Tensor"
 
 
-class CdlTensorToLossMap(io.ComfyNode):
+class CdlTensorToLossMap(_CoreMergedNode):
     """Unpack a ``TENSOR`` plus metadata back into a ``LOSS_MAP``.
 
     What it does:
