@@ -12,15 +12,15 @@ ComfyDL nodes exchange structured data through the following ComfyUI slot types:
 
 | Type Name | Python Type | Description |
 |-----------|-------------|-------------|
-| `TENSOR` | `torch.Tensor` | PyTorch tensor of arbitrary shape — **ComfyUI core type**, shared with the built-in `Activation` nodes (formerly `cdlTensor`) |
+| `TENSOR` | `torch.Tensor` | PyTorch tensor of arbitrary shape — **ComfyUI core type**, shared with the built-in `Network & Layers` nodes (formerly `cdlTensor`) |
 | `BBOX` | `torch.Tensor [N,4]` | Bounding box tensor in `(x1, y1, x2, y2)` format — **ComfyUI core type** (formerly `cdlBbox`) |
 | `cdlModel` | `nn.Module` | PyTorch model instance — ComfyDL-only, no core counterpart |
 | `cdlVocab` | `dict` | Vocabulary dictionary containing `idx_to_token` and `token_to_idx` — ComfyDL-only |
 | `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch data loader — ComfyDL-only |
 
 `TENSOR` and `BBOX` are declared in the ComfyUI core (`comfy/comfy_types/node_typing.py`
-and `comfy_api/latest/_io.py`), so ComfyDL nodes and core nodes (such as the `Activation`
-family) can be wired together directly on the same slots. `cdlModel` / `cdlVocab` /
+and `comfy_api/latest/_io.py`), so ComfyDL nodes and core nodes (such as the `Network &
+Layers` family) can be wired together directly on the same slots. `cdlModel` / `cdlVocab` /
 `cdlDataloader` have no core equivalent and stay ComfyDL-specific; the previous names
 `cdlTensor` / `cdlBbox` are still exported as legacy aliases from `nodes/__init__.py`.
 
@@ -1611,14 +1611,22 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Activation (14 nodes)
+## 17. ComfyUI / Network & Layers (22 nodes)
 
-Core activation-function nodes shipped by the host runtime
-(`comfy_extras/nodes_activation.py`, not part of the ComfyDL submodule). Each node takes
-exactly one `TENSOR` input named `tensor` and returns exactly one `TENSOR` output named
-`output`, preserves the input dtype/device, and has no learnable parameters. They form
-the `Activation` group under **Comfy nodes** in the node library and share the `TENSOR`
-slot type with the ComfyDL nodes listed above.
+Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
+They live in two `comfy_extras` modules — `nodes_activation.py` and `nodes_layers.py` — and
+form the **Comfy nodes → Network & Layers** branch of the node library, split into the
+`Activation` and `Basic` groups below. All of them exchange data on the shared `TENSOR` slot
+type, preserve the input dtype/device, and are stateless: learnable parameters such as
+`weight` and `bias` are tensors fed through input slots instead of being initialised inside
+the node, so a node is a pure function and can be wired straight to the ComfyDL tensor nodes
+listed above.
+
+### 17.1 Activation (14 nodes)
+
+Core activation-function nodes (`comfy_extras/nodes_activation.py`). Each node takes exactly
+one `TENSOR` input named `tensor` and returns exactly one `TENSOR` output named `output`,
+and has no learnable parameters.
 
 | Node | Class | Extra widget | Purpose |
 |------|-------|--------------|---------|
@@ -1637,6 +1645,29 @@ slot type with the ComfyDL nodes listed above.
 | Identity | `ActivationIdentity` | — | Zero-copy pass-through of the input tensor |
 | Softmax | `ActivationSoftmax` | `dim` INT -1 (-4~4) | Normalizes along `dim` (clamped to the tensor rank) |
 
+### 17.2 Basic (8 nodes)
+
+Core basic-layer / tensor-op nodes (`comfy_extras/nodes_layers.py`). Each node takes one or
+two `TENSOR` inputs and returns exactly one `TENSOR` output named `output`. `weight` / `bias`
+are ordinary tensor inputs, so there is no hidden parameter state. Widget defaults are usable
+as-is; `Reshape` / `Broadcast` fall back to returning the input tensor unchanged when
+`target_shape` cannot be parsed, so they never break a workflow.
+
+| Node | Class | Inputs | Extra widget | Purpose |
+|------|-------|--------|--------------|---------|
+| Linear | `BasicLinear` | `tensor`, `weight` (`[out, in]`), `bias` (optional) | — | Affine transform `x @ weight.T + bias` (`F.linear`) |
+| Embedding | `BasicEmbedding` | `tensor` (integer indices), `weight` (`[num, dim]`) | — | Looks up rows of `weight` (`F.embedding`) |
+| Flatten | `BasicFlatten` | `tensor` | `start_dim` INT 1 (0~4), `end_dim` INT -1 (-4~4) | Flattens a contiguous dim range (`torch.flatten`) |
+| Reshape | `BasicReshape` | `tensor` | `target_shape` STRING `"1,-1"` | Reshapes to the given shape (`torch.reshape`) |
+| Broadcast | `BasicBroadcast` | `tensor` | `target_shape` STRING `"2,3"` | Expands to the given shape (`torch.broadcast_to`) |
+| Concat | `BasicConcat` | `a`, `b` | `dim` INT -1 (-4~4) | Concatenates two tensors along `dim` (`torch.cat`) |
+| Add | `BasicAdd` | `a`, `b` | — | Element-wise addition with broadcasting (`a + b`) |
+| Multiply | `BasicMultiply` | `a`, `b` | — | Element-wise multiplication with broadcasting (`a * b`) |
+
+> `Linear` supersedes a `Dense` layer (same affine transform), and `Add` also covers a
+> residual / skip connection — both are a plain broadcast element-wise sum — so no separate
+> `Dense`, `Residual` or `Skip Connection` node is shipped.
+
 ---
 
 ## Appendix
@@ -1647,7 +1678,8 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**116 nodes** across 17 categories (102 provided by ComfyDL + 14 ComfyUI core `Activation` nodes):
+**124 nodes** across 18 categories (102 provided by ComfyDL + 14 core `Network & Layers/Activation`
++ 8 core `Network & Layers/Basic` nodes):
 
 | Category | Count | Description |
 |----------|-------|-------------|
@@ -1667,6 +1699,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
-| Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
+| Network & Layers/Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
+| Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
 
-> The first 16 rows list the **102 ComfyDL-provided nodes**. `utilities`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Activation` is a pure ComfyUI core category with no ComfyDL nodes.
+> The first 16 rows list the **102 ComfyDL-provided nodes**. `utilities`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation` and `Network & Layers/Basic` are pure ComfyUI core categories with no ComfyDL nodes.

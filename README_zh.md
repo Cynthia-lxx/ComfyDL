@@ -74,8 +74,8 @@
 
 ## 功能概览
 
-内置节点库共 **116 个节点**，涵盖 17 个类别 —— 其中 **102 个由 ComfyDL 提供**，
-另加在其之上新增的 14 个 ComfyUI 核心 `Activation` 节点：
+内置节点库共 **124 个节点**，涵盖 18 个类别 —— 其中 **102 个由 ComfyDL 提供**，
+另加在其之上新增的 22 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个）：
 
 | 类别 | 节点数 | 说明 |
 |---|---|---|
@@ -95,7 +95,8 @@
 | **Comfy 图像/颜色** | 3 | 灰度、归一化与亮度/对比度/饱和度 |
 | **Comfy 图像/变换** | 1 | 任意角度旋转 + 画布扩展 |
 | **Comfy 实用工具** | 4 | MessageBox、NoOp 空操作与基准计时 |
-| **Comfy 激活函数** | 14 | 核心激活函数（Sigmoid、ReLU、GELU、Softmax 等），共用 `TENSOR` 插槽类型 |
+| **Comfy Network & Layers/激活函数** | 14 | 核心激活函数（Sigmoid、ReLU、GELU、Softmax 等），共用 `TENSOR` 插槽类型 |
+| **Comfy Network & Layers/基础层** | 8 | 核心基础层与张量运算（Linear、Embedding、Flatten、Reshape、Broadcast、Concat、Add、Multiply） |
 
 > 完整节点参考，请参阅 **[FUNCTIONS.md](./FUNCTIONS.md)**（英文）或 **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)**（中文）。
 

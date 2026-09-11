@@ -12,14 +12,14 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 | 类型名 | Python 类型 | 说明 |
 |-----------|-------------|------|
-| `TENSOR` | `torch.Tensor` | 任意形状的 PyTorch 张量 —— **ComfyUI 核心类型**，与内置 `Activation` 节点共用（原名 `cdlTensor`） |
+| `TENSOR` | `torch.Tensor` | 任意形状的 PyTorch 张量 —— **ComfyUI 核心类型**，与内置 `Network & Layers` 节点共用（原名 `cdlTensor`） |
 | `BBOX` | `torch.Tensor [N,4]` | 边界框张量，格式为 `(x1, y1, x2, y2)` —— **ComfyUI 核心类型**（原名 `cdlBbox`） |
 | `cdlModel` | `nn.Module` | PyTorch 模型实例 —— ComfyDL 专有，核心无同义类型 |
 | `cdlVocab` | `dict` | 词表字典，包含 `idx_to_token` 和 `token_to_idx` —— ComfyDL 专有 |
 | `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch 数据加载器 —— ComfyDL 专有 |
 
 `TENSOR` 与 `BBOX` 定义在 ComfyUI 核心中（`comfy/comfy_types/node_typing.py` 与
-`comfy_api/latest/_io.py`），因此 ComfyDL 节点可与核心节点（如 `Activation` 系列）在同一插槽上
+`comfy_api/latest/_io.py`），因此 ComfyDL 节点可与核心节点（如 `Network & Layers` 系列）在同一插槽上
 直接连线。`cdlModel` / `cdlVocab` / `cdlDataloader` 在核心中没有等价类型，保持 ComfyDL 专有；
 旧名 `cdlTensor` / `cdlBbox` 仍作为兼容别名从 `nodes/__init__.py` 导出。
 
@@ -1610,12 +1610,18 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 17. ComfyUI / Activation（14 个节点）
+## 17. ComfyUI / Network & Layers（22 个节点）
 
-由宿主运行时提供的核心激活函数节点（`comfy_extras/nodes_activation.py`，不属于 ComfyDL 子模块）。
-每个节点恰好 1 个名为 `tensor` 的 `TENSOR` 输入与 1 个名为 `output` 的 `TENSOR` 输出，
-保持输入的 dtype/device 不变，且无可学习参数。它们在节点库中构成 **Comfy节点** 下的
-`Activation` 分组，并与上述 ComfyDL 节点共用 `TENSOR` 插槽类型。
+由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的两个模块
+`nodes_activation.py` 与 `nodes_layers.py` 中，在节点库中构成 **Comfy节点 → Network & Layers**
+分支，下分 `Activation` 与 `Basic` 两组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入
+的 dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，
+节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。
+
+### 17.1 Activation（14 个节点）
+
+核心激活函数节点（`comfy_extras/nodes_activation.py`）。每个节点恰好 1 个名为 `tensor` 的
+`TENSOR` 输入与 1 个名为 `output` 的 `TENSOR` 输出，且无可学习参数。
 
 | 节点 | 类名 | 额外控件 | 作用 |
 |------|-------|--------------|---------|
@@ -1634,6 +1640,27 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 | Identity | `ActivationIdentity` | — | 原样透传输入张量（零拷贝） |
 | Softmax | `ActivationSoftmax` | `dim` INT -1 (-4~4) | 沿 `dim` 归一化（越界时按张量秩钳制） |
 
+### 17.2 Basic（8 个节点）
+
+核心基础层 / 张量运算节点（`comfy_extras/nodes_layers.py`）。每个节点接收 1~2 个 `TENSOR` 输入，
+返回恰好 1 个名为 `output` 的 `TENSOR` 输出。`weight` / `bias` 都是普通张量输入，不存在隐藏的
+参数状态。控件默认值开箱可用；`Reshape` / `Broadcast` 在 `target_shape` 无法解析时回退为原样返回
+输入张量，因此不会中断工作流。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|--------------|---------|
+| Linear | `BasicLinear` | `tensor`、`weight`（`[out, in]`）、`bias`（可选） | — | 仿射变换 `x @ weight.T + bias`（`F.linear`） |
+| Embedding | `BasicEmbedding` | `tensor`（整数索引）、`weight`（`[num, dim]`） | — | 按索引查表（`F.embedding`） |
+| Flatten | `BasicFlatten` | `tensor` | `start_dim` INT 1 (0~4)、`end_dim` INT -1 (-4~4) | 展平连续的维度区间（`torch.flatten`） |
+| Reshape | `BasicReshape` | `tensor` | `target_shape` STRING `"1,-1"` | 重塑为目标形状（`torch.reshape`） |
+| Broadcast | `BasicBroadcast` | `tensor` | `target_shape` STRING `"2,3"` | 广播为目标形状（`torch.broadcast_to`） |
+| Concat | `BasicConcat` | `a`、`b` | `dim` INT -1 (-4~4) | 沿 `dim` 拼接两个张量（`torch.cat`） |
+| Add | `BasicAdd` | `a`、`b` | — | 逐元素相加（带广播，`a + b`） |
+| Multiply | `BasicMultiply` | `a`、`b` | — | 逐元素相乘（带广播，`a * b`） |
+
+> `Linear` 已覆盖 `Dense` 层（同为仿射变换），`Add` 也已覆盖残差 / 跳连（残差即逐元素广播相加），
+> 因此不再单独提供 `Dense`、`Residual`、`Skip Connection` 节点。
+
 ---
 
 ## 附录
@@ -1644,7 +1671,8 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **116 个节点**，分属 17 个类别（102 个由 ComfyDL 提供 + 14 个 ComfyUI 核心 `Activation` 节点）：
+共 **124 个节点**，分属 18 个类别（102 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
+节点 + 8 个核心 `Network & Layers/Basic` 节点）：
 
 | 类别 | 数量 | 说明 |
 |----------|-------|------|
@@ -1664,6 +1692,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
-| Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
+| Network & Layers/Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
+| Network & Layers/Basic | 8 | `TENSOR` 类型上的核心基础层与张量运算（ComfyUI 核心分类） |
 
-> 前 16 行统计 **ComfyDL 提供的 102 个节点**。`utilities`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Activation` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。
+> 前 16 行统计 **ComfyDL 提供的 102 个节点**。`utilities`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation` 与 `Network & Layers/Basic` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。

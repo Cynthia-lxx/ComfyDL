@@ -76,8 +76,9 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ## Function Overview
 
-The built-in node library ships **116 nodes** across 17 categories — **102 provided by ComfyDL**
-plus 14 ComfyUI core `Activation` nodes that were added on top of it:
+The built-in node library ships **124 nodes** across 18 categories — **102 provided by ComfyDL**
+plus 22 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8) that were added
+on top of it:
 
 | Category | Count | Description |
 |---|---|---|
@@ -97,7 +98,8 @@ plus 14 ComfyUI core `Activation` nodes that were added on top of it:
 | **image/color (Comfy core)** | 3 | Grayscale, normalize & brightness/contrast/saturation |
 | **image/transform (Comfy core)** | 1 | Arbitrary-angle rotation + canvas expand |
 | **utilities (Comfy core)** | 4 | MessageBox, NoOp pass-through & benchmark timer |
-| **Activation (Comfy core)** | 14 | Core activations (Sigmoid, ReLU, GELU, Softmax, …) on the shared `TENSOR` slot type |
+| **Network & Layers/Activation (Comfy core)** | 14 | Core activations (Sigmoid, ReLU, GELU, Softmax, …) on the shared `TENSOR` slot type |
+| **Network & Layers/Basic (Comfy core)** | 8 | Core basic layers & tensor ops (Linear, Embedding, Flatten, Reshape, Broadcast, Concat, Add, Multiply) |
 
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).
 
