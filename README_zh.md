@@ -13,37 +13,9 @@
 
 ## 使用示例
 
-一些真实 ComfyDL 工作流的截图，点击图片可放大查看。
-
-### RNN 语言模型
-从零开始搭建并查询一个字符/词级别的 RNN 语言模型，全程无需写代码。
-
-![RNN 语言模型](./assets/example_RNN.png)
-
-### 线性回归
-生成合成数据、拟合线性回归，并用直方图可视化预测值与残差分布。
-
-![线性回归](./assets/example_linear_regression.png)
-
-### LeNet 推理
-加载 LeNet 风格模型、执行前向推理，并用条形图展示各类别概率。
-
-![LeNet 推理](./assets/example_lenet_inference.png)
-
-### Fashion-MNIST 数据探索
-浏览 Fashion-MNIST 数据集，并在节点图中直接预览图片批次。
-
-![Fashion-MNIST 数据探索](./assets/example_fashion_MNIST_explore.png)
-
-### 迭代计时基准
-对张量运算（如 `sqrt`）进行基准测试并查看计时报告。
-
-![迭代计时基准](./assets/example_iteration_timer_benchmark.png)
-
-### 节点全景
-众多 ComfyDL 节点连接在一起的鸟瞰图。
-
-![节点全景](./assets/example_a_lot_of_nodes.png)
+> **说明：** ComfyDL 随附的示例工作流现已**归档**。它们早于正在进行的节点重构，与当前节点集不再匹配，
+> 也不再作为工作流模板出现在界面中。它们保留在
+> [`example_workflows/_archived/`](./example_workflows/_archived) 以备查阅；待重构完成后会发布一批新的可运行示例。
 
 ### 神秘的 "?"
 一个带开关的小节点，会做点……什么。试一试就知道了~
@@ -113,7 +85,7 @@ ComfyDL/
 ├── nodes/           # ComfyUI 节点定义（薄映射层）
 │                    #   含自主开发的 model_utils.py、image_tools.py 及
 │                    #   NLP 模型包装（model_nlp.py、model_attention.py、model_seq2seq.py）
-└── example_workflows/  # 示例工作流 JSON
+└── example_workflows/  # 已归档的示例工作流 JSON（见 _archived/，不再作为模板提供）
 ```
 
 > **注意：** `src/d2lcore/` 的镜像副本同时存在于仓库根目录的 `d2lcore/`（插件目录之外）。修改 D2L 核心逻辑时两处需保持同步。

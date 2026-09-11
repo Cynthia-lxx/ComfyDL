@@ -14,37 +14,11 @@
 
 ## Examples in Action
 
-A few screenshots of real ComfyDL workflows. Click to enlarge.
-
-### RNN Language Model
-Build and query a character/word-level RNN language model end-to-end without writing code.
-
-![RNN Language Model](./assets/example_RNN.png)
-
-### Linear Regression
-Generate synthetic data, fit a linear regression, and visualize prediction and residual distributions with histograms.
-
-![Linear Regression](./assets/example_linear_regression.png)
-
-### LeNet Inference
-Load a LeNet-style model, run a forward pass, and display class probabilities as a bar chart.
-
-![LeNet Inference](./assets/example_lenet_inference.png)
-
-### Fashion-MNIST Exploration
-Browse the Fashion-MNIST dataset and preview image batches directly in the node graph.
-
-![Fashion-MNIST Exploration](./assets/example_fashion_MNIST_explore.png)
-
-### Iteration Timer Benchmark
-Benchmark tensor operations (e.g. `sqrt`) and inspect the timing report.
-
-![Iteration Timer Benchmark](./assets/example_iteration_timer_benchmark.png)
-
-### Lots of Nodes
-A bird's-eye view of many ComfyDL nodes wired together.
-
-![Lots of Nodes](./assets/example_a_lot_of_nodes.png)
+> **Note:** The example workflows that used to ship with ComfyDL have been **archived**. They predate the
+> ongoing node refactor, so they no longer match the current node set and are no longer offered as workflow
+> templates in the UI. They are kept for reference under
+> [`example_workflows/_archived/`](./example_workflows/_archived), and a fresh set of runnable examples will be
+> published once the refactor is complete.
 
 ### The Mysterious "?"
 A tiny node with a toggle that does... something. Try it and see.
@@ -115,7 +89,7 @@ ComfyDL/
 ├── nodes/           # ComfyUI node definitions (thin mapping layer)
 │                    #   incl. self-developed model_utils.py, image_tools.py &
 │                    #   nlp model wrappers (model_nlp.py, model_attention.py, model_seq2seq.py)
-└── example_workflows/  # Sample workflow JSONs
+└── example_workflows/  # Archived sample workflow JSONs (see _archived/, no longer offered as templates)
 ```
 
 > **Note:** A mirror copy of `src/d2lcore/` also exists at the repository root as `d2lcore/` (outside the plugin folder). They must be kept in sync whenever the D2L core logic is modified.
