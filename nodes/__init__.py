@@ -2,17 +2,32 @@
 ComfyDL Nodes - ComfyUI custom nodes wrapping d2lcore functions.
 
 Node Categories (matching d2l sections):
-  - d2lcore/CV Models      : CNN models (model_cv.py)
-  - d2lcore/NLP Models      : RNN/GRU models (model_nlp.py)
-  - d2lcore/Attention       : Attention mechanisms (model_attention.py)
-  - d2lcore/Seq2Seq         : Sequence-to-sequence models (model_seq2seq.py)
-  - d2lcore/ObjectDetection : Object detection ops (object_detection.py)
-  - d2lcore/Segmentation    : Semantic segmentation (semantic_segmentation.py)
-  - d2lcore/Visualization   : Plot & display functions (visualization.py)
-  - d2lcore/TorchOps       : Tensor operations & metrics (torch_ops.py)
-  - d2lcore/NLP Utils       : NLP helper functions (nlp_utils.py)
-  - d2lcore/Device Utils    : GPU/CPU device utilities (device_utils.py)
-  - d2lcore/GAN             : GAN training functions (gan.py)
+  - d2l/Tensor Basic         : tensor utilities & primitives (tensor_basic.py)
+  - d2l/TorchOps             : tensor operations & metrics (tensor_ops.py)
+  - d2l/CV Models            : CNN models (model_cv.py)
+  - d2l/NLP Models           : RNN/GRU, attention & seq2seq models
+                               (model_nlp.py, model_attention.py, model_seq2seq.py)
+  - d2l/ObjectDetection      : object detection ops (object_detection.py)
+  - d2l/Segmentation         : semantic segmentation (semantic_segmentation.py)
+  - d2l/Visualization        : plot & display functions (visualization.py)
+  - d2l/Datasets             : dataset helpers (datasets.py)
+  - d2l/NLP Utils            : NLP helper functions (nlp_utils.py)
+  - d2l/Model Utils          : nn.Module inspection & persistence (model_utils.py)
+  - d2l/Device Utils         : GPU/CPU device utilities (device_utils.py)
+  - d2l/GAN                  : GAN training functions (gan.py)
+
+Legacy categories:
+  - d2l/_Legacy/* : teaching nodes whose functionality is now covered by the core
+    Comfy nodes. They stay registered (so old workflows keep loading) but are
+    flagged with the ``DEPRECATED = True`` class attribute and their display name
+    carries a "(DEPRECATED)" suffix, which is why the node library groups them
+    under ``d2l/_Legacy/<original category>`` instead of the active categories.
+    The per-node replacement is documented in the module docstrings of
+    tensor_basic.py, model_attention.py and model_utils.py.
+
+This package also declares the non-d2l categories ``image/color``,
+``image/transform``, ``image`` (image_tools.py) and ``utilities``,
+``utilities/conversion`` (misc.py, conversion.py).
 """
 
 # Slot types used by the ComfyDL nodes.

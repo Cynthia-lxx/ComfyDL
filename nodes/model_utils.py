@@ -6,6 +6,10 @@ PyTorch models directly on the workflow graph. Everything is implemented
 with torch.nn / torch primitives (no d2lcore dependency).
 
 All nodes operate on the custom cdlModel type (any nn.Module instance).
+
+Deprecated nodes (still registered, moved to ``d2l/_Legacy/Model Utils``):
+  - Model Mode : the core ``TrainingMode`` node covers train/eval for TENSOR
+                 graphs; this cdlModel-level switch is kept for model pipelines.
 """
 
 import copy
@@ -69,7 +73,18 @@ NODE_DISPLAY_NAME_MAPPINGS["CdlModelInfo"] = "Model Info"
 
 
 class CdlModelMode:
-    """Switch a model between training and evaluation mode.
+    """DEPRECATED - use the core ``TrainingMode`` node for tensor graphs.
+
+    Superseded by the core ``TrainingMode`` node (``Network & Layers/Training``),
+    which publishes ``"train"`` / ``"eval"`` as a STRING that is wired into the
+    ``mode`` slot of the core BatchNorm / InstanceNorm / Dropout nodes. Note that
+    the two are not interchangeable payloads: this node switches a whole
+    ``cdlModel`` (``model.train()`` / ``model.eval()``) and passes the module on,
+    whereas ``TrainingMode`` drives TENSOR-level nodes. It is kept registered and
+    still works for ``cdlModel`` pipelines; new tensor graphs should use
+    ``TrainingMode``.
+
+    Switch a model between training and evaluation mode.
 
     What it does: calls model.train() or model.eval() on the input
     model and returns the same instance, so downstream nodes observe the
@@ -93,7 +108,8 @@ class CdlModelMode:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/Model Utils"
+    CATEGORY = "d2l/_Legacy/Model Utils"
+    DEPRECATED = True
 
     def execute(self, model, mode):
         if mode == "train":
@@ -104,7 +120,7 @@ class CdlModelMode:
 
 
 NODE_CLASS_MAPPINGS["CdlModelMode"] = CdlModelMode
-NODE_DISPLAY_NAME_MAPPINGS["CdlModelMode"] = "Model Mode"
+NODE_DISPLAY_NAME_MAPPINGS["CdlModelMode"] = "Model Mode (DEPRECATED)"
 
 
 class CdlModelForward:

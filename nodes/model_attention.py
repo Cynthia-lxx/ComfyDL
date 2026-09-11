@@ -1,5 +1,5 @@
 """
-d2lcore/Attention - Attention mechanisms and Transformer components.
+d2l/NLP Models - Attention mechanisms and Transformer components.
 
 d2lcore classes:
   - DotProductAttention(dropout)                    : scaled dot-product attention
@@ -11,6 +11,14 @@ d2lcore classes:
   - TransformerEncoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias)
   - TransformerEncoder(vocab_size, num_hiddens, ffn_num_hiddens, num_heads,
                        num_blks, dropout, use_bias)
+
+Deprecated nodes (still registered, moved to ``d2l/_Legacy/NLP Models``):
+  - AddNorm                  : the same math is available on a bare TENSOR as
+                               ``NormalizationLayerNorm`` after ``BasicAdd``
+  - TransformerEncoderBlock  : likewise composed from the core layer nodes
+  - TransformerEncoder       : likewise composed from the core layer nodes
+  These three build a ``cdlModel`` (module-level) rather than operating on a
+  TENSOR, so they keep working; new tensor graphs should compose the core nodes.
 
 All builder nodes return a cdlModel (nn.Module) that can be wired into
 CdlModelForward / CdlModelInfo / CdlModelSave etc. for inspection and
@@ -226,7 +234,15 @@ NODE_DISPLAY_NAME_MAPPINGS["CdlPositionWiseFFN"] = "Position-Wise FFN"
 
 
 class CdlAddNorm:
-    """Build a residual connection followed by layer normalization.
+    """DEPRECATED - compose ``NormalizationLayerNorm`` after ``BasicAdd`` instead.
+
+    Superseded on bare TENSOR graphs: ``LayerNorm(dropout(Y) + X)`` is exactly the
+    core ``BasicAdd`` followed by the core ``NormalizationLayerNorm``. This node
+    builds a ``cdlModel`` (module-level) instead of operating on a TENSOR, so it
+    is kept registered and still works; new tensor graphs should compose the core
+    nodes.
+
+    Build a residual connection followed by layer normalization.
 
     d2lcore: AddNorm(norm_shape, dropout)
     Inputs:
@@ -249,7 +265,8 @@ class CdlAddNorm:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/NLP Models"
+    CATEGORY = "d2l/_Legacy/NLP Models"
+    DEPRECATED = True
 
     def execute(self, norm_shape, dropout):
         model = AddNorm(norm_shape, dropout)
@@ -257,11 +274,19 @@ class CdlAddNorm:
 
 
 NODE_CLASS_MAPPINGS["CdlAddNorm"] = CdlAddNorm
-NODE_DISPLAY_NAME_MAPPINGS["CdlAddNorm"] = "Add & Norm"
+NODE_DISPLAY_NAME_MAPPINGS["CdlAddNorm"] = "Add & Norm (DEPRECATED)"
 
 
 class CdlTransformerEncoderBlock:
-    """Build a single Transformer encoder block.
+    """DEPRECATED - compose the core layer nodes instead.
+
+    Superseded on bare TENSOR graphs: the block is multi-head attention plus
+    ``NormalizationLayerNorm`` after ``BasicAdd``, and a position-wise FFN built
+    from the core ``BasicLinear`` nodes. This node builds a ``cdlModel``
+    (module-level) instead of operating on a TENSOR, so it is kept registered and
+    still works; new tensor graphs should compose the core nodes.
+
+    Build a single Transformer encoder block.
 
     d2lcore: TransformerEncoderBlock(num_hiddens, ffn_num_hiddens,
                                      num_heads, dropout, use_bias)
@@ -291,7 +316,8 @@ class CdlTransformerEncoderBlock:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/NLP Models"
+    CATEGORY = "d2l/_Legacy/NLP Models"
+    DEPRECATED = True
 
     def execute(self, num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias):
         if num_hiddens % num_heads != 0:
@@ -303,11 +329,19 @@ class CdlTransformerEncoderBlock:
 
 
 NODE_CLASS_MAPPINGS["CdlTransformerEncoderBlock"] = CdlTransformerEncoderBlock
-NODE_DISPLAY_NAME_MAPPINGS["CdlTransformerEncoderBlock"] = "Transformer Encoder Block"
+NODE_DISPLAY_NAME_MAPPINGS["CdlTransformerEncoderBlock"] = "Transformer Encoder Block (DEPRECATED)"
 
 
 class CdlTransformerEncoder:
-    """Build a Transformer encoder (embedding + positional encoding + blocks).
+    """DEPRECATED - compose the core layer nodes instead.
+
+    Superseded on bare TENSOR graphs: the encoder is an embedder, a positional
+    encoding and a stack of blocks, all of which can be composed from the core
+    layer/normalization nodes. This node builds a ``cdlModel`` (module-level)
+    instead of operating on a TENSOR, so it is kept registered and still works;
+    new tensor graphs should compose the core nodes.
+
+    Build a Transformer encoder (embedding + positional encoding + blocks).
 
     d2lcore: TransformerEncoder(vocab_size, num_hiddens, ffn_num_hiddens,
                                 num_heads, num_blks, dropout, use_bias)
@@ -342,7 +376,8 @@ class CdlTransformerEncoder:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/NLP Models"
+    CATEGORY = "d2l/_Legacy/NLP Models"
+    DEPRECATED = True
 
     def execute(self, vocab_size, num_hiddens, ffn_num_hiddens, num_heads,
                 num_blks, dropout, use_bias):
@@ -356,4 +391,4 @@ class CdlTransformerEncoder:
 
 
 NODE_CLASS_MAPPINGS["CdlTransformerEncoder"] = CdlTransformerEncoder
-NODE_DISPLAY_NAME_MAPPINGS["CdlTransformerEncoder"] = "Transformer Encoder"
+NODE_DISPLAY_NAME_MAPPINGS["CdlTransformerEncoder"] = "Transformer Encoder (DEPRECATED)"

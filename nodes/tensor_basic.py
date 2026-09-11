@@ -7,9 +7,12 @@ Nodes:
   - String → Tensor : Parse a string representation into a tensor
   - Conv2D         : 2D convolution (wraps torch.nn.functional.conv2d)
   - Transpose      : Swap two tensor dimensions
-  - Broadcast      : Broadcast tensor to a target shape
-  - Reshape        : Reshape tensor to a new shape
-  - Activation     : Element-wise activation (relu/sigmoid/tanh/...)
+  - Random Tensor  : Random tensor from a chosen distribution
+
+Deprecated nodes (still registered, moved to ``d2l/_Legacy/Tensor Basic``):
+  - Broadcast      : superseded by the core ``BasicBroadcast`` node
+  - Reshape        : superseded by the core ``BasicReshape`` node
+  - Activation     : superseded by the 14 core ``Activation*`` nodes
 """
 
 import re
@@ -219,7 +222,14 @@ NODE_DISPLAY_NAME_MAPPINGS["CdlTranspose"] = "Transpose"
 
 
 class CdlBroadcast:
-    """Broadcast a tensor to a target shape.
+    """DEPRECATED - use the core ``BasicBroadcast`` node (``Network & Layers/Basic``).
+
+    Superseded by the core TENSOR-native counterpart, which performs the same
+    ``torch.broadcast_to`` from a shape string. This node is kept registered so
+    that existing workflows keep loading and running; new graphs should use
+    ``BasicBroadcast`` instead.
+
+    Broadcast a tensor to a target shape.
 
     Wraps ``torch.broadcast_to``. Enter the target shape as a
     comma-separated string (e.g. ``\"3,1,4\"``), respecting broadcasting rules.
@@ -241,7 +251,8 @@ class CdlBroadcast:
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/Tensor Basic"
+    CATEGORY = "d2l/_Legacy/Tensor Basic"
+    DEPRECATED = True
 
     def execute(self, tensor, target_shape):
         if not target_shape or not target_shape.strip():
@@ -258,11 +269,18 @@ class CdlBroadcast:
 
 
 NODE_CLASS_MAPPINGS["CdlBroadcast"] = CdlBroadcast
-NODE_DISPLAY_NAME_MAPPINGS["CdlBroadcast"] = "Broadcast"
+NODE_DISPLAY_NAME_MAPPINGS["CdlBroadcast"] = "Broadcast (DEPRECATED)"
 
 
 class CdlReshape:
-    """Reshape a tensor to a new shape.
+    """DEPRECATED - use the core ``BasicReshape`` node (``Network & Layers/Basic``).
+
+    Superseded by the core TENSOR-native counterpart, which performs the same
+    ``torch.reshape`` from a shape string. This node is kept registered so that
+    existing workflows keep loading and running; new graphs should use
+    ``BasicReshape`` instead.
+
+    Reshape a tensor to a new shape.
 
     Wraps ``torch.reshape``. Enter the target shape as a comma-separated
     string (e.g. ``\"2,8\"`` or ``\"4,-1\"``). Returns the original tensor
@@ -284,7 +302,8 @@ class CdlReshape:
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/Tensor Basic"
+    CATEGORY = "d2l/_Legacy/Tensor Basic"
+    DEPRECATED = True
 
     def execute(self, tensor, target_shape):
         if not target_shape or not target_shape.strip():
@@ -301,11 +320,21 @@ class CdlReshape:
 
 
 NODE_CLASS_MAPPINGS["CdlReshape"] = CdlReshape
-NODE_DISPLAY_NAME_MAPPINGS["CdlReshape"] = "Reshape"
+NODE_DISPLAY_NAME_MAPPINGS["CdlReshape"] = "Reshape (DEPRECATED)"
 
 
 class CdlActivation:
-    """Apply an element-wise activation function to a tensor.
+    """DEPRECATED - use the core ``Activation*`` nodes (``Network & Layers/Activation``).
+
+    Superseded by the 14 core activation nodes (``ActivationReLU``,
+    ``ActivationSigmoid``, ``ActivationTanh``, ``ActivationLeakyReLU``,
+    ``ActivationELU``, ``ActivationGELU``, ``ActivationSiLU``,
+    ``ActivationSoftplus``, ``ActivationSoftmax``, ...), which cover every
+    function offered here and five more (``selu``, ``mish``, ``relu6``,
+    ``hardswish``, ``identity``) as one node per operation. This node is kept
+    registered so that existing workflows keep loading and running.
+
+    Apply an element-wise activation function to a tensor.
 
     Supported functions (Combo widget):
         - relu / sigmoid / tanh / leaky_relu / elu / gelu / silu
@@ -333,7 +362,8 @@ class CdlActivation:
     RETURN_TYPES = ("TENSOR",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/Tensor Basic"
+    CATEGORY = "d2l/_Legacy/Tensor Basic"
+    DEPRECATED = True
 
     def execute(self, tensor, func, dim, negative_slope):
         if func == "relu":
@@ -360,7 +390,7 @@ class CdlActivation:
 
 
 NODE_CLASS_MAPPINGS["CdlActivation"] = CdlActivation
-NODE_DISPLAY_NAME_MAPPINGS["CdlActivation"] = "Activation"
+NODE_DISPLAY_NAME_MAPPINGS["CdlActivation"] = "Activation (DEPRECATED)"
 
 
 class CdlRandomTensor:
