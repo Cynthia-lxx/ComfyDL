@@ -25,13 +25,22 @@ def _print_startup_info():
     try:
         total = len(NODE_CLASS_MAPPINGS)
         display = len(NODE_DISPLAY_NAME_MAPPINGS)
-        cats = Counter(
-            getattr(cls, "CATEGORY", "d2l/Unknown")
-            for cls in NODE_CLASS_MAPPINGS.values()
-        )
+        cats = Counter()
+        unresolved = []
+        for node_id, cls in NODE_CLASS_MAPPINGS.items():
+            try:
+                # V3 节点的 CATEGORY 是惰性 classproperty：首次访问会触发
+                # GET_SCHEMA() 解析。单个节点的 schema 异常不应拖垮整张统计表，
+                # 因此逐类兜底，把失败项归入 d2l/Unknown 并单独列出。
+                cats[getattr(cls, "CATEGORY", "d2l/Unknown")] += 1
+            except Exception as e:  # noqa: BLE001 - 单个节点问题不应影响统计
+                cats["d2l/Unknown"] += 1
+                unresolved.append(f"{node_id} ({e})")
         print(f"[ComfyDL] 已注册 {total} 个节点（显示名 {display} 个），共 {len(cats)} 个分类：")
         for cat in sorted(cats):
             print(f"  {cat}: {cats[cat]}")
+        for item in unresolved:
+            print(f"[ComfyDL]   分类解析失败: {item}")
     except Exception as e:  # 统计失败不影响插件加载
         print(f"[ComfyDL] 启动节点统计失败: {e}")
 
