@@ -76,7 +76,7 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ## Function Overview
 
-The built-in node library ships **133 nodes** across 20 categories — **102 provided by ComfyDL**
+The built-in node library ships **139 nodes** across 21 categories — **108 provided by ComfyDL**
 plus 31 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Normalization` 7
 + `Training` 2) that were added on top of it:
 
@@ -98,6 +98,7 @@ plus 31 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **image/color (Comfy core)** | 3 | Grayscale, normalize & brightness/contrast/saturation |
 | **image/transform (Comfy core)** | 1 | Arbitrary-angle rotation + canvas expand |
 | **utilities (Comfy core)** | 4 | MessageBox, NoOp pass-through & benchmark timer |
+| **utilities/conversion (Comfy core)** | 6 | Comfy value ⇄ generic `TENSOR` round-trip (V3 API); LATENT/AUDIO metadata preserved on parallel sockets |
 | **Network & Layers/Activation (Comfy core)** | 14 | Core activations (Sigmoid, ReLU, GELU, Softmax, …) on the shared `TENSOR` slot type |
 | **Network & Layers/Basic (Comfy core)** | 8 | Core basic layers & tensor ops (Linear, Embedding, Flatten, Reshape, Broadcast, Concat, Add, Multiply) |
 | **Network & Layers/Normalization (Comfy core)** | 7 | Core normalizations (BatchNorm, InstanceNorm, LayerNorm, GroupNorm, RMSNorm, WeightNorm, SpectralNorm) on the shared `TENSOR` slot type |

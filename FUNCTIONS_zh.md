@@ -26,6 +26,12 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 直接使用的 ComfyUI 标准类型：
 - `IMAGE` — 图像批次，`torch.Tensor [B, H, W, C]`
 - `MASK` — 掩码，`torch.Tensor [H, W]` 或 `[B, C, H, W]`
+- `LATENT` — 潜变量字典 `{"samples": ..., "noise_mask"?, "batch_index"?, "type"?}`
+- `AUDIO` — 音频字典 `{"waveform": ..., "sampler_rate": ...}`
+- `SIGMAS` — 噪声调度，`torch.Tensor [N]`
+- `LORA_MODEL` — 张量集合 `dict[str, torch.Tensor]`（预留，见 §18）
+- `LOSS_MAP` — 张量集合 `{"loss": [torch.Tensor, ...]}`（预留，见 §18）
+- `ARRAY` — 普通 Python `list`，用于 §18 的平行元数据槽
 - `INT`、`FLOAT`、`STRING`、`BOOLEAN` — 基本标量类型
 
 ---
@@ -1705,6 +1711,127 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
+## 18. ComfyUI / utilities/conversion（6 个节点）
+
+并入 ComfyUI 核心分类 `utilities/conversion`。这些是 ComfyDL 中**唯一**基于 ComfyUI **V3** 节点 API
+（`io.ComfyNode` + `io.Schema`）而非旧式 `INPUT_TYPES` / `RETURN_TYPES` 编写的节点，因为联合输入
+插槽只能用 `io.MultiType.Input` 表达。
+
+`Value → Tensor` / `Tensor → Value` 这对节点让携带 ComfyUI 语义的值（IMAGE / MASK / LATENT /
+AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → Value` 刻意提供**五个具体类型输出槽**
+而不是一个动态槽：具体槽是静态类型的，前端会从物理上阻止接错类型，同时后端校验器会做真正的类型
+检查——而 `MatchType` 槽在后端完全拿不到校验。无法塞进裸张量的元数据（`noise_mask`、`batch_index`、
+`type`、`sampler_rate`）走平行插槽传递。
+
+### Value → Tensor
+- **类名**：`CdlValueToTensor`
+- **功能**：把任意受支持的 Comfy 值拆包成通用 `TENSOR`。IMAGE / MASK / SIGMAS 原样透传；LATENT 取 `samples`；AUDIO 取 `waveform`。无法放进裸张量的元数据从平行插槽输出。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `value` | `IMAGE` \| `MASK` \| `LATENT` \| `AUDIO` \| `SIGMAS` | — | 联合插槽；接口会自适应你接入的类型 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `TENSOR` | `TENSOR` | 拆包后的张量 |
+  | `origin` | `STRING` | 尽力推断的来源标签（`IMAGE` / `MASK` / `LATENT` / `AUDIO` / `SIGMAS`）。IMAGE、MASK 与 SIGMAS 在运行时都是普通张量，因此标签按形状推断——仅供诊断，不影响转换结果 |
+  | `noise_mask` | `TENSOR` | LATENT 存在 `noise_mask` 时原样输出，否则为 `None` |
+  | `batch_index` | `ARRAY` | LATENT 存在 `batch_index` 时原样输出，否则为 `None` |
+  | `latent_type` | `STRING` | LATENT 的 `type`（`"audio"` / `"hunyuan3dv2"`）；空串表示非特殊类型 |
+  | `sampler_rate` | `INT` | AUDIO 采样率；非音频值为 `0` |
+
+### Tensor → Value
+- **类名**：`CdlTensorToValue`
+- **功能**：把通用 `TENSOR` 暴露到每种类型一个的具体输出槽上。连你需要的那根线即可；未使用的槽返回 `None` 且不产生开销。从 `Value → Tensor` 接回的元数据会被折回重建的 LATENT / AUDIO 字典。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `TENSOR` | — | 要暴露的张量 |
+  | `origin` | `STRING` | `""` | 来自 `Value → Tensor` 的可选标签；仅用于组织形状不匹配的提示语 |
+  | `noise_mask` | `TENSOR` | — | 可选 LATENT 噪声掩码（默认不接线） |
+  | `batch_index` | `ARRAY` | — | 可选 LATENT 批次索引（默认不接线） |
+  | `latent_type` | `STRING` | `""` | 可选 LATENT `type`；空串表示省略该键，与原件一致 |
+  | `sampler_rate` | `INT` | `44100` | 可选 AUDIO 采样率（1~384000） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `IMAGE` | `IMAGE` | `tensor` 原样——形状约定由调用方负责 |
+  | `MASK` | `MASK` | `tensor` 原样 |
+  | `LATENT` | `LATENT` | `{"samples": tensor}` 加上所有已连接的元数据槽；张量非 4 维时为 `None` |
+  | `AUDIO` | `AUDIO` | `{"waveform": tensor, "sampler_rate": rate}`；张量非 2 维/3 维时为 `None` |
+  | `SIGMAS` | `SIGMAS` | `tensor` 原样 |
+
+> 当张量秩不可能匹配时，LATENT / AUDIO 槽返回 `None`，并且**只在 `origin` 表明你确实想转成该类型时**
+> 才打印提示——未接线的槽保持静默。
+
+预留节点对——目前 ComfyDL 中没有任何节点产出 `LORA_MODEL` / `LOSS_MAP`，因此这四个节点属于静态/
+实验性能力。每个打包节点按 key 顺序把每个张量展平并拼接成一个 1 维 `TENSOR`，同时把布局作为平行
+元数据输出；每个解包节点据此切回。同一次打包中的所有张量必须 dtype 一致：混合 dtype 会抛出可读的
+`ValueError`，而不是静默提升类型（那会让往返变得有损）。
+
+### LoRA Model → Tensor
+- **类名**：`CdlLoraModelToTensor`
+- **功能**：把 `LORA_MODEL`（`dict[str, torch.Tensor]`）打包成一个 1 维 `TENSOR` 加 key/shape/dtype 元数据。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `lora_model` | `LORA_MODEL` | — | 参数名到张量的映射 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `TENSOR` | `TENSOR` | 所有值按 key 顺序展平并拼接 |
+  | `keys` | `ARRAY` | key 顺序，`list[str]` |
+  | `shapes` | `ARRAY` | 每个张量一个 `"3,4"` 风格形状字符串；`""` 表示 0 维标量 |
+  | `dtypes` | `ARRAY` | 每个张量一个 `"torch.float32"` 风格 dtype 字符串 |
+
+### Tensor → LoRA Model
+- **类名**：`CdlTensorToLoraModel`
+- **功能**：`LoRA Model → Tensor` 的精确逆操作；按 `shapes` 切分扁平张量，把每段转回记录的 dtype 并重建字典。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `TENSOR` | — | 打包节点产出的扁平张量（任意形状都会先展平） |
+  | `keys` | `ARRAY` | — | key 顺序，`list[str]` |
+  | `shapes` | `ARRAY` | — | 每个张量一个形状字符串 |
+  | `dtypes` | `ARRAY` | — | 每个张量一个 dtype 字符串 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `LORA_MODEL` | `LORA_MODEL` | 还原后的映射 |
+
+### Loss Map → Tensor
+- **类名**：`CdlLossMapToTensor`
+- **功能**：把 `LOSS_MAP`（`{"loss": [Tensor, ...]}`）打包成一个 1 维 `TENSOR` 加 shape/dtype 元数据。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `loss_map` | `LOSS_MAP` | — | 一个 `LOSS_MAP`：`{"loss": [Tensor, ...]}`；也接受裸张量或普通列表 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `TENSOR` | `TENSOR` | 所有 loss 张量按顺序展平并拼接 |
+  | `shapes` | `ARRAY` | 每个张量一个 `"3,4"` 风格形状字符串 |
+  | `dtypes` | `ARRAY` | 每个张量一个 `"torch.float32"` 风格 dtype 字符串 |
+
+### Tensor → Loss Map
+- **类名**：`CdlTensorToLossMap`
+- **功能**：`Loss Map → Tensor` 的精确逆操作；重建 `{"loss": [Tensor, ...]}`。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `tensor` | `TENSOR` | — | 打包节点产出的扁平张量 |
+  | `shapes` | `ARRAY` | — | 每个张量一个形状字符串 |
+  | `dtypes` | `ARRAY` | — | 每个张量一个 dtype 字符串 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `LOSS_MAP` | `LOSS_MAP` | `{"loss": [Tensor, ...]}` |
+
+> 畸形元数据永远不会中断工作流：无法解析的形状字符串会降级为 0 维标量（消耗一个元素）并打印提示，
+> 而被截断的张量只会还原出放得下的那些张量。
+
+---
+
 ## 附录
 
 ### 节点注册机制
@@ -1713,7 +1840,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **133 个节点**，分属 20 个类别（102 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
+共 **139 个节点**，分属 21 个类别（108 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
 节点 + 8 个核心 `Network & Layers/Basic` + 7 个核心 `Network & Layers/Normalization` + 2 个核心
 `Network & Layers/Training` 节点）：
 
@@ -1735,9 +1862,10 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
+| utilities/conversion | 6 | Comfy 语义值与通用 `TENSOR` 的往返转换（ComfyUI 核心分类） |
 | Network & Layers/Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
 | Network & Layers/Basic | 8 | `TENSOR` 类型上的核心基础层与张量运算（ComfyUI 核心分类） |
 | Network & Layers/Normalization | 7 | `TENSOR` 类型上的核心归一化（ComfyUI 核心分类） |
 | Network & Layers/Training | 2 | 归一化节点的训练/推理开关与运行统计量（ComfyUI 核心分类） |
 
-> 前 16 行统计 **ComfyDL 提供的 102 个节点**。`utilities`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation`、`Network & Layers/Basic`、`Network & Layers/Normalization` 与 `Network & Layers/Training` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。
+> 前 17 行统计 **ComfyDL 提供的 108 个节点**。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation`、`Network & Layers/Basic`、`Network & Layers/Normalization` 与 `Network & Layers/Training` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。

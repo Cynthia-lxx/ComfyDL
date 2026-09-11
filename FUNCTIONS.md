@@ -27,6 +27,12 @@ Layers` family) can be wired together directly on the same slots. `cdlModel` / `
 ComfyUI standard types (used directly):
 - `IMAGE` — Image batch, `torch.Tensor [B, H, W, C]`
 - `MASK` — Mask, `torch.Tensor [H, W]` or `[B, C, H, W]`
+- `LATENT` — Latent dictionary `{"samples": ..., "noise_mask"?, "batch_index"?, "type"?}`
+- `AUDIO` — Audio dictionary `{"waveform": ..., "sampler_rate": ...}`
+- `SIGMAS` — Noise schedule, `torch.Tensor [N]`
+- `LORA_MODEL` — Tensor collection `dict[str, torch.Tensor]` (reserved, see §18)
+- `LOSS_MAP` — Tensor collection `{"loss": [torch.Tensor, ...]}` (reserved, see §18)
+- `ARRAY` — Plain Python `list`, used for the parallel metadata slots of §18
 - `INT`, `FLOAT`, `STRING`, `BOOLEAN` — Primitive scalar types
 
 ---
@@ -1718,6 +1724,132 @@ train/inference decision and the persistent running statistics into the normaliz
 
 ---
 
+## 18. ComfyUI / utilities/conversion (6 nodes)
+
+Merged into the ComfyUI core category `utilities/conversion`. These are the only ComfyDL nodes
+written against the ComfyUI **V3** node API (`io.ComfyNode` + `io.Schema`) rather than the legacy
+`INPUT_TYPES` / `RETURN_TYPES` style, because a union input slot can only be expressed with
+`io.MultiType.Input`.
+
+The pair `Value → Tensor` / `Tensor → Value` lets a value that carries ComfyUI semantics
+(IMAGE / MASK / LATENT / AUDIO / SIGMAS) travel through generic tensor pipelines and come back
+unchanged. `Tensor → Value` deliberately exposes **five concrete output sockets** instead of one
+dynamic socket: a concrete socket is statically typed, so the frontend physically prevents a
+mismatched link *and* the backend validator performs a real check — a `MatchType` socket gets no
+backend checking at all. Metadata that cannot fit inside a bare tensor (`noise_mask`,
+`batch_index`, `type`, `sampler_rate`) travels on parallel sockets.
+
+### Value → Tensor
+- **Class**: `CdlValueToTensor`
+- **Purpose**: Unwraps any supported Comfy value into a generic `TENSOR`. IMAGE / MASK / SIGMAS pass through unchanged; LATENT yields its `samples`; AUDIO yields its `waveform`. Metadata that cannot live inside a bare tensor is emitted on parallel sockets.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `value` | `IMAGE` \| `MASK` \| `LATENT` \| `AUDIO` \| `SIGMAS` | — | Union slot; the socket adapts to whatever you connect |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `TENSOR` | `TENSOR` | The unwrapped tensor |
+  | `origin` | `STRING` | Best-effort source label (`IMAGE` / `MASK` / `LATENT` / `AUDIO` / `SIGMAS`). IMAGE, MASK and SIGMAS are all plain tensors at runtime, so their label is inferred from the shape — diagnostic only, it never changes the conversion |
+  | `noise_mask` | `TENSOR` | LATENT `noise_mask` when present, else `None` |
+  | `batch_index` | `ARRAY` | LATENT `batch_index` when present, else `None` |
+  | `latent_type` | `STRING` | LATENT `type` (`"audio"` / `"hunyuan3dv2"`); empty means no special type |
+  | `sampler_rate` | `INT` | AUDIO sample rate, or `0` for non-audio values |
+
+### Tensor → Value
+- **Class**: `CdlTensorToValue`
+- **Purpose**: Exposes a generic `TENSOR` on one concrete socket per type. Wire the socket you need; unused sockets return `None` and cost nothing. Metadata received from `Value → Tensor` is folded back into the rebuilt LATENT / AUDIO dictionaries.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `TENSOR` | — | The tensor to expose |
+  | `origin` | `STRING` | `""` | Optional label from `Value → Tensor`; only used to phrase shape-mismatch hints |
+  | `noise_mask` | `TENSOR` | — | Optional LATENT noise mask (left unconnected by default) |
+  | `batch_index` | `ARRAY` | — | Optional LATENT batch index (left unconnected by default) |
+  | `latent_type` | `STRING` | `""` | Optional LATENT `type`; empty means the key is omitted, matching the original |
+  | `sampler_rate` | `INT` | `44100` | Optional AUDIO sample rate (1~384000) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `IMAGE` | `IMAGE` | `tensor` unchanged — shape conventions are the caller's responsibility |
+  | `MASK` | `MASK` | `tensor` unchanged |
+  | `LATENT` | `LATENT` | `{"samples": tensor}` plus whichever metadata sockets are connected; `None` when the tensor is not 4-D |
+  | `AUDIO` | `AUDIO` | `{"waveform": tensor, "sampler_rate": rate}`; `None` when the tensor is not 2-D/3-D |
+  | `SIGMAS` | `SIGMAS` | `tensor` unchanged |
+
+> The LATENT / AUDIO sockets return `None` when the tensor rank cannot possibly fit, and print a
+> hint **only when `origin` says that is what you intended** — an unconnected socket stays silent.
+
+Reserved pairs — nothing in ComfyDL produces `LORA_MODEL` / `LOSS_MAP` yet, so these four nodes are
+static/experimental. Each pack node flattens and concatenates every tensor (in key order) into one
+1-D `TENSOR` and emits the layout as parallel metadata; each unpack node slices it back. All
+tensors in one pack must share a dtype: a mixed batch raises a readable `ValueError` instead of
+silently promoting, which would make the round trip lossy.
+
+### LoRA Model → Tensor
+- **Class**: `CdlLoraModelToTensor`
+- **Purpose**: Packs a `LORA_MODEL` (`dict[str, torch.Tensor]`) into one 1-D `TENSOR` plus key/shape/dtype metadata.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `lora_model` | `LORA_MODEL` | — | Mapping of parameter name to tensor |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `TENSOR` | `TENSOR` | Every value flattened and concatenated, in key order |
+  | `keys` | `ARRAY` | Key order, as `list[str]` |
+  | `shapes` | `ARRAY` | One `"3,4"` style shape string per tensor; `""` denotes a 0-D scalar |
+  | `dtypes` | `ARRAY` | One `"torch.float32"` style dtype string per tensor |
+
+### Tensor → LoRA Model
+- **Class**: `CdlTensorToLoraModel`
+- **Purpose**: Exact inverse of `LoRA Model → Tensor`; slices the flat tensor by `shapes`, casts each chunk back to its recorded dtype and rebuilds the dictionary.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `TENSOR` | — | Flat tensor produced by the pack node (any shape is flattened first) |
+  | `keys` | `ARRAY` | — | Key order, as `list[str]` |
+  | `shapes` | `ARRAY` | — | One shape string per tensor |
+  | `dtypes` | `ARRAY` | — | One dtype string per tensor |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `LORA_MODEL` | `LORA_MODEL` | The restored mapping |
+
+### Loss Map → Tensor
+- **Class**: `CdlLossMapToTensor`
+- **Purpose**: Packs a `LOSS_MAP` (`{"loss": [Tensor, ...]}`) into one 1-D `TENSOR` plus shape/dtype metadata.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `loss_map` | `LOSS_MAP` | — | A `LOSS_MAP`: `{"loss": [Tensor, ...]}`; a bare tensor or a plain list is also accepted |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `TENSOR` | `TENSOR` | Every loss tensor flattened and concatenated, in order |
+  | `shapes` | `ARRAY` | One `"3,4"` style shape string per tensor |
+  | `dtypes` | `ARRAY` | One `"torch.float32"` style dtype string per tensor |
+
+### Tensor → Loss Map
+- **Class**: `CdlTensorToLossMap`
+- **Purpose**: Exact inverse of `Loss Map → Tensor`; rebuilds `{"loss": [Tensor, ...]}`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `tensor` | `TENSOR` | — | Flat tensor produced by the pack node |
+  | `shapes` | `ARRAY` | — | One shape string per tensor |
+  | `dtypes` | `ARRAY` | — | One dtype string per tensor |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `LOSS_MAP` | `LOSS_MAP` | `{"loss": [Tensor, ...]}` |
+
+> Malformed metadata never aborts a workflow: a shape string that cannot be parsed degrades to a
+> 0-D scalar (consuming one element) with a printed hint, and a truncated tensor yields only the
+> tensors that fit.
+
+---
+
 ## Appendix
 
 ### Node Registration Mechanism
@@ -1726,7 +1858,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**133 nodes** across 20 categories (102 provided by ComfyDL + 14 core `Network & Layers/Activation`
+**139 nodes** across 21 categories (108 provided by ComfyDL + 14 core `Network & Layers/Activation`
 + 8 core `Network & Layers/Basic` + 7 core `Network & Layers/Normalization` + 2 core
 `Network & Layers/Training` nodes):
 
@@ -1748,9 +1880,10 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
+| utilities/conversion | 6 | Comfy value ↔ generic `TENSOR` round-trip (ComfyUI core category) |
 | Network & Layers/Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Training | 2 | Train/eval switch & running statistics for the normalization nodes (ComfyUI core category) |
 
-> The first 16 rows list the **102 ComfyDL-provided nodes**. `utilities`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation`, `Network & Layers/Basic`, `Network & Layers/Normalization` and `Network & Layers/Training` are pure ComfyUI core categories with no ComfyDL nodes.
+> The first 17 rows list the **108 ComfyDL-provided nodes**. `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation`, `Network & Layers/Basic`, `Network & Layers/Normalization` and `Network & Layers/Training` are pure ComfyUI core categories with no ComfyDL nodes.
