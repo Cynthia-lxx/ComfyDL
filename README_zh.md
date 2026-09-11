@@ -74,7 +74,7 @@
 
 ## 功能概览
 
-内置节点库共 **140 个节点**，涵盖 22 个类别 —— 其中 **108 个由 ComfyDL 提供**，
+内置节点库共 **140 个节点**，涵盖 25 个类别 —— 其中 **108 个由 ComfyDL 提供**，
 另加在其之上新增的 32 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
 + `Normalization` 7 个 + `Regularization` 1 个 + `Training` 2 个）：
 
@@ -84,24 +84,22 @@
 | **数据集** | 10 | 数据集下载、加载、预览与统计 |
 | **设备工具** | 3 | GPU/CPU 设备查询 |
 | **GAN** | 2 | GAN 训练更新 |
-| **模型工具** | 8 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
-| **NLP 模型** | 16 | RNN/GRU/RNNLM、注意力与 Seq2Seq 构件 |
+| **模型工具** | 7 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
+| **NLP 模型** | 13 | RNN/GRU/RNNLM、注意力与 Seq2Seq 构件 |
 | **NLP 工具** | 5 | 文本分词与词表 |
 | **目标检测** | 10 | 锚框、IoU、NMS |
 | **语义分割** | 4 | VOC 语义分割工具 |
-| **张量基础** | 8 | 张量 I/O、卷积、转置、广播、激活函数 |
+| **张量基础** | 5 | 张量 I/O、卷积、转置、广播、激活函数 |
 | **张量运算** | 10 | 损失、优化、评估指标 |
 | **可视化** | 12 | 图表与边界框可视化 |
+| **已弃用 · 模型工具** | 1 | 已弃用（软归档）：Model Mode，纯 TENSOR 图改用核心 Training Mode |
+| **已弃用 · NLP 模型** | 3 | 已弃用（软归档）：Add & Norm、Transformer Encoder Block/Encoder |
+| **已弃用 · 张量基础** | 3 | 已弃用（软归档）：Broadcast、Reshape、Activation |
 | **Comfy 图像** | 1 | 图像批次逐通道统计 |
 | **Comfy 图像/颜色** | 3 | 灰度、归一化与亮度/对比度/饱和度 |
 | **Comfy 图像/变换** | 1 | 任意角度旋转 + 画布扩展 |
 | **Comfy 实用工具** | 4 | MessageBox、NoOp 空操作与基准计时 |
-| **Comfy 实用工具/转换** | 6 | Comfy 语义值与通用 `TENSOR` 的双向往返（V3 API）；LATENT/AUDIO 元数据经平行插槽无损保留 |
-| **Comfy Network & Layers/激活函数** | 14 | 核心激活函数（Sigmoid、ReLU、GELU、Softmax 等），共用 `TENSOR` 插槽类型 |
-| **Comfy Network & Layers/基础层** | 8 | 核心基础层与张量运算（Linear、Embedding、Flatten、Reshape、Broadcast、Concat、Add、Multiply） |
-| **Comfy Network & Layers/归一化** | 7 | 核心归一化（BatchNorm、InstanceNorm、LayerNorm、GroupNorm、RMSNorm、WeightNorm、SpectralNorm），共用 `TENSOR` 插槽类型 |
-| **Comfy Network & Layers/正则化** | 1 | 带种子掩码的逐元素 dropout（`F.dropout`）与训练/推理开关，共用 `TENSOR` 插槽类型 |
-| **Comfy Network & Layers/训练态** | 2 | 归一化节点的训练/推理开关与可编辑运行统计量 |
+| **conversion** | 6 |  |
 
 > 完整节点参考，请参阅 **[FUNCTIONS.md](./FUNCTIONS.md)**（英文）或 **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)**（中文）。
 

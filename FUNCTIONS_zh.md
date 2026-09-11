@@ -323,7 +323,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 ---
 
-## 6. d2l / NLP Models（16 个节点）
+## 6. d2l / NLP Models（13 个节点）
 
 NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer 与 Seq2Seq 构件。所有构建器都返回 `cdlModel`，可接入 `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` 等节点进行查看与推理。RNN/GRU 前向输入为时间优先 `(num_steps, batch_size, num_inputs)`；注意力模块与 Transformer 编码器为批次优先。
 
@@ -491,7 +491,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `model` | `cdlModel` | FFN 模块 |
 
 ### 残差 + 层归一化（Add & Norm）
-- **类名**：`CdlAddNorm`
+- **类名**：`CdlAddNorm`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/NLP Models`）
+- **替代**：在纯 `TENSOR` 图上用 `NormalizationLayerNorm` 接在 `BasicAdd` 之后即可——`LayerNorm(dropout(Y) + X)` 两者完全等价。本节点操作的是模块级 `cdlModel`（而非 `TENSOR`），功能未变，`cdlModel` 流水线仍可继续使用。
 - **d2lcore 函数**：`AddNorm(norm_shape, dropout)`
 - **功能**：构建残差连接后接层归一化：`LayerNorm(dropout(Y) + X)`。
 - **输入**：
@@ -505,7 +506,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `model` | `cdlModel` | Add & Norm 模块 |
 
 ### Transformer 编码器块
-- **类名**：`CdlTransformerEncoderBlock`
+- **类名**：`CdlTransformerEncoderBlock`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/NLP Models`）
+- **替代**：在纯 `TENSOR` 图上由核心层节点组合即可（多头注意力 + `BasicAdd` 后接 `NormalizationLayerNorm` + 由 `BasicLinear` 搭出的位置逐元素 FFN）。本节点构建的是模块级 `cdlModel`（而非 `TENSOR`），功能未变，`cdlModel` 流水线仍可继续使用。
 - **d2lcore 函数**：`TransformerEncoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias)`
 - **功能**：构建单个 Transformer 编码器块（多头注意力 + FFN，含残差与层归一化）。前向 `(X, valid_lens)`。
 - **输入**：
@@ -522,7 +524,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `model` | `cdlModel` | Transformer 编码器块 |
 
 ### Transformer 编码器
-- **类名**：`CdlTransformerEncoder`
+- **类名**：`CdlTransformerEncoder`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/NLP Models`）
+- **替代**：在纯 `TENSOR` 图上由核心层节点组合即可（嵌入 + 位置编码 + 堆叠编码器块）。本节点构建的是模块级 `cdlModel`（而非 `TENSOR`），功能未变，`cdlModel` 流水线仍可继续使用。
 - **d2lcore 函数**：`TransformerEncoder(vocab_size, num_hiddens, ffn_num_hiddens, num_heads, num_blks, dropout, use_bias)`
 - **功能**：构建完整 Transformer 编码器（嵌入 + 位置编码 + `num_blks` 个堆叠块）。前向 `(X, valid_lens)`，`X` 为 token 索引 `(batch, seq)`。
 - **输入**：
@@ -572,7 +575,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 7. d2l / Tensor Basic（8 个节点）
+## 7. d2l / Tensor Basic（5 个节点）
 
 ### Tensor → String
 - **类名**：`CdlTensorToStr`
@@ -631,7 +634,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `output` | `TENSOR` | 转置后的张量 |
 
 ### Broadcast
-- **类名**：`CdlBroadcast`
+- **类名**：`CdlBroadcast`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/Tensor Basic`）
+- **替代**：核心节点 `BasicBroadcast`（`Network & Layers/Basic`），同样的 `torch.broadcast_to`，且直接操作 `TENSOR`。
 - **功能**：将张量广播到目标形状。封装 ``torch.broadcast_to``。目标形状以逗号分隔字符串输入（如 ``"3,1,4"``）。解析错误时返回原张量。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
@@ -644,7 +648,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `output` | `TENSOR` | 广播后的张量 |
 
 ### Reshape
-- **类名**：`CdlReshape`
+- **类名**：`CdlReshape`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/Tensor Basic`）
+- **替代**：核心节点 `BasicReshape`（`Network & Layers/Basic`），同样的 `torch.reshape`，且直接操作 `TENSOR`。
 - **功能**：将张量变形为新的形状。封装 ``torch.reshape``。目标形状以逗号分隔字符串输入（如 ``"2,8"``、``"4,-1"``）。解析错误时返回原张量。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
@@ -657,7 +662,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `output` | `TENSOR` | 变形后的张量 |
 
 ### Activation
-- **类名**：`CdlActivation`
+- **类名**：`CdlActivation`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/Tensor Basic`）
+- **替代**：14 个核心激活节点（`Network & Layers/Activation`）覆盖本节点的全部激活，并额外多出 `selu`、`mish`、`relu6`、`hardswish`、`identity` 五种，每个算子一个节点。
 - **功能**：对张量逐元素应用激活函数。通过下拉菜单选择：``relu``、``sigmoid``、``tanh``、``leaky_relu``、``elu``、``gelu``、``silu``、``softmax``、``softplus``。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
@@ -1422,7 +1428,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 13. d2l / Model Utils（8 个节点）
+## 13. d2l / Model Utils（7 个节点）
 
 自主开发的模型实用工具节点（非 d2l 内容）。用于在工作流中直接检查、切换、运行、克隆与持久化 PyTorch 模型。所有节点操作 `cdlModel` 类型（任意 `nn.Module` 实例）。
 
@@ -1441,7 +1447,8 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `trainable_params` | `INT` | `requires_grad=True` 的参数量 |
 
 ### Model Mode（模型模式）
-- **类名**：`CdlModelMode`
+- **类名**：`CdlModelMode`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/Model Utils`）
+- **替代**：纯 `TENSOR` 图请改用核心节点 `Training Mode`（`Network & Layers/Training`）。注意两者**载荷不同、不可互换**：本节点切换的是整个 `cdlModel`（`model.train()` / `model.eval()`）并把模块继续传递，`Training Mode` 发布的则是驱动 `TENSOR` 级节点的 STRING。本节点功能未变，`cdlModel` 流水线仍可继续使用。
 - **功能**：通过 `model.train()` / `model.eval()` 在训练与评估模式间切换，返回同一实例，使下游节点感知新模式。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
@@ -1670,21 +1677,24 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 
 ### 17.3 Normalization（7 个节点）
 
-核心归一化节点（`comfy_extras/nodes_normalization.py`）。每个节点恰好 1 个名为 `output` 的
-`TENSOR` 输出，保持输入的 dtype/device，且不保存任何状态：`weight` / `bias`（γ / β）都是普通张量
+核心归一化节点（`comfy_extras/nodes_normalization.py`）。每个节点都以名为 `output` 的
+`TENSOR` 作为第 1 个输出，保持输入的 dtype/device，且不保存任何状态。`BatchNorm` 与
+`InstanceNorm` 还会在其后追加 `mean` / `var` 两个 `(C,)` 输出——本次归一化**实际使用**的
+逐通道统计量，可直接接入 `Training Run Stats`（见 17.4）；其余节点恰好 1 个输出。
+`weight` / `bias`（γ / β）都是普通张量
 输入，从插槽接入的 `running_mean` / `running_var` 也绝不会被就地改写（同一张量可能被图中其它节点
 共享）。`BatchNorm` 与 `InstanceNorm` 都是**按秩自适应**的——一个节点即覆盖 1d/2d/3d 三种形态，
 因为“沿哪些维度统计”完全由张量形状决定——它们自身不带训练/推理开关，而是跟随 `mode` 插槽。
 
 | 节点 | 类名 | 输入 | 额外控件 | 作用 |
 |------|-------|--------|--------------|---------|
-| BatchNorm | `NormalizationBatchNorm` | `tensor`、`weight`（可选）、`bias`（可选）、`running_mean` / `running_var`（可选）、`mode`（可选 STRING 插槽） | `eps` FLOAT 1e-5 (0~1e-2) | 对 `(N, C, ...)` 的第 1 维做 `F.batch_norm`；秩 2/3/4/5 分别等价于 BatchNorm1d/1d/2d/3d |
-| InstanceNorm | `NormalizationInstanceNorm` | `tensor`、`weight`、`bias`、`running_mean` / `running_var`、`mode`（除 `tensor` 外均可选） | `eps` FLOAT 1e-5 (0~1e-2) | `F.instance_norm`，按样本且按通道统计；需要秩 ≥ 3 |
+| BatchNorm | `NormalizationBatchNorm` | `tensor`、`weight`（可选）、`bias`（可选）、`running_mean` / `running_var`（可选）、`mode`（可选 STRING 插槽） | `eps` FLOAT 1e-5 (0~1e-2) | 对 `(N, C, ...)` 的第 1 维做 `F.batch_norm`；秩 2/3/4/5 分别等价于 BatchNorm1d/1d/2d/3d。另输出本次使用的逐通道 `mean` / `var`（`(C,)`）：`train` 下为本批统计量，`eval` 下为所接入的 running 统计量 |
+| InstanceNorm | `NormalizationInstanceNorm` | `tensor`、`weight`、`bias`、`running_mean` / `running_var`、`mode`（除 `tensor` 外均可选） | `eps` FLOAT 1e-5 (0~1e-2) | `F.instance_norm`，按样本且按通道统计；需要秩 ≥ 3。另输出 `mean` / `var`，把逐样本统计量归约为逐通道口径（组内方差均值 + 组间均值方差），因此与 BatchNorm 的输出含义一致、可存进同一组插槽 |
 | LayerNorm | `NormalizationLayerNorm` | `tensor`、`weight`（可选）、`bias`（可选） | `normalized_shape` STRING `"last"`、`eps` FLOAT 1e-5 | 对尾部维度做 `F.layer_norm`（`"8,16"` 表示最后两维） |
 | GroupNorm | `NormalizationGroupNorm` | `tensor`、`weight`（可选）、`bias`（可选） | `num_groups` INT 1 (1~64)、`eps` FLOAT 1e-5 | `F.group_norm`；`num_groups=1` 即在全部通道上归一化 |
 | RMSNorm | `NormalizationRMSNorm` | `tensor`、`weight`（可选） | `normalized_shape` STRING `"last"`、`eps` FLOAT 1e-6 | `F.rms_norm`；LLaMA 风格（不减均值、无偏置） |
 | WeightNorm | `NormalizationWeightNorm` | `weight`、`g`（可选） | `dim` INT 0 (-8~7)、`eps` FLOAT 1e-12 | 权重重参数化 `g * v / ‖v‖₂`，范数沿 `dim` 求取 |
-| SpectralNorm | `NormalizationSpectralNorm` | `weight`、`u` / `v`（可选） | `n_power_iterations` INT 1 (0~20)、`dim` INT 0、`eps` FLOAT 1e-12 | 用确定性幂迭代估计最大奇异值并据此除权重；同时输出 `sigma` |
+| SpectralNorm | `NormalizationSpectralNorm` | `weight`、`u` / `v`（可选） | `n_power_iterations` INT 10 (0~20)、`dim` INT 0、`eps` FLOAT 1e-12 | 用确定性幂迭代估计最大奇异值并据此除权重；同时输出 `sigma` |
 
 > 训练/推理开关是一条显式连线：`Training Mode`（17.4）把 `train` / `eval` 以 STRING 形式发布，
 > 接入 `BatchNorm` / `InstanceNorm` 的 `mode` 插槽。这里用连线不只是图个方便，而是正确性所需：
@@ -1703,11 +1713,13 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 | 节点 | 类名 | 输入 | 额外控件 | 作用 |
 |------|-------|--------|--------------|---------|
 | Training Mode | `TrainingMode` | — | `mode` COMBO train/eval（默认 `train`） | 把 `train` / `eval` 以 STRING 发布给 `BatchNorm` / `InstanceNorm` 的 `mode` 插槽 |
-| Training Run Stats | `TrainingRunStats` | — | `running_mean` STRING `"0.0"`、`running_var` STRING `"1.0"` | 可编辑的 `running_mean` / `running_var`，以两个 1 维 `TENSOR` 输出给统计量插槽 |
+| Training Run Stats | `TrainingRunStats` | `mean` / `var`（可选 `TENSOR` 插槽） | `running_mean` STRING `"0.0"`、`running_var` STRING `"1.0"` | 把 `running_mean` / `running_var` 以两个 1 维 `TENSOR` 输出给统计量插槽；插槽一旦连线即以**连线值**为准，此时上方的控件文本被忽略 |
 
 > 运行统计量必须能在保存的工作流里留存，而控件是唯一能做到这一点的地方，因此它们以逗号分隔的数字
 > 形式输入——每通道一个值（`"0.1,0.2,0.3"`），或只给一个值由消费者广播到全部通道。两个节点都是
 > 数据源：只拖到画布上不接线是无害的，因为源节点只有在被消费者需要时才会被求值。
+> 接入 `mean` / `var` 插槽时以**连线为准**：连线是被测量出来的当次运行值，而控件只保存了当初
+> 画图时敲进去的数字，因此把 `train` 的统计量转交 `eval` 只需两根线，不必手工抄数。
 
 ### 17.5 Regularization（1 个节点）
 
@@ -1858,7 +1870,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **140 个节点**，分属 22 个类别（108 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
+共 **108 个节点**，分属 20 个类别（108 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
 节点 + 8 个核心 `Network & Layers/Basic` + 7 个核心 `Network & Layers/Normalization` + 1 个核心
 `Network & Layers/Regularization` + 2 个核心 `Network & Layers/Training` 节点）：
 
@@ -1868,10 +1880,13 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/CV Models | 5 | CNN 基础与模型构建 |
 | d2l/GAN | 2 | GAN 训练更新 |
 | utilities | 4 | Windows MessageBox、NoOp 空操作、计时与神秘的 "?"（ComfyUI 核心分类） |
-| d2l/Model Utils | 8 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
-| d2l/NLP Models | 16 | RNN/GRU/RNNLM、注意力与 Seq2Seq 模型构件 |
+| d2l/Model Utils | 7 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
+| d2l/_Legacy/Model Utils | 1 | 已弃用（软归档）：`Model Mode`，纯 `TENSOR` 图改用核心 `Training Mode` |
+| d2l/NLP Models | 13 | RNN/GRU/RNNLM、注意力与 Seq2Seq 模型构件 |
+| d2l/_Legacy/NLP Models | 3 | 已弃用（软归档）：`Add & Norm`、`Transformer Encoder Block`、`Transformer Encoder` |
 | d2l/NLP Utils | 5 | 文本分词与词表 |
-| d2l/Tensor Basic | 8 | 张量 I/O、卷积、转置、广播、重塑、激活函数 |
+| d2l/Tensor Basic | 5 | 张量 I/O、卷积、转置、广播、重塑、激活函数 |
+| d2l/_Legacy/Tensor Basic | 3 | 已弃用（软归档）：`Broadcast`、`Reshape`、`Activation`，均有核心等价节点 |
 | d2l/TorchOps | 10 | 损失、优化、评估指标 |
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
@@ -1887,4 +1902,4 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | Network & Layers/Regularization | 1 | 带种子掩码的核心逐元素 dropout（ComfyUI 核心分类） |
 | Network & Layers/Training | 2 | 归一化节点的训练/推理开关与运行统计量（ComfyUI 核心分类） |
 
-> 前 17 行统计 **ComfyDL 提供的 108 个节点**。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation`、`Network & Layers/Basic`、`Network & Layers/Normalization`、`Network & Layers/Regularization` 与 `Network & Layers/Training` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。
+> 前 20 行统计 **ComfyDL 提供的 108 个节点**（其中 7 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点；`Network & Layers/Activation`、`Network & Layers/Basic`、`Network & Layers/Normalization`、`Network & Layers/Regularization` 与 `Network & Layers/Training` 是纯 ComfyUI 核心分类，不含 ComfyDL 节点。

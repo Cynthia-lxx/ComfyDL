@@ -76,7 +76,7 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ## Function Overview
 
-The built-in node library ships **140 nodes** across 22 categories — **108 provided by ComfyDL**
+The built-in node library ships **140 nodes** across 25 categories — **108 provided by ComfyDL**
 plus 32 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Normalization` 7
 + `Regularization` 1 + `Training` 2) that were added on top of it:
 
@@ -86,24 +86,22 @@ plus 32 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **Datasets** | 10 | Dataset download, load, preview & stats |
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
-| **Model Utils** | 8 | Model info, mode, forward, layers, params, clone & persistence |
-| **NLP Models** | 16 | RNN/GRU/RNNLM, attention & Seq2Seq building blocks |
+| **Model Utils** | 7 | Model info, mode, forward, layers, params, clone & persistence |
+| **NLP Models** | 13 | RNN/GRU/RNNLM, attention & Seq2Seq building blocks |
 | **NLP Utils** | 5 | Text tokenization & vocabularies |
 | **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
 | **Segmentation** | 4 | VOC semantic segmentation tools |
-| **Tensor Basic** | 8 | Tensor I/O, conv, transpose, broadcast, activation |
+| **Tensor Basic** | 5 | Tensor I/O, conv, transpose, broadcast, activation |
 | **TorchOps** | 10 | Loss, optimization, metrics |
 | **Visualization** | 12 | Plots, charts & bounding box visualization |
+| **d2l/_Legacy/Model Utils** | 1 | Deprecated (soft-archived): Model Mode; use the core Training Mode |
+| **d2l/_Legacy/NLP Models** | 3 | Deprecated (soft-archived): Add & Norm, Transformer Encoder Block/Encoder |
+| **d2l/_Legacy/Tensor Basic** | 3 | Deprecated (soft-archived): Broadcast, Reshape, Activation |
 | **image (Comfy core)** | 1 | Per-channel image batch statistics |
 | **image/color (Comfy core)** | 3 | Grayscale, normalize & brightness/contrast/saturation |
 | **image/transform (Comfy core)** | 1 | Arbitrary-angle rotation + canvas expand |
 | **utilities (Comfy core)** | 4 | MessageBox, NoOp pass-through & benchmark timer |
-| **utilities/conversion (Comfy core)** | 6 | Comfy value ⇄ generic `TENSOR` round-trip (V3 API); LATENT/AUDIO metadata preserved on parallel sockets |
-| **Network & Layers/Activation (Comfy core)** | 14 | Core activations (Sigmoid, ReLU, GELU, Softmax, …) on the shared `TENSOR` slot type |
-| **Network & Layers/Basic (Comfy core)** | 8 | Core basic layers & tensor ops (Linear, Embedding, Flatten, Reshape, Broadcast, Concat, Add, Multiply) |
-| **Network & Layers/Normalization (Comfy core)** | 7 | Core normalizations (BatchNorm, InstanceNorm, LayerNorm, GroupNorm, RMSNorm, WeightNorm, SpectralNorm) on the shared `TENSOR` slot type |
-| **Network & Layers/Regularization (Comfy core)** | 1 | Element-wise dropout (`F.dropout`) with a seeded mask and a train/eval switch, on the shared `TENSOR` slot type |
-| **Network & Layers/Training (Comfy core)** | 2 | Train/eval switch & editable running statistics for the normalization nodes |
+| **conversion** | 6 |  |
 
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).
 

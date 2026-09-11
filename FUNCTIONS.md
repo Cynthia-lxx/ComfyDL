@@ -324,7 +324,7 @@ Merged into the ComfyUI core category `utilities` (frontend group: 实用工具)
 
 ---
 
-## 6. d2l / NLP Models (16 nodes)
+## 6. d2l / NLP Models (13 nodes)
 
 NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer and Seq2Seq building blocks. All builders return a `cdlModel` that can be wired into `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` etc. for inspection and inference. RNN/GRU forwards expect time-major inputs `(num_steps, batch_size, num_inputs)`; attention modules and the Transformer encoder expect batch-first inputs.
 
@@ -492,7 +492,8 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   | `model` | `cdlModel` | FFN module |
 
 ### Add & Norm
-- **Class**: `CdlAddNorm`
+- **Class**: `CdlAddNorm` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/NLP Models`)
+- **Replacement**: on a bare `TENSOR` graph, compose `NormalizationLayerNorm` after `BasicAdd` — `LayerNorm(dropout(Y) + X)` is exactly the same math. This node operates on a module-level `cdlModel` rather than a `TENSOR`, so it is unchanged and still usable in `cdlModel` pipelines.
 - **d2lcore function**: `AddNorm(norm_shape, dropout)`
 - **Purpose**: Builds a residual connection followed by layer normalization: `LayerNorm(dropout(Y) + X)`.
 - **Inputs**:
@@ -506,7 +507,8 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   | `model` | `cdlModel` | Add & Norm block |
 
 ### Transformer Encoder Block
-- **Class**: `CdlTransformerEncoderBlock`
+- **Class**: `CdlTransformerEncoderBlock` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/NLP Models`)
+- **Replacement**: on a bare `TENSOR` graph, compose the core layer nodes (multi-head attention + `BasicAdd` before `NormalizationLayerNorm` + a position-wise FFN built from `BasicLinear`). This node builds a module-level `cdlModel` rather than a `TENSOR`, so it is unchanged and still usable in `cdlModel` pipelines.
 - **d2lcore function**: `TransformerEncoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias)`
 - **Purpose**: Builds a single Transformer encoder block (multi-head attention + FFN with add & norm). Forward `(X, valid_lens)`.
 - **Inputs**:
@@ -523,7 +525,8 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   | `model` | `cdlModel` | Transformer encoder block |
 
 ### Transformer Encoder
-- **Class**: `CdlTransformerEncoder`
+- **Class**: `CdlTransformerEncoder` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/NLP Models`)
+- **Replacement**: on a bare `TENSOR` graph, compose the core layer nodes (embedding + positional encoding + stacked encoder blocks). This node builds a module-level `cdlModel` rather than a `TENSOR`, so it is unchanged and still usable in `cdlModel` pipelines.
 - **d2lcore function**: `TransformerEncoder(vocab_size, num_hiddens, ffn_num_hiddens, num_heads, num_blks, dropout, use_bias)`
 - **Purpose**: Builds a full Transformer encoder (embedding + positional encoding + `num_blks` stacked blocks). Forward `(X, valid_lens)` with `X` of token indices `(batch, seq)`.
 - **Inputs**:
@@ -573,7 +576,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 
 ---
 
-## 7. d2l / Tensor Basic (8 nodes)
+## 7. d2l / Tensor Basic (5 nodes)
 
 ### Tensor → String
 - **Class**: `CdlTensorToStr`
@@ -632,7 +635,8 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   | `output` | `TENSOR` | Transposed tensor |
 
 ### Broadcast
-- **Class**: `CdlBroadcast`
+- **Class**: `CdlBroadcast` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/Tensor Basic`)
+- **Replacement**: the core `BasicBroadcast` node (`Network & Layers/Basic`) — the same `torch.broadcast_to`, operating directly on `TENSOR`.
 - **Purpose**: Broadcasts a tensor to a target shape. Wraps ``torch.broadcast_to``. Enter the target shape as a comma-separated string (e.g. ``"3,1,4"``). Returns original tensor unchanged on parse error.
 - **Inputs**:
   | Name | Type | Default | Description |
@@ -645,7 +649,8 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   | `output` | `TENSOR` | Broadcasted tensor |
 
 ### Reshape
-- **Class**: `CdlReshape`
+- **Class**: `CdlReshape` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/Tensor Basic`)
+- **Replacement**: the core `BasicReshape` node (`Network & Layers/Basic`) — the same `torch.reshape`, operating directly on `TENSOR`.
 - **Purpose**: Reshapes a tensor to a new shape. Wraps ``torch.reshape``. Enter the target shape as a comma-separated string (e.g. ``"2,8"``, ``"4,-1"``). Returns original tensor unchanged on parse error.
 - **Inputs**:
   | Name | Type | Default | Description |
@@ -658,7 +663,8 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   | `output` | `TENSOR` | Reshaped tensor |
 
 ### Activation
-- **Class**: `CdlActivation`
+- **Class**: `CdlActivation` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/Tensor Basic`)
+- **Replacement**: the 14 core `Activation*` nodes (`Network & Layers/Activation`) cover every function offered here and five more (`selu`, `mish`, `relu6`, `hardswish`, `identity`), one node per operation.
 - **Purpose**: Applies an element-wise activation function to a tensor. Select the function from a combo widget: ``relu``, ``sigmoid``, ``tanh``, ``leaky_relu``, ``elu``, ``gelu``, ``silu``, ``softmax``, ``softplus``.
 - **Inputs**:
   | Name | Type | Default | Description |
@@ -1423,7 +1429,7 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 
 ---
 
-## 13. d2l / Model Utils (8 nodes)
+## 13. d2l / Model Utils (7 nodes)
 
 Self-developed model utility nodes (not from d2l). They help inspect, switch, run, clone and persist PyTorch models directly on the workflow graph. All nodes operate on the `cdlModel` type (any `nn.Module` instance).
 
@@ -1442,7 +1448,8 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
   | `trainable_params` | `INT` | Number of parameters with `requires_grad=True` |
 
 ### Model Mode
-- **Class**: `CdlModelMode`
+- **Class**: `CdlModelMode` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/Model Utils`)
+- **Replacement**: on a bare `TENSOR` graph use the core `Training Mode` node (`Network & Layers/Training`). The two payloads are **not** interchangeable: this node switches a whole `cdlModel` (`model.train()` / `model.eval()`) and passes the module on, whereas `Training Mode` publishes the STRING that drives `TENSOR`-level nodes. This node is unchanged and still usable in `cdlModel` pipelines.
 - **Purpose**: Switches a model between training and evaluation mode via `model.train()` / `model.eval()`. Returns the same instance so downstream nodes observe the new mode.
 - **Inputs**:
   | Name | Type | Default | Description |
@@ -1676,8 +1683,11 @@ as-is; `Reshape` / `Broadcast` fall back to returning the input tensor unchanged
 
 ### 17.3 Normalization (7 nodes)
 
-Core normalization nodes (`comfy_extras/nodes_normalization.py`). Each node returns exactly one
-`TENSOR` output named `output`, preserves the input dtype/device and keeps no state:
+Core normalization nodes (`comfy_extras/nodes_normalization.py`). Every node returns a `TENSOR`
+named `output` as its first output, preserves the input dtype/device and keeps no state.
+`BatchNorm` and `InstanceNorm` append a `mean` / `var` pair after it — the per-channel statistics
+this call **actually normalized with**, ready to be wired into `Training Run Stats` (see 17.4) —
+while the remaining nodes return exactly one output.
 `weight` / `bias` (γ / β) are ordinary tensor inputs, and a `running_mean` / `running_var`
 tensor that is wired in is never modified in place, because the same tensor may be shared with
 other nodes. `BatchNorm` and `InstanceNorm` are **rank adaptive** — one node each covers the
@@ -1686,13 +1696,13 @@ other nodes. `BatchNorm` and `InstanceNorm` are **rank adaptive** — one node e
 
 | Node | Class | Inputs | Extra widget | Purpose |
 |------|-------|--------|--------------|---------|
-| BatchNorm | `NormalizationBatchNorm` | `tensor`, `weight` (optional), `bias` (optional), `running_mean` / `running_var` (optional), `mode` (optional STRING socket) | `eps` FLOAT 1e-5 (0~1e-2) | `F.batch_norm` over dimension 1 of `(N, C, ...)`; rank 2/3/4/5 behave like BatchNorm1d/1d/2d/3d |
-| InstanceNorm | `NormalizationInstanceNorm` | `tensor`, `weight`, `bias`, `running_mean` / `running_var`, `mode` — all optional except `tensor` | `eps` FLOAT 1e-5 (0~1e-2) | `F.instance_norm`, statistics per sample *and* per channel; needs rank ≥ 3 |
+| BatchNorm | `NormalizationBatchNorm` | `tensor`, `weight` (optional), `bias` (optional), `running_mean` / `running_var` (optional), `mode` (optional STRING socket) | `eps` FLOAT 1e-5 (0~1e-2) | `F.batch_norm` over dimension 1 of `(N, C, ...)`; rank 2/3/4/5 behave like BatchNorm1d/1d/2d/3d. Also outputs the per-channel `mean` / `var` (`(C,)`) this call used: the batch statistics in `train`, the wired running statistics in `eval` |
+| InstanceNorm | `NormalizationInstanceNorm` | `tensor`, `weight`, `bias`, `running_mean` / `running_var`, `mode` — all optional except `tensor` | `eps` FLOAT 1e-5 (0~1e-2) | `F.instance_norm`, statistics per sample *and* per channel; needs rank ≥ 3. Also outputs `mean` / `var`, collapsing the per-sample statistics to one value per channel (mean of within-sample variances + variance of the per-sample means), so the pair means the same thing as BatchNorm's and fits the same slots |
 | LayerNorm | `NormalizationLayerNorm` | `tensor`, `weight` (optional), `bias` (optional) | `normalized_shape` STRING `"last"`, `eps` FLOAT 1e-5 | `F.layer_norm` over the trailing dimensions (`"8,16"` = the last two) |
 | GroupNorm | `NormalizationGroupNorm` | `tensor`, `weight` (optional), `bias` (optional) | `num_groups` INT 1 (1~64), `eps` FLOAT 1e-5 | `F.group_norm`; `num_groups=1` normalizes over all channels |
 | RMSNorm | `NormalizationRMSNorm` | `tensor`, `weight` (optional) | `normalized_shape` STRING `"last"`, `eps` FLOAT 1e-6 | `F.rms_norm`; LLaMA-style (no mean subtraction, no bias) |
 | WeightNorm | `NormalizationWeightNorm` | `weight`, `g` (optional) | `dim` INT 0 (-8~7), `eps` FLOAT 1e-12 | Weight re-parameterization `g * v / ‖v‖₂` taken along `dim` |
-| SpectralNorm | `NormalizationSpectralNorm` | `weight`, `u` / `v` (optional) | `n_power_iterations` INT 1 (0~20), `dim` INT 0, `eps` FLOAT 1e-12 | Divides a weight by a deterministic power-iteration estimate of its largest singular value; also outputs `sigma` |
+| SpectralNorm | `NormalizationSpectralNorm` | `weight`, `u` / `v` (optional) | `n_power_iterations` INT 10 (0~20), `dim` INT 0, `eps` FLOAT 1e-12 | Divides a weight by a deterministic power-iteration estimate of its largest singular value; also outputs `sigma` |
 
 > The train/eval switch is an explicit link: `Training Mode` (17.4) publishes `train` / `eval` as
 > a STRING wired into the `mode` slot of `BatchNorm` / `InstanceNorm`. A link is required for
@@ -1714,13 +1724,16 @@ train/inference decision and the persistent running statistics into the normaliz
 | Node | Class | Inputs | Extra widget | Purpose |
 |------|-------|--------|--------------|---------|
 | Training Mode | `TrainingMode` | — | `mode` COMBO train/eval (default `train`) | Publishes `train` / `eval` as a STRING for the `mode` slots of `BatchNorm` / `InstanceNorm` |
-| Training Run Stats | `TrainingRunStats` | — | `running_mean` STRING `"0.0"`, `running_var` STRING `"1.0"` | Editable `running_mean` / `running_var`, emitted as two 1-D `TENSOR`s for the statistics slots |
+| Training Run Stats | `TrainingRunStats` | `mean` / `var` (optional `TENSOR` sockets) | `running_mean` STRING `"0.0"`, `running_var` STRING `"1.0"` | Emits `running_mean` / `running_var` as two 1-D `TENSOR`s for the statistics slots; once a socket is linked the **link wins** and the widget text above it is ignored |
 
 > Running statistics have to survive in a saved workflow, and a widget is the only place that
 > does, so they are typed in as comma separated numbers — one value per channel
 > (`"0.1,0.2,0.3"`) or a single value that the consumer broadcasts to every channel. Both nodes
 > are sources: leaving one on the canvas without wiring it is harmless, because a source node is
 > only evaluated when a consumer asks for it.
+> A linked `mean` / `var` socket **wins over** the widget text: the link carries the measured value
+> of the run that produced it, while the widget only holds whatever was typed when the graph was
+> saved, so handing a run's statistics forward to `eval` is a matter of two wires.
 
 ### 17.5 Regularization (1 node)
 
@@ -1879,7 +1892,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**140 nodes** across 22 categories (108 provided by ComfyDL + 14 core `Network & Layers/Activation`
+**108 nodes** across 20 categories (108 provided by ComfyDL + 14 core `Network & Layers/Activation`
 + 8 core `Network & Layers/Basic` + 7 core `Network & Layers/Normalization` + 1 core
 `Network & Layers/Regularization` + 2 core `Network & Layers/Training` nodes):
 
@@ -1889,10 +1902,13 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | d2l/CV Models | 5 | CNN fundamentals & model construction |
 | d2l/GAN | 2 | GAN training updates |
 | utilities | 4 | Windows MessageBox, NoOp pass-through, timing & a mysterious "?" (ComfyUI core category) |
-| d2l/Model Utils | 8 | Model info, mode, forward, layers, params, clone & persistence |
-| d2l/NLP Models | 16 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
+| d2l/Model Utils | 7 | Model info, mode, forward, layers, params, clone & persistence |
+| d2l/_Legacy/Model Utils | 1 | Deprecated (soft-archived): `Model Mode`; use the core `Training Mode` on tensor graphs |
+| d2l/NLP Models | 13 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
+| d2l/_Legacy/NLP Models | 3 | Deprecated (soft-archived): `Add & Norm`, `Transformer Encoder Block`, `Transformer Encoder` |
 | d2l/NLP Utils | 5 | Text tokenization & vocabularies |
-| d2l/Tensor Basic | 8 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
+| d2l/Tensor Basic | 5 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
+| d2l/_Legacy/Tensor Basic | 3 | Deprecated (soft-archived): `Broadcast`, `Reshape`, `Activation`, all with core equivalents |
 | d2l/TorchOps | 10 | Loss, optimization, metrics |
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
@@ -1908,4 +1924,6 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | Network & Layers/Regularization | 1 | Core element-wise dropout with a seeded mask (ComfyUI core category) |
 | Network & Layers/Training | 2 | Train/eval switch & running statistics for the normalization nodes (ComfyUI core category) |
 
-> The first 17 rows list the **108 ComfyDL-provided nodes**. `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation`, `Network & Layers/Basic`, `Network & Layers/Normalization`, `Network & Layers/Regularization` and `Network & Layers/Training` are pure ComfyUI core categories with no ComfyDL nodes.
+> The first 20 rows list the **108 ComfyDL-provided nodes** (7 of them soft-archived into
+> `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their display names carry a
+> `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes; `Network & Layers/Activation`, `Network & Layers/Basic`, `Network & Layers/Normalization`, `Network & Layers/Regularization` and `Network & Layers/Training` are pure ComfyUI core categories with no ComfyDL nodes.
