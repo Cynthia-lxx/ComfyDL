@@ -74,9 +74,9 @@
 
 ## 功能概览
 
-内置节点库共 **140 个节点**，涵盖 25 个类别 —— 其中 **108 个由 ComfyDL 提供**，
-另加在其之上新增的 32 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
-+ `Normalization` 7 个 + `Regularization` 1 个 + `Training` 2 个）：
+内置节点库共 **141 个节点**，涵盖 26 个类别 —— 其中 **108 个由 ComfyDL 提供**，
+另加在其之上新增的 33 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
++ `Normalization` 7 个 + `Regularization` 1 个 + `Training` 2 个，以及 `3d` → `Preview 3D` 1 个）：
 
 | 类别 | 节点数 | 说明 |
 |---|---|---|
@@ -91,7 +91,7 @@
 | **语义分割** | 4 | VOC 语义分割工具 |
 | **张量基础** | 5 | 张量 I/O、卷积、转置、广播、激活函数 |
 | **张量运算** | 10 | 损失、优化、评估指标 |
-| **可视化** | 12 | 图表与边界框可视化 |
+| **可视化** | 13 | 图表与边界框可视化 |
 | **已弃用 · 模型工具** | 1 | 已弃用（软归档）：Model Mode，纯 TENSOR 图改用核心 Training Mode |
 | **已弃用 · NLP 模型** | 3 | 已弃用（软归档）：Add & Norm、Transformer Encoder Block/Encoder |
 | **已弃用 · 张量基础** | 3 | 已弃用（软归档）：Broadcast、Reshape、Activation |

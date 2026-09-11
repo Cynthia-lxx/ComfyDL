@@ -76,9 +76,9 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ## Function Overview
 
-The built-in node library ships **140 nodes** across 25 categories — **108 provided by ComfyDL**
-plus 32 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Normalization` 7
-+ `Regularization` 1 + `Training` 2) that were added on top of it:
+The built-in node library ships **141 nodes** across 26 categories — **108 provided by ComfyDL**
+plus 33 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Normalization` 7
++ `Regularization` 1 + `Training` 2, plus `3d` → `Preview 3D` 1) that were added on top of it:
 
 | Category | Count | Description |
 |---|---|---|
@@ -93,7 +93,7 @@ plus 32 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **Segmentation** | 4 | VOC semantic segmentation tools |
 | **Tensor Basic** | 5 | Tensor I/O, conv, transpose, broadcast, activation |
 | **TorchOps** | 10 | Loss, optimization, metrics |
-| **Visualization** | 12 | Plots, charts & bounding box visualization |
+| **Visualization** | 13 | Plots, charts & bounding box visualization |
 | **d2l/_Legacy/Model Utils** | 1 | Deprecated (soft-archived): Model Mode; use the core Training Mode |
 | **d2l/_Legacy/NLP Models** | 3 | Deprecated (soft-archived): Add & Norm, Transformer Encoder Block/Encoder |
 | **d2l/_Legacy/Tensor Basic** | 3 | Deprecated (soft-archived): Broadcast, Reshape, Activation |

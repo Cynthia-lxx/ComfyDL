@@ -1063,7 +1063,7 @@ The 21 classes: `background, aeroplane, bicycle, bird, boat, bottle, bus, car, c
 
 ---
 
-## 11. d2l / Visualization (12 nodes)
+## 11. d2l / Visualization (13 nodes)
 
 Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix versions are ComfyUI output nodes (showing interactive plots directly in the UI), while non-suffix versions render plots as `IMAGE` tensors for downstream nodes.
 
@@ -1080,18 +1080,25 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 ### Show Heatmaps (Output)
 - **Class**: `CdlShowHeatmapsOutput`
 - **d2lcore function**: `show_heatmaps(matrices, xlabel, ylabel, titles, figsize, cmap)`
-- **Purpose**: Displays heatmap matrices in a grid layout. Output node variant, with colorbar. Input matrix dimensions are auto-promoted to 4D.
+- **Purpose**: Displays one heatmap with a colorbar. The tensor is first sampled down to an element budget, the axes named by `dims` (or picked by `auto_select`) are kept while every other axis is collapsed by `axis_reduce`, and the surviving 1/2/3 axes decide what is drawn: a bar-code like colour strip (1-D), a normal plane (2-D) or a translucent cube (3-D). Output node variant.
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `matrices` | `TENSOR` | — | Matrix tensor (2D=[H,W]→1×1, 3D=[N,H,W]→N×1, 4D=[N,M,H,W]) |
+  | `matrices` | `TENSOR` | — | Any-rank tensor; sampled to `max_samples` elements, reduced to 1~3 axes, then rendered |
   | `xlabel` | `STRING` | `""` | X-axis label |
   | `ylabel` | `STRING` | `""` | Y-axis label |
-  | `figsize_w` | `FLOAT` | 2.5 | Per-column width (0.5~20.0) |
-  | `figsize_h` | `FLOAT` | 2.5 | Per-row height (0.5~20.0) |
-  | `cmap` | `STRING` | `"Reds"` | matplotlib colormap name |
-  | `titles` | `STRING` | `""` | Subplot titles, comma-separated (optional) |
+  | `figsize_w` | `FLOAT` | 2.5 | Figure width (0.5~20.0) |
+  | `figsize_h` | `FLOAT` | 2.5 | Figure height (0.5~20.0) |
+  | `cmap` | `STRING` | `"Reds"` | matplotlib colormap name (unknown names fall back to `Reds`) |
+  | `titles` | `STRING` | `""` | Figure title (optional) |
+  | `max_samples` | `INT` | 262144 | Element budget; `0` never samples |
+  | `dims` | `STRING` | `"auto"` | `auto`, or 1~3 axis indices such as `0,1` / `-2,-1` |
+  | `axis_reduce` | `COMBO` | `mean` | How dropped axes are collapsed: `mean` / `max` / `first` / `mid` |
+  | `auto_select` | `COMBO` | `last_n` | Which axes `auto` keeps: `first_n` / `last_n` / `most_informative_n` / `least_informative_n` (information ≈ axis length) |
+  | `auto_n` | `INT` | 0 | How many axes `auto` keeps (0 = follow the input rank, capped at 3) |
+  | `on_error` | `COMBO` | `fallback_first_n` | Advanced. `error` raises `HeatmapSpecError`, `fallback_first_n` keeps going with the leading axes |
 - **Outputs**: None (output node)
+- **Behaviour change**: the old "grid of sub-plots" layout is gone — one figure, one heatmap. A 2-D input with `max_samples=0` and `dims=auto` is still pixel-identical to the old rendering.
 
 ### Show Heatmaps
 - **Class**: `CdlShowHeatmaps`
@@ -1102,6 +1109,29 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
   | Name | Type | Description |
   |------|------|-------------|
   | `image` | `IMAGE` | Rendered heatmap `[1, H, W, C]` |
+
+### Heatmaps to 3D
+- **Class**: `CdlHeatmapsTo3D`
+- **d2lcore function**: `show_heatmaps(matrices, ...)` (the same front end), rendered as geometry instead of pixels
+- **Purpose**: Exports the sampled / reduced heatmap as a real 3D model. 1-D becomes a flat colour ribbon with a real thickness, 2-D a coloured plate of the same thickness, 3-D a translucent cube (six outer faces plus the three orthogonal mid-planes so the interior stays readable). Colour is quantised into 64 OBJ materials and the alpha lives in the MTL, so the cube stays see-through. Connect `model_3d` to the built-in **Preview3D** node to look at it.
+- **Note**: After the `max_samples` budget, the mesh is strided once more to a polygon budget (1-D: 256 cells, 2-D: 64 per axis, 3-D: 32 per axis). The caption ("1D"/"2D"/"3D") is drawn as geometry, because a 3D file cannot carry text.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `matrices` | `TENSOR` | — | Same front end as Show Heatmaps: sampled, axis-selected, reduced |
+  | `cmap` | `STRING` | `"Reds"` | matplotlib colormap name |
+  | `opacity` | `FLOAT` | 0.6 | Material alpha (`d` in the MTL); below 1.0 the cube interior stays visible |
+  | `thickness` | `FLOAT` | 0.15 | Thickness of the 1-D / 2-D ribbon, in cell units |
+  | `max_samples` | `INT` | 262144 | Element budget; `0` never samples |
+  | `dims` | `STRING` | `"auto"` | `auto`, or 1~3 axis indices |
+  | `axis_reduce` | `COMBO` | `mean` | How dropped axes are collapsed |
+  | `auto_select` | `COMBO` | `last_n` | Which axes `auto` keeps |
+  | `auto_n` | `INT` | 0 | How many axes `auto` keeps |
+  | `on_error` | `COMBO` | `fallback_first_n` | Advanced. `error` raises, `fallback_first_n` recovers |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model_3d` | `FILE_3D_OBJ` | OBJ mesh + sibling MTL; connect it to `Preview3D` |
 
 ### Plot
 - **Class**: `CdlPlot`
@@ -1892,7 +1922,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**108 nodes** across 20 categories (108 provided by ComfyDL + 14 core `Network & Layers/Activation`
+**109 nodes** across 20 categories (108 provided by ComfyDL + 14 core `Network & Layers/Activation`
 + 8 core `Network & Layers/Basic` + 7 core `Network & Layers/Normalization` + 1 core
 `Network & Layers/Regularization` + 2 core `Network & Layers/Training` nodes):
 
@@ -1912,7 +1942,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 | d2l/TorchOps | 10 | Loss, optimization, metrics |
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
-| d2l/Visualization | 12 | Plots, charts & bounding box visualization |
+| d2l/Visualization | 13 | Plots, charts & bounding box visualization |
 | d2l/Datasets | 10 | Dataset download, loading, preview, and statistics |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |

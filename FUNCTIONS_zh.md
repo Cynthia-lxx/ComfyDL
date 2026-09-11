@@ -1062,7 +1062,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 11. d2l / Visualization（12 个节点）
+## 11. d2l / Visualization（13 个节点）
 
 可视化节点采用"双变体"设计模式：带 `(Output)` 后缀的版本是 ComfyUI 输出节点（直接在界面中显示交互式图表），不带后缀的版本将图表渲染为 `IMAGE` 张量，供下游节点使用。
 
@@ -1079,18 +1079,25 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 ### Show Heatmaps (Output)
 - **类名**：`CdlShowHeatmapsOutput`
 - **d2lcore 函数**：`show_heatmaps(matrices, xlabel, ylabel, titles, figsize, cmap)`
-- **功能**：在网格布局中显示热力图矩阵。输出节点变体，带颜色条。输入矩阵维度自动提升为 4D。
+- **功能**：显示单张热力图并附颜色条。先把张量抽样到元素预算以内，再保留 `dims` 指定的轴（或由 `auto_select` 自动挑选）、其余轴按 `axis_reduce` 归约；最终保留的 1/2/3 个轴决定画什么：条码状色带（1D）、常规平面（2D）或半透明立方体（3D）。输出节点变体。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `matrices` | `TENSOR` | — | 矩阵张量（2D=[H,W]→1×1，3D=[N,H,W]→N×1，4D=[N,M,H,W]） |
+  | `matrices` | `TENSOR` | — | 任意秩张量；先抽样到 `max_samples` 个元素，再降到 1~3 个轴后渲染 |
   | `xlabel` | `STRING` | `""` | X 轴标签 |
   | `ylabel` | `STRING` | `""` | Y 轴标签 |
-  | `figsize_w` | `FLOAT` | 2.5 | 每列宽度（0.5~20.0） |
-  | `figsize_h` | `FLOAT` | 2.5 | 每行高度（0.5~20.0） |
-  | `cmap` | `STRING` | `"Reds"` | matplotlib 颜色映射名称 |
-  | `titles` | `STRING` | `""` | 子图标题，逗号分隔（可选） |
+  | `figsize_w` | `FLOAT` | 2.5 | 图宽（0.5~20.0） |
+  | `figsize_h` | `FLOAT` | 2.5 | 图高（0.5~20.0） |
+  | `cmap` | `STRING` | `"Reds"` | matplotlib 颜色映射名称（未知名称回退为 `Reds`） |
+  | `titles` | `STRING` | `""` | 图标题（可选） |
+  | `max_samples` | `INT` | 262144 | 元素预算；`0` 表示不抽样 |
+  | `dims` | `STRING` | `"auto"` | `auto`，或 1~3 个轴索引如 `0,1` / `-2,-1` |
+  | `axis_reduce` | `COMBO` | `mean` | 被丢弃轴的归约方式：`mean` / `max` / `first` / `mid` |
+  | `auto_select` | `COMBO` | `last_n` | `auto` 保留哪些轴：`first_n` / `last_n` / `most_informative_n` / `least_informative_n`（信息量 ≈ 轴长度） |
+  | `auto_n` | `INT` | 0 | `auto` 保留几个轴（0 = 跟随输入秩，上限 3） |
+  | `on_error` | `COMBO` | `fallback_first_n` | 高级。`error` 直接抛 `HeatmapSpecError`，`fallback_first_n` 退回取前几个轴继续渲染 |
 - **输出**：无（输出节点）
+- **行为变更**：旧的"多子图阵列"布局已取消 —— 一张图只画一张热力图。2D 输入在 `max_samples=0` + `dims=auto` 下仍与旧版逐像素一致。
 
 ### Show Heatmaps
 - **类名**：`CdlShowHeatmaps`
@@ -1101,6 +1108,29 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `image` | `IMAGE` | 渲染后的热力图 `[1, H, W, C]` |
+
+### Heatmaps to 3D
+- **类名**：`CdlHeatmapsTo3D`
+- **d2lcore 函数**：`show_heatmaps(matrices, ...)`（复用同一前端），但把结果画成几何体而非像素
+- **功能**：把抽样/降维后的热力数据导出为真正的 3D 模型。1D → 有厚度的平放条码色带；2D → 同样厚度的彩色平板；3D → 半透明立方体（六个外表面 + 三个正交中截面，内部仍然可读）。颜色量化为 64 个 OBJ 材质，透明度写在 MTL 里，因此立方体保持半透明。把 `model_3d` 连到内置 **Preview3D** 节点即可查看。
+- **说明**：在 `max_samples` 预算之外，网格还会再做一次步进以控制面数（1D：256 格，2D：每轴 64，3D：每轴 32）。维度标注（"1D"/"2D"/"3D"）以几何体绘制，因为 3D 文件无法携带文字。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `matrices` | `TENSOR` | — | 与 Show Heatmaps 相同的前端：抽样、选轴、降维 |
+  | `cmap` | `STRING` | `"Reds"` | matplotlib 颜色映射名称 |
+  | `opacity` | `FLOAT` | 0.6 | 材质透明度（MTL 中的 `d`）；小于 1.0 时立方体内部可见 |
+  | `thickness` | `FLOAT` | 0.15 | 1D / 2D 色带的厚度，单位为格 |
+  | `max_samples` | `INT` | 262144 | 元素预算；`0` 表示不抽样 |
+  | `dims` | `STRING` | `"auto"` | `auto`，或 1~3 个轴索引 |
+  | `axis_reduce` | `COMBO` | `mean` | 被丢弃轴的归约方式 |
+  | `auto_select` | `COMBO` | `last_n` | `auto` 保留哪些轴 |
+  | `auto_n` | `INT` | 0 | `auto` 保留几个轴 |
+  | `on_error` | `COMBO` | `fallback_first_n` | 高级。`error` 抛错，`fallback_first_n` 回退 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model_3d` | `FILE_3D_OBJ` | OBJ 网格 + 同名 MTL；连到 `Preview3D` 查看 |
 
 ### Plot
 - **类名**：`CdlPlot`
@@ -1870,7 +1900,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **108 个节点**，分属 20 个类别（108 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
+共 **109 个节点**，分属 20 个类别（108 个由 ComfyDL 提供 + 14 个核心 `Network & Layers/Activation`
 节点 + 8 个核心 `Network & Layers/Basic` + 7 个核心 `Network & Layers/Normalization` + 1 个核心
 `Network & Layers/Regularization` + 2 个核心 `Network & Layers/Training` 节点）：
 
@@ -1890,7 +1920,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/TorchOps | 10 | 损失、优化、评估指标 |
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
-| d2l/Visualization | 12 | 图表与边界框可视化 |
+| d2l/Visualization | 13 | 图表与边界框可视化 |
 | d2l/Datasets | 10 | 数据集下载、加载、预览与统计 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
