@@ -4,6 +4,8 @@
 
 本文档详细说明 ComfyDL 中的每一个自定义节点：功能、输入与输出。节点集起初源于 d2l（动手学深度学习）教材代码库的映射，并持续扩展更多自主开发的节点。
 
+ComfyDL 以 **GPL-3.0** 授权（见 [LICENSE](LICENSE)），同时也随其自有的 GUI 版本 [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) 一起分发——在那里，下文所有节点都作为内置节点注册。
+
 ---
 
 ## 数据类型

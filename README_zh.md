@@ -11,6 +11,8 @@
 
 **ComfyDL** 让你通过连接 ComfyUI 中的节点来构建深度学习工作流——从 CNN 到 BERT，以及更多——而无需编写代码。它深受 `d2l` 代码库启发，并持续自主开发更多有用的节点——可视化、富有教育意义，非常适合快速原型开发。拖拽、连接，即刻看到结果。
 
+**ComfyDL 有自己的 GUI 版本：** [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) 把 ComfyDL 作为内置节点包注册在 ComfyUI 运行时分支之上——详见[安装](#安装)一节。
+
 ## 使用示例
 
 > **说明：** ComfyDL 随附的示例工作流现已**归档**。它们早于正在进行的节点重构，与当前节点集不再匹配，
@@ -26,7 +28,26 @@
 
 ## 安装
 
-> **此项目需要 ComfyUI。** 如果你还没有，请从以下地址下载：[https://github.com/Comfy-Org/ComfyUI](https://github.com/Comfy-Org/ComfyUI)
+有两种方式可以运行 ComfyDL：使用 GUI 版本，或按经典方式手动装进已有的 ComfyUI。
+
+### 方式一 —— GUI 版本：[ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI)
+
+[ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) 是 ComfyUI 的运行时分支，已把 ComfyDL
+作为内置节点包注册好。不需要放进 `custom_nodes`，不需要单独安装依赖，也不需要手动接线，
+只需要这个分支本身：
+
+```bash
+git clone https://github.com/Cynthia-lxx/ComfyDL_UI
+cd ComfyDL_UI
+penv\Scripts\python.exe main.py     # Windows
+penv/bin/python main.py             # Linux / macOS
+```
+
+细节见其说明文档：<https://github.com/Cynthia-lxx/ComfyDL_UI#readme>。
+
+### 方式二 —— 经典手动安装（装进已有的 ComfyUI）
+
+> **此方式需要 ComfyUI。** 如果你还没有，请从以下地址下载：[https://github.com/Comfy-Org/ComfyUI](https://github.com/Comfy-Org/ComfyUI)
 
 1. 进入你的 `custom_nodes` 文件夹：
 
@@ -99,7 +120,9 @@ ComfyDL/
 
 ## 许可证
 
-本项目基于 **MIT 许可证** 授权——详见 [LICENSE](./LICENSE) 文件。
+本项目基于 **GNU 通用公共许可证第 3 版**（或更高版本）授权——详见 [LICENSE](./LICENSE) 文件。
+ComfyDL 作为 [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) 项目的节点包分发，采用同一
+许可证；上游 ComfyUI 保留其自身版权与维护者。
 
 ---
 

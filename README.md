@@ -12,6 +12,8 @@
 
 **ComfyDL** lets you build deep learning workflows — from CNNs to BERT and beyond — by connecting nodes in ComfyUI, not by writing code. Built on a foundation inspired by the `d2l` codebase, it keeps evolving as we develop more useful nodes — visual, educational, and great for rapid prototyping. Drag, connect, and see results instantly.
 
+**ComfyDL has its own GUI version:** [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) ships ComfyDL as a built-in node pack on top of a ComfyUI runtime fork — see [Installation](#installation).
+
 ## Examples in Action
 
 > **Note:** The example workflows that used to ship with ComfyDL have been **archived**. They predate the
@@ -29,7 +31,27 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ## Installation
 
-> **This project requires ComfyUI.** If you don't have it, download from: [https://github.com/Comfy-Org/ComfyUI](https://github.com/Comfy-Org/ComfyUI)
+There are two ways to run ComfyDL: the GUI build, or the classic manual install into an
+existing ComfyUI.
+
+### Option 1 — the GUI build: [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI)
+
+[ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) is a runtime fork of ComfyUI that
+already ships ComfyDL as a built-in node pack. No `custom_nodes` step, no separate dependency
+install, no manual wiring — only the fork itself:
+
+```bash
+git clone https://github.com/Cynthia-lxx/ComfyDL_UI
+cd ComfyDL_UI
+penv\Scripts\python.exe main.py     # Windows
+penv/bin/python main.py             # Linux / macOS
+```
+
+Its README covers the details: <https://github.com/Cynthia-lxx/ComfyDL_UI#readme>.
+
+### Option 2 — the classic manual install into an existing ComfyUI
+
+> **This option requires ComfyUI.** If you don't have it, download from: [https://github.com/Comfy-Org/ComfyUI](https://github.com/Comfy-Org/ComfyUI)
 
 1. Navigate to your `custom_nodes` folder:
    
@@ -103,7 +125,10 @@ ComfyDL/
 
 ## License
 
-This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the **GNU General Public License v3.0** (or any later version) —
+see the [LICENSE](./LICENSE) file for details. ComfyDL is distributed as the node pack of the
+[ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) project and follows the same license;
+upstream ComfyUI keeps its own copyright and maintainers.
 
 ---
 

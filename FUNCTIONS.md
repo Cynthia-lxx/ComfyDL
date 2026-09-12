@@ -4,6 +4,8 @@
 
 This document details every custom node in ComfyDL: what it does, its inputs, and its outputs. The node suite began as a mapping of the `d2l` textbook codebase and keeps growing with self-developed nodes beyond it.
 
+ComfyDL is licensed under **GPL-3.0** (see [LICENSE](LICENSE)) and also ships as part of its own GUI build, [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI), where every node below is registered as a built-in node.
+
 ---
 
 ## Data Types

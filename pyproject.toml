@@ -2,7 +2,7 @@
 name = "ComfyDL"
 description = "ComfyUI custom nodes for Deep Learning (D2L): build CNN-to-BERT workflows by connecting nodes, no code required."
 version = "1.0.0"
-license = "MIT"
+license = "GPL-3.0-or-later"
 
 [project.urls]
 Repository = "https://github.com/Cynthia-lxx/ComfyDL"
