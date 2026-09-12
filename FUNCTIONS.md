@@ -1655,16 +1655,18 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Network & Layers (36 nodes)
+## 17. ComfyUI / Network & Layers (45 nodes)
 
 Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
-They live in five `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
-`nodes_normalization.py`, `nodes_pooling.py` and `nodes_convolution.py` — and form the
-**Comfy nodes → Network & Layers** branch of the node library, split into the `Activation`,
+They live in six `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
+`nodes_normalization.py`, `nodes_pooling.py`, `nodes_convolution.py` and `nodes_training.py` —
+and form the **Comfy nodes → Network & Layers** branch of the node library, split into the `Activation`,
 `Basic`, `Normalization`, `Regularization`, `Training`, `Pooling` and `Convolution` groups below. All of them exchange data on the shared `TENSOR` slot type, preserve the input
 dtype/device, and are stateless: learnable parameters such as `weight` and `bias` are tensors fed
 through input slots instead of being initialised inside the node, so a node is a pure function and
-can be wired straight to the ComfyDL tensor nodes listed above.
+can be wired straight to the ComfyDL tensor nodes listed above. The `Training` group additionally
+introduces two first-class graph value types, `PARAMS` and `OPTIMIZER`, which let the same
+stateless convention express *trainable* parameters and an optimisation loop.
 
 ### 17.1 Activation (14 nodes)
 
@@ -1747,10 +1749,15 @@ other nodes. `BatchNorm` and `InstanceNorm` are **rank adaptive** — one node e
 > `num_groups`, a repeated dimension) falls back to a documented default with a printed warning,
 > so a widget value never breaks a workflow.
 
-### 17.4 Training (2 nodes)
+### 17.4 Training (11 nodes)
 
-The two small "state" nodes (`comfy_extras/nodes_normalization.py`) that carry the
-train/inference decision and the persistent running statistics into the normalization nodes.
+Two families share the `Network & Layers/Training` category. The first is the pair of small "state"
+nodes (`comfy_extras/nodes_normalization.py`) that carry the train/inference decision and the
+persistent running statistics into the normalization nodes. The second is the training closure
+(`comfy_extras/nodes_training.py`), which adds the two graph value types `PARAMS` and `OPTIMIZER`
+and a node that runs a real optimisation loop inside itself.
+
+**Train / eval state (2 nodes)**
 
 | Node | Class | Inputs | Extra widget | Purpose |
 |------|-------|--------|--------------|---------|
@@ -1765,6 +1772,44 @@ train/inference decision and the persistent running statistics into the normaliz
 > A linked `mean` / `var` socket **wins over** the widget text: the link carries the measured value
 > of the run that produced it, while the widget only holds whatever was typed when the graph was
 > saved, so handing a run's statistics forward to `eval` is a matter of two wires.
+
+**Learnable parameters, optimizer settings and the training loop (9 nodes)**
+
+`PARAMS` is an ordered `{name: nn.Parameter}` mapping; `OPTIMIZER` is an optimizer *configuration*
+(`OptimizerConfig`), not a live optimizer — the hyper-parameters live on widgets and only the
+setting travels on the link. ComfyUI runs an entire prompt inside `torch.inference_mode()`, so an
+autograd graph cannot cross a node boundary and no node can differentiate another node's tensor:
+the trainer therefore runs forward, backward and `optimizer.step()` **itself**, inside a
+`torch.inference_mode(False)` block. Parameter names follow the module / `safetensors` convention
+(`layer0.weight`, `layer0.bias`, `layer1.weight`, …), so a trained set can be taken apart with
+`Parameters to Tensor` and wired straight into the stateless `Basic` / `Conv` layer nodes.
+
+| Node | Class | Inputs | Extra widgets | Purpose |
+|------|-------|--------|---------------|---------|
+| Learnable Parameters | `TrainingParameters` | `tensor` (optional) | `name` STRING `"weight"`, `shape` STRING `"2,3"`, `init` COMBO normal/zeros/ones/xavier_uniform/kaiming_uniform (default `normal`), `seed` INT 0 | Creates one named trainable parameter; a **wired tensor wins over** `shape` / `init`. Produces `PARAMS` |
+| Merge Parameters | `TrainingParametersMerge` | `params a`, `params b` | — | Concatenates two sets into one; a name present on both sides is *renamed* (`weight` → `weight_2`) with a warning instead of being overwritten, so no weight is ever lost silently |
+| Parameters to Tensor | `TrainingParametersExtract` | `params` | `name` STRING `"weight"` | Publishes one entry as a plain `TENSOR` (detached) — the bridge from the trainer back to the `Basic` / `Conv` layer nodes (`layer0.weight` → `Linear.weight`); an unknown name raises a readable error listing every available one |
+| Optimizer | `TrainingOptimizer` | — | `optimizer` COMBO AdamW/Adam/SGD/RMSprop (default `AdamW`), `lr` FLOAT 0.01 (0~1), `momentum` 0.9 (0~0.999), `beta1` 0.9 (0~0.999), `beta2` 0.999 (0~0.9999), `eps` 1e-8 (0~1e-3), `weight_decay` 0.01 (0~1), `amsgrad` false | Publishes the settings as `OPTIMIZER`; `SGD` reads `momentum`, `Adam`/`AdamW` read the betas, `RMSprop` reads `beta2` as its `alpha` |
+| Training Loop | `TrainingLoop` | `x`, `y` (`TENSOR`), `optimizer` (`OPTIMIZER`), `params` (optional `PARAMS`, warm start) | `hidden` STRING `"8"`, `activation` COMBO relu/gelu/tanh/sigmoid/none (default `relu`), `loss` COMBO mse/l1/cross_entropy (default `mse`), `steps` INT 200 (1~100000), `batch_size` INT 0 (0~65536; 0 = whole dataset per step), `seed` INT 0 | The trainer: builds an MLP (`in_features` from `x`, `out_features` from `y`, activation between the hidden layers only, `hidden` empty = plain linear regression) and runs `steps` × (forward + backward + `optimizer.step()`). Outputs `params`, `loss` (scalar), `loss_history` (1-D, one entry per step) and `prediction` (detached) |
+| Save Parameters | `TrainingSaveParameters` | `params` | `filename_prefix` STRING `"comfydl/parameters"` | Writes a `.safetensors` file into the output folder and **passes the set through**, so saving does not end the graph; also outputs the absolute `path` |
+| Load Parameters | `TrainingLoadParameters` | — | `path` STRING `"comfydl/parameters_00001_.safetensors"` | Reads a set back (relative to the output folder, or absolute); non-float entries are dropped and non-float32 ones promoted, both with a report, and a missing file raises a readable error |
+| Parameters to Text | `TrainingParametersToText` | `params` | — | Encodes the set as `CDLPARAMS1:<base64 safetensors>` and pushes it into the node's own UI box, so it can be copied out and pasted into a widget — the channel that survives inside a saved `.json` workflow without touching the disk |
+| Text to Parameters | `TrainingTextToParameters` | — | `text` STRING, multiline (default = a valid 2×3 `weight`) | Decodes the text form back into `PARAMS`; surrounding whitespace is ignored and an unusable string raises an error that says what to paste |
+
+> Determinism and caching: `Training Loop` seeds both the initialisation and the batch shuffling
+> from its `seed` widget and restores the process RNG afterwards, so the same inputs always produce
+> the same run and the node's cached output stays meaningful. Every output is detached, so no
+> autograd graph is left inside ComfyUI's cache, and a warm start (`params` linked) copies only the
+> entries whose name *and* shape match the freshly built network, reporting every missing and every
+> skipped key rather than dropping it silently.
+>
+> `PARAMS` and `OPTIMIZER` are declared in `comfy_api/latest/_io.py` (`@comfytype`) exactly like the
+> `TENSOR` and `LORA_MODEL` types, so they need no frontend registration: unregistered slot types
+> render with the frontend's default colour and can be wired like any other type.
+>
+> The `loss_history` output is an ordinary 1-D tensor, so the convergence curve can be inspected
+> with any of the visualisation nodes above; `loss` is its last entry as a scalar.
+
 
 ### 17.5 Regularization (1 node)
 
@@ -2119,7 +2164,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 59
+**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 68
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2148,7 +2193,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Regularization | 1 | Core element-wise dropout with a seeded mask (ComfyUI core category) |
-| Network & Layers/Training | 2 | Train/eval switch & running statistics for the normalization nodes (ComfyUI core category) |
+| Network & Layers/Training | 11 | Train/eval switch, running statistics, learnable parameters, optimizer settings and the training loop (ComfyUI core category) |
 | Network & Layers/Pooling | 2 | Max / average pooling, sliding-window and adaptive (`output_size=1` is global pooling) (ComfyUI core category) |
 | Network & Layers/Convolution | 2 | Convolution & transposed convolution on the `TENSOR` type, weights wired in (ComfyUI core category) |
 | model/loaders | 7 | Checkpoint / diffusion-model / VAE / CLIP loaders at state_dict level (ComfyUI core category) |
@@ -2162,8 +2207,8 @@ ComfyUI core nodes on top. Both registers are listed below:
 > `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
 >
 > The other 12 rows are pure ComfyUI core categories with no ComfyDL nodes: the seven
-> `Network & Layers/*` groups (36 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
-> The shipped library therefore totals **168 nodes across 32 categories** = 109 ComfyDL + 59 core.
+> `Network & Layers/*` groups (45 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
+> The shipped library therefore totals **177 nodes across 32 categories** = 109 ComfyDL + 68 core.
 >
 > Two rows list fewer nodes than the host registry holds in that category, because the registry
 > also counts native nodes that this refactor did not touch: `model/latent` (whose third node is

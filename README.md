@@ -50,9 +50,9 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ## Function Overview
 
-The built-in node library ships **168 nodes** across 32 categories — **109 provided by ComfyDL**
-plus 59 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Normalization` 7
-+ `Regularization` 1 + `Training` 2 + `Pooling` 2 + `Convolution` 2; `model` → `loaders` 7
+The built-in node library ships **177 nodes** across 32 categories — **109 provided by ComfyDL**
+plus 68 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Normalization` 7
++ `Regularization` 1 + `Training` 11 + `Pooling` 2 + `Convolution` 2; `model` → `loaders` 7
 + `merging` 11 + `latent` 2 + `conditioning` 2; `3d` → `Preview 3D` 1) that were added on top of it:
 
 | Category | Count | Description |
@@ -79,7 +79,7 @@ plus 59 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **conversion** | 6 |  |
 
 > The 20 categories above are the ones ComfyDL itself provides; the other 12 categories of the
-> shipped library (`Network & Layers/*`, `model/*` and `3d`, 59 nodes in total) are pure ComfyUI
+> shipped library (`Network & Layers/*`, `model/*` and `3d`, 68 nodes in total) are pure ComfyUI
 > core categories.
 >
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).

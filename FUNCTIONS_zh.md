@@ -1654,14 +1654,17 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 17. ComfyUI / Network & Layers（36 个节点）
+## 17. ComfyUI / Network & Layers（45 个节点）
 
-由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的五个模块
-`nodes_activation.py`、`nodes_layers.py`、`nodes_normalization.py`、`nodes_pooling.py` 与
-`nodes_convolution.py` 中，在节点库中构成 **Comfy节点 → Network & Layers** 分支，下分 `Activation`、
+由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的六个模块
+`nodes_activation.py`、`nodes_layers.py`、`nodes_normalization.py`、`nodes_pooling.py`、
+`nodes_convolution.py` 与 `nodes_training.py`
+中，在节点库中构成 **Comfy节点 → Network & Layers** 分支，下分 `Activation`、
 `Basic`、`Normalization`、`Regularization`、`Training`、`Pooling` 与 `Convolution` 七组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的
 dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，
-节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。
+节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。`Training`
+组另外引入 `PARAMS` 与 `OPTIMIZER` 两个一等图数据类型，让同一套无状态约定也能表达**可训练**
+参数与优化循环。
 
 ### 17.1 Activation（14 个节点）
 
@@ -1736,10 +1739,14 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 > 控件文本无法解析时（过期的 `normalized_shape`、不能整除的 `num_groups`、重复的维度等）会回退到
 > 既定默认值并打印提示，因此一个控件取值永远不会弄坏工作流。
 
-### 17.4 Training（2 个节点）
+### 17.4 Training（11 个节点）
 
-两个小巧的“状态”节点（`comfy_extras/nodes_normalization.py`），把训练/推理决策与可持久化的运行
-统计量送入归一化节点。
+`Network & Layers/Training` 分类下有两族节点。第一族是两个小巧的“状态”节点
+（`comfy_extras/nodes_normalization.py`），把训练/推理决策与可持久化的运行统计量送入归一化节点。
+第二族是训练闭环（`comfy_extras/nodes_training.py`），新增 `PARAMS` 与 `OPTIMIZER` 两个图数据
+类型，并提供一个在**节点内部**完成真实优化循环的训练节点。
+
+**训练/推理状态（2 个节点）**
 
 | 节点 | 类名 | 输入 | 额外控件 | 作用 |
 |------|-------|--------|--------------|---------|
@@ -1751,6 +1758,41 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 > 数据源：只拖到画布上不接线是无害的，因为源节点只有在被消费者需要时才会被求值。
 > 接入 `mean` / `var` 插槽时以**连线为准**：连线是被测量出来的当次运行值，而控件只保存了当初
 > 画图时敲进去的数字，因此把 `train` 的统计量转交 `eval` 只需两根线，不必手工抄数。
+
+**可学习参数、优化器设定与训练循环（9 个节点）**
+
+`PARAMS` 是有序的 `{name: nn.Parameter}` 映射；`OPTIMIZER` 是优化器**配置**
+（`OptimizerConfig`）而不是活的优化器——超参留在控件上，只有设定随连线传递。ComfyUI 会把整轮
+prompt 包在 `torch.inference_mode()` 里执行，因此 autograd 图无法跨越节点边界，任何节点都不能对
+另一个节点产出的张量求导：训练节点只能**自己**完成前向、反向与 `optimizer.step()`，且必须在
+`torch.inference_mode(False)` 块内进行。参数名沿用模块 / `safetensors` 约定
+（`layer0.weight`、`layer0.bias`、`layer1.weight` …），因此训练产物可以用 `Parameters to Tensor`
+拆出来，直接接进无状态的 `Basic` / `Conv` 层节点。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|---------------|---------|
+| Learnable Parameters | `TrainingParameters` | `tensor`（可选） | `name` STRING `"weight"`、`shape` STRING `"2,3"`、`init` COMBO normal/zeros/ones/xavier_uniform/kaiming_uniform（默认 `normal`）、`seed` INT 0 | 创建一个具名可训练参数；**连入的张量优先于** `shape` / `init`。输出 `PARAMS` |
+| Merge Parameters | `TrainingParametersMerge` | `params a`、`params b` | — | 把两份参数集合并成一份；两侧同名的键会被**改名**（`weight` → `weight_2`）并告警，而不是覆盖，因此不会静默丢权重 |
+| Parameters to Tensor | `TrainingParametersExtract` | `params` | `name` STRING `"weight"` | 把其中一个条目以普通 `TENSOR` 输出（已 detach）——这是训练产物回流 `Basic` / `Conv` 层节点的桥（`layer0.weight` → `Linear.weight`）；名字不存在时抛可读错误并列出全部可用名字 |
+| Optimizer | `TrainingOptimizer` | — | `optimizer` COMBO AdamW/Adam/SGD/RMSprop（默认 `AdamW`）、`lr` FLOAT 0.01 (0~1)、`momentum` 0.9 (0~0.999)、`beta1` 0.9 (0~0.999)、`beta2` 0.999 (0~0.9999)、`eps` 1e-8 (0~1e-3)、`weight_decay` 0.01 (0~1)、`amsgrad` false | 把设定以 `OPTIMIZER` 发布；`SGD` 读 `momentum`，`Adam`/`AdamW` 读两个 beta，`RMSprop` 把 `beta2` 当作 `alpha` |
+| Training Loop | `TrainingLoop` | `x`、`y`（`TENSOR`）、`optimizer`（`OPTIMIZER`）、`params`（可选 `PARAMS`，热启动） | `hidden` STRING `"8"`、`activation` COMBO relu/gelu/tanh/sigmoid/none（默认 `relu`）、`loss` COMBO mse/l1/cross_entropy（默认 `mse`）、`steps` INT 200 (1~100000)、`batch_size` INT 0 (0~65536；0 = 每步全批)、`seed` INT 0 | 训练器：按 `hidden` 搭一个小 MLP（`in_features` 取自 `x`、`out_features` 取自 `y`，激活只加在隐层之间，`hidden` 留空即纯线性回归），执行 `steps` 次「前向 + 反向 + `optimizer.step()`」。输出 `params`、`loss`（标量）、`loss_history`（1 维，每步一项）与 `prediction`（已 detach） |
+| Save Parameters | `TrainingSaveParameters` | `params` | `filename_prefix` STRING `"comfydl/parameters"` | 把参数集写成输出目录下的 `.safetensors` 文件并**原样透传**该集合，因此保存不会中断图；另输出绝对 `path` |
+| Load Parameters | `TrainingLoadParameters` | — | `path` STRING `"comfydl/parameters_00001_.safetensors"` | 读回参数集（相对输出目录或绝对路径）；非浮点条目被丢弃、非 float32 被升位，两者都会报告；文件缺失时抛可读错误 |
+| Parameters to Text | `TrainingParametersToText` | `params` | — | 把参数集编码为 `CDLPARAMS1:<base64 safetensors>` 并推进节点自身的 UI 文本框，可直接复制粘贴进控件——这条通道能让参数随 `.json` 工作流一起保存，不碰磁盘 |
+| Text to Parameters | `TrainingTextToParameters` | — | `text` STRING，多行（默认值是一个合法的 2×3 `weight`） | 把文本形式解码回 `PARAMS`；忽略首尾空白与换行，内容不可解时抛出说明「该粘贴什么」的错误 |
+
+> 确定性与缓存：`Training Loop` 用 `seed` 控件同时给初始化和批采样播种，用完还原进程 RNG，
+> 因此同样的输入永远得到同样的结果，节点的缓存输出也始终有意义。所有输出都已 detach，不会把
+> autograd 图带进 ComfyUI 的输出缓存；热启动（接入 `params`）只复制名字**与形状**都匹配的条目，
+> 缺失与跳过的键会逐条报告，绝不静默丢弃。
+>
+> `PARAMS` 与 `OPTIMIZER` 在 `comfy_api/latest/_io.py` 里以 `@comfytype` 声明，与 `TENSOR`、
+> `LORA_MODEL` 完全同构，因此无需前端注册：未登记的插槽类型使用前端默认配色，可以像其他类型一样
+> 连线。
+>
+> `loss_history` 就是一条普通 1 维张量，收敛曲线可直接交给上述任意可视化节点查看；`loss` 是它的
+> 最后一个元素（标量）。
+
 
 ### 17.5 Regularization（1 个节点）
 
@@ -2073,7 +2115,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 59 个 ComfyUI
+共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 68 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2102,7 +2144,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | Network & Layers/Basic | 8 | `TENSOR` 类型上的核心基础层与张量运算（ComfyUI 核心分类） |
 | Network & Layers/Normalization | 7 | `TENSOR` 类型上的核心归一化（ComfyUI 核心分类） |
 | Network & Layers/Regularization | 1 | 带种子掩码的核心逐元素 dropout（ComfyUI 核心分类） |
-| Network & Layers/Training | 2 | 归一化节点的训练/推理开关与运行统计量（ComfyUI 核心分类） |
+| Network & Layers/Training | 11 | 归一化节点的训练/推理开关与运行统计量，以及可学习参数、优化器设定与训练循环（ComfyUI 核心分类） |
 | Network & Layers/Pooling | 2 | `TENSOR` 类型上的最大 / 平均池化，滑动窗口与自适应（`output_size=1` 即全局池化）（ComfyUI 核心分类） |
 | Network & Layers/Convolution | 2 | `TENSOR` 类型上的卷积与转置卷积，权重走连线传入（ComfyUI 核心分类） |
 | model/loaders | 7 | state_dict 层面的 checkpoint / 扩散模型 / VAE / CLIP 加载（ComfyUI 核心分类） |
@@ -2113,9 +2155,9 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 > 前 20 行统计 **ComfyDL 提供的 109 个节点**（其中 7 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
 >
-> 其余 12 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：七个 `Network & Layers/*` 分组（36 个节点）、
+> 其余 12 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：七个 `Network & Layers/*` 分组（45 个节点）、
 > 四个 `model/*` 分组（22 个节点）与 `3d`（1 个节点）。因此随宿主发布的节点库总计
-> **168 个节点、32 个分类** = 109 个 ComfyDL + 59 个核心节点。
+> **177 个节点、32 个分类** = 109 个 ComfyDL + 68 个核心节点。
 >
 > 有两行的数量少于宿主注册表在该分类下的实际节点数，因为注册表把本次改动未触及的原生节点也算在内：
 > `model/latent`（其第三个节点是 `LatentCompositeMasked`）以及 `image`、`utilities`、`image/color`、

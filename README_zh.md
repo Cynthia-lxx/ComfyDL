@@ -46,9 +46,9 @@
 
 ## 功能概览
 
-内置节点库共 **168 个节点**，涵盖 32 个类别 —— 其中 **109 个由 ComfyDL 提供**，
-另加在其之上新增的 59 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
-+ `Normalization` 7 个 + `Regularization` 1 个 + `Training` 2 个 + `Pooling` 2 个 + `Convolution` 2 个；
+内置节点库共 **177 个节点**，涵盖 32 个类别 —— 其中 **109 个由 ComfyDL 提供**，
+另加在其之上新增的 68 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
++ `Normalization` 7 个 + `Regularization` 1 个 + `Training` 11 个 + `Pooling` 2 个 + `Convolution` 2 个；
 `model` → `loaders` 7 个 + `merging` 11 个 + `latent` 2 个 + `conditioning` 2 个；
 `3d` → `Preview 3D` 1 个）：
 
@@ -76,7 +76,7 @@
 | **conversion** | 6 |  |
 
 > 上表 20 个类别是 ComfyDL 自身提供的部分；随宿主发布的节点库另外 12 个类别（`Network & Layers/*`、
-> `model/*` 与 `3d` 三条分支，共 59 个节点）是纯 ComfyUI 核心分类。
+> `model/*` 与 `3d` 三条分支，共 68 个节点）是纯 ComfyUI 核心分类。
 >
 > 完整节点参考，请参阅 **[FUNCTIONS.md](./FUNCTIONS.md)**（英文）或 **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)**（中文）。
 
