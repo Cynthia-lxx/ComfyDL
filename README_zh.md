@@ -2,8 +2,8 @@
 <div align="center">
 <h1>ComfyDL</h1>
 <p>深度学习，只需几次点击！</p>
+  <a href="./README.md">English Version / 英文版</a>
 </div>
-[English Version / 英文版](./README.md)
 
 ---
 
