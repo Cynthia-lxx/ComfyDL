@@ -1658,7 +1658,7 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Network & Layers (62 nodes)
+## 17. ComfyUI / Network & Layers (64 nodes)
 
 Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
 They live in nine `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
@@ -1755,7 +1755,7 @@ other nodes. `BatchNorm` and `InstanceNorm` are **rank adaptive** — one node e
 > `num_groups`, a repeated dimension) falls back to a documented default with a printed warning,
 > so a widget value never breaks a workflow.
 
-### 17.4 Training (17 nodes)
+### 17.4 Training (19 nodes)
 
 Four families share the `Network & Layers/Training` category. The first is the pair of small "state"
 nodes (`comfy_extras/nodes_normalization.py`) that carry the train/inference decision and the
@@ -1764,7 +1764,9 @@ persistent running statistics into the normalization nodes. The second is the tr
 and a node that runs a real optimisation loop inside itself. The third and fourth
 (`comfy_extras/nodes_lm.py`, reform step 8) add the language-model pipeline — a spec chain that
 declares a transformer's structure on the `MODELSPEC` slot, a build node that materialises it into a
-real `nn.Module` on the `NNMODEL` slot, and the train / forward / generate trio that operates on it.
+real `nn.Module` on the `NNMODEL` slot, the train / forward / generate trio that operates on it, and
+the save / load pair that persists the trained model to disk (spec chain + vocabulary ride along in
+the file's metadata, so a loaded model talks text again in a fresh session).
 
 **Train / eval state (2 nodes)**
 
@@ -1840,12 +1842,19 @@ teaching run already converges.
 | Language Model Train | `LanguageModelTrain` | `model` (`NNMODEL`), `x` / `y` (`TENSOR`, from Sliding Window), `optimizer` (`OPTIMIZER`) | `steps` INT 300 (1~100000), `batch_size` INT 0 (0 = whole dataset), `seed` INT 0 | The trainer: `steps` × (forward + backward + `optimizer.step()`) on a deep copy inside `torch.inference_mode(False)`; outputs the trained `model` (eval mode), the last `loss` (FLOAT) and `loss_history` (1-D); the same seed reproduces the same run |
 | Language Model Forward | `LanguageModelForward` | `model` (`NNMODEL`), `ids` (`TENSOR`, 1-D stream or 2-D batch) | — | Pure inference pass in eval mode; outputs `logits` `(batch, seq_len, vocab_size)` — `[..., t, :]` is the distribution of the token *after* position `t` |
 | Language Model Generate | `LanguageModelGenerate` | `model` (`NNMODEL`), `vocab` (optional `VOCAB`), `prefix_ids` (optional `TENSOR`, overrides the text) | `prefix` STRING `"the "`, `num_tokens` INT 16, `temperature` FLOAT 1.0 (0 = greedy), `seed` INT 0 | Autoregressive continuation: greedy or temperature-sampled next tokens on a local `torch.Generator`; outputs `ids` (prefix + generated) and the decoded `text` (empty when no `vocab` is linked) |
+| Language Model Save | `LanguageModelSave` | `model` (`NNMODEL`), `vocab` (`VOCAB`) | `filename_prefix` STRING `comfydl/language_models` | Writes the model to `output/<prefix>_00001_.safetensors` — the weights plus the spec chain and the vocabulary in the file's metadata (format tag `comfydl-lm-1`); passes `model` through unchanged (saving does not end the graph) and reports the absolute `path` |
+| Language Model Load | `LanguageModelLoad` | — | `path` STRING `comfydl/language_models_00001_.safetensors` | Reads such a file back (relative paths start at `output/`): rebuilds the model from the metadata blueprint, restores the weights with a strict `load_state_dict` and returns `model` (eval mode), `vocab` and the `params` count; files not written by `Save Language Model` are rejected with a readable error |
 
 > The spec chain is a tuple of frozen dataclasses — plain values, no tensors — so it is safe for
 > ComfyUI to cache, and every node on it is a pure function of its input. Parameter names follow the
 > `state_dict` convention (`embedding.weight`, `blocks.0.attn.q_proj.weight`, `head.weight`, …), so a
-> trained model can be taken apart with `Parameters to Tensor` or saved once a save node exists.
-> `Language Model Generate` with `temperature` 0 is a deterministic argmax walk; with a temperature
+> trained model can be taken apart with `Parameters to Tensor` or saved and reloaded with the
+> Save / Load pair above — the file's metadata carries the blueprint and the vocabulary, so a
+> reloaded model talks text again in a fresh session without re-running `Vocab Build`. The two
+> shipped template workflows (`Language Model - Train and Chat` and `Language Model - Load and Chat`
+> in `example_workflows/`) demonstrate exactly this split: the first trains, chats and saves; the
+> second loads that file and chats again. `Language Model Generate` with `temperature` 0 is a
+> deterministic argmax walk; with a temperature
 > it samples from the softmax on a seeded local generator, so the same seed and prefix always
 > reproduce the same continuation.
 
@@ -2262,7 +2271,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 85
+**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 87
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2292,7 +2301,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | Network & Layers/Attention | 7 | Core multi-head / self / cross attention, the assembled post-LN Transformer encoder block, the causal / padding masks and the sinusoidal positional encoding, weights wired in (ComfyUI core category) |
 | Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Regularization | 1 | Core element-wise dropout with a seeded mask (ComfyUI core category) |
-| Network & Layers/Training | 17 | Train/eval switch, running statistics, learnable parameters, optimizer settings, the training loop and the language-model pipeline (spec chain / build / train / forward / generate) (ComfyUI core category) |
+| Network & Layers/Training | 19 | Train/eval switch, running statistics, learnable parameters, optimizer settings, the training loop, the language-model pipeline (spec chain / build / train / forward / generate) and its save / load persistence (ComfyUI core category) |
 | Network & Layers/Pooling | 2 | Max / average pooling, sliding-window and adaptive (`output_size=1` is global pooling) (ComfyUI core category) |
 | Network & Layers/Convolution | 2 | Convolution & transposed convolution on the `TENSOR` type, weights wired in (ComfyUI core category) |
 | Network & Layers/Text | 4 | Core text pipeline: vocabulary build, text encode / decode and the sliding-window next-token dataset on the `VOCAB` type (ComfyUI core category) |
@@ -2307,8 +2316,8 @@ ComfyUI core nodes on top. Both registers are listed below:
 > `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
 >
 > The other 14 rows are pure ComfyUI core categories with no ComfyDL nodes: the nine
-> `Network & Layers/*` groups (62 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
-> The shipped library therefore totals **194 nodes across 34 categories** = 109 ComfyDL + 85 core.
+> `Network & Layers/*` groups (64 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
+> The shipped library therefore totals **196 nodes across 34 categories** = 109 ComfyDL + 87 core.
 >
 > Two rows list fewer nodes than the host registry holds in that category, because the registry
 > also counts native nodes that this refactor did not touch: `model/latent` (whose third node is

@@ -1,0 +1,711 @@
+{
+  "version": 0.4,
+  "last_node_id": 12,
+  "last_link_id": 15,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "TextVocabBuild",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        360,
+        170
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "vocab",
+          "type": "VOCAB",
+          "links": [
+            1,
+            3,
+            12,
+            15
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "vocab_size",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextVocabBuild"
+      },
+      "widgets_values": [
+        "the quick brown fox jumps over the lazy dog",
+        "char",
+        1
+      ]
+    },
+    {
+      "id": 2,
+      "type": "TextEncode",
+      "pos": [
+        460,
+        300
+      ],
+      "size": [
+        340,
+        150
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "vocab",
+          "type": "VOCAB",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "ids",
+          "type": "TENSOR",
+          "links": [
+            2
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextEncode"
+      },
+      "widgets_values": [
+        "the quick brown fox jumps over the lazy dog"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "TextSlidingWindow",
+      "pos": [
+        860,
+        300
+      ],
+      "size": [
+        320,
+        130
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "ids",
+          "type": "TENSOR",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "x",
+          "type": "TENSOR",
+          "links": [
+            9
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "links": [
+            10
+          ],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextSlidingWindow"
+      },
+      "widgets_values": [
+        4
+      ]
+    },
+    {
+      "id": 4,
+      "type": "LanguageModelEmbedding",
+      "pos": [
+        40,
+        640
+      ],
+      "size": [
+        360,
+        200
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "spec",
+          "type": "MODELSPEC",
+          "link": null
+        },
+        {
+          "name": "vocab",
+          "type": "VOCAB",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "spec",
+          "type": "MODELSPEC",
+          "links": [
+            4
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "d_model",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LanguageModelEmbedding"
+      },
+      "widgets_values": [
+        16,
+        32,
+        true
+      ]
+    },
+    {
+      "id": 5,
+      "type": "LanguageModelTransformerBlock",
+      "pos": [
+        460,
+        640
+      ],
+      "size": [
+        340,
+        220
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "spec",
+          "type": "MODELSPEC",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "spec",
+          "type": "MODELSPEC",
+          "links": [
+            5
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "d_model",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LanguageModelTransformerBlock"
+      },
+      "widgets_values": [
+        4,
+        128,
+        "relu",
+        0.0
+      ]
+    },
+    {
+      "id": 6,
+      "type": "LanguageModelTransformerBlock",
+      "pos": [
+        860,
+        640
+      ],
+      "size": [
+        340,
+        220
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "spec",
+          "type": "MODELSPEC",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "spec",
+          "type": "MODELSPEC",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "d_model",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LanguageModelTransformerBlock"
+      },
+      "widgets_values": [
+        4,
+        128,
+        "relu",
+        0.0
+      ]
+    },
+    {
+      "id": 7,
+      "type": "LanguageModelBuild",
+      "pos": [
+        1260,
+        640
+      ],
+      "size": [
+        320,
+        150
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "spec",
+          "type": "MODELSPEC",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "NNMODEL",
+          "links": [
+            7
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "params",
+          "type": "INT",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LanguageModelBuild"
+      },
+      "widgets_values": [
+        0,
+        "fixed"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "TrainingOptimizer",
+      "pos": [
+        40,
+        980
+      ],
+      "size": [
+        360,
+        290
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "optimizer",
+          "type": "OPTIMIZER",
+          "links": [
+            8
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TrainingOptimizer"
+      },
+      "widgets_values": [
+        "AdamW",
+        0.01,
+        0.9,
+        0.9,
+        0.999,
+        1e-8,
+        0.01,
+        false
+      ]
+    },
+    {
+      "id": 9,
+      "type": "LanguageModelTrain",
+      "pos": [
+        1660,
+        520
+      ],
+      "size": [
+        380,
+        330
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "NNMODEL",
+          "link": 7
+        },
+        {
+          "name": "x",
+          "type": "TENSOR",
+          "link": 9
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "link": 10
+        },
+        {
+          "name": "optimizer",
+          "type": "OPTIMIZER",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "NNMODEL",
+          "links": [
+            11,
+            14
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "loss",
+          "type": "FLOAT",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "loss_history",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LanguageModelTrain"
+      },
+      "widgets_values": [
+        300,
+        0,
+        0,
+        "fixed"
+      ]
+    },
+    {
+      "id": 10,
+      "type": "LanguageModelGenerate",
+      "pos": [
+        1660,
+        160
+      ],
+      "size": [
+        380,
+        300
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "NNMODEL",
+          "link": 11
+        },
+        {
+          "name": "vocab",
+          "type": "VOCAB",
+          "link": 12
+        },
+        {
+          "name": "prefix_ids",
+          "type": "TENSOR",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "ids",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [
+            13
+          ],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LanguageModelGenerate"
+      },
+      "widgets_values": [
+        "the ",
+        16,
+        1.0,
+        0,
+        "fixed"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "SaveText",
+      "pos": [
+        2100,
+        160
+      ],
+      "size": [
+        340,
+        150
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveText"
+      },
+      "widgets_values": [
+        "comfydl/language_model_reply",
+        "txt"
+      ]
+    },
+    {
+      "id": 12,
+      "type": "LanguageModelSave",
+      "pos": [
+        2100,
+        520
+      ],
+      "size": [
+        360,
+        170
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "NNMODEL",
+          "link": 14
+        },
+        {
+          "name": "vocab",
+          "type": "VOCAB",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "NNMODEL",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "path",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LanguageModelSave"
+      },
+      "widgets_values": [
+        "comfydl/language_models"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "VOCAB"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "TENSOR"
+    ],
+    [
+      3,
+      1,
+      0,
+      4,
+      1,
+      "VOCAB"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "MODELSPEC"
+    ],
+    [
+      5,
+      5,
+      0,
+      6,
+      0,
+      "MODELSPEC"
+    ],
+    [
+      6,
+      6,
+      0,
+      7,
+      0,
+      "MODELSPEC"
+    ],
+    [
+      7,
+      7,
+      0,
+      9,
+      0,
+      "NNMODEL"
+    ],
+    [
+      8,
+      8,
+      0,
+      9,
+      3,
+      "OPTIMIZER"
+    ],
+    [
+      9,
+      3,
+      0,
+      9,
+      1,
+      "TENSOR"
+    ],
+    [
+      10,
+      3,
+      1,
+      9,
+      2,
+      "TENSOR"
+    ],
+    [
+      11,
+      9,
+      0,
+      10,
+      0,
+      "NNMODEL"
+    ],
+    [
+      12,
+      1,
+      0,
+      10,
+      1,
+      "VOCAB"
+    ],
+    [
+      13,
+      10,
+      1,
+      11,
+      0,
+      "STRING"
+    ],
+    [
+      14,
+      9,
+      0,
+      12,
+      0,
+      "NNMODEL"
+    ],
+    [
+      15,
+      1,
+      0,
+      12,
+      1,
+      "VOCAB"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5,
+      "offset": [
+        40,
+        40
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "test"
+    }
+  }
+}

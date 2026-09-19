@@ -1657,7 +1657,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 17. ComfyUI / Network & Layers（62 个节点）
+## 17. ComfyUI / Network & Layers（64 个节点）
 
 由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的九个模块
 `nodes_activation.py`、`nodes_layers.py`、`nodes_attention.py`、`nodes_normalization.py`、
@@ -1744,14 +1744,15 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 > 控件文本无法解析时（过期的 `normalized_shape`、不能整除的 `num_groups`、重复的维度等）会回退到
 > 既定默认值并打印提示，因此一个控件取值永远不会弄坏工作流。
 
-### 17.4 Training（17 个节点）
+### 17.4 Training（19 个节点）
 
 `Network & Layers/Training` 分类下有四族节点。第一族是两个小巧的“状态”节点
 （`comfy_extras/nodes_normalization.py`），把训练/推理决策与可持久化的运行统计量送入归一化节点。
 第二族是训练闭环（`comfy_extras/nodes_training.py`），新增 `PARAMS` 与 `OPTIMIZER` 两个图数据
 类型，并提供一个在**节点内部**完成真实优化循环的训练节点。第三、四族（`comfy_extras/nodes_lm.py`，
 reform step 8）是语言模型流水线——在 `MODELSPEC` 槽上以 spec 链声明 Transformer 的结构，由 Build 节点
-物化为真正的 `nn.Module` 走 `NNMODEL` 槽，再加上 Train / Forward / Generate 三件套。
+物化为真正的 `nn.Module` 走 `NNMODEL` 槽，再加上 Train / Forward / Generate 三件套与 Save / Load
+持久化对：spec 链与词表随权重一并封进 `.safetensors` 的 metadata，重载后无需重跑词表即可继续对话。
 
 **训练/推理状态（2 个节点）**
 
@@ -1818,10 +1819,15 @@ Sliding Window` 产出（上下文，下一 token）样本对；损失是对**�
 | Language Model Train | `LanguageModelTrain` | `model`（`NNMODEL`）、`x` / `y`（`TENSOR`，来自 Sliding Window）、`optimizer`（`OPTIMIZER`） | `steps` INT 300 (1~100000)、`batch_size` INT 0（0 = 全批）、`seed` INT 0 | 训练器：在 `torch.inference_mode(False)` 内对深拷贝执行 `steps` 次「前向 + 反向 + `optimizer.step()`」；输出训练后的 `model`（eval 态）、末步 `loss`（FLOAT）与 `loss_history`（1 维）；同 seed 完全复现 |
 | Language Model Forward | `LanguageModelForward` | `model`（`NNMODEL`）、`ids`（`TENSOR`，1 维流或 2 维批） | — | 纯推理前向（eval 态）；输出 `logits` `(batch, seq_len, vocab_size)` —— `[..., t, :]` 是位置 `t` **之后**那个 token 的分布 |
 | Language Model Generate | `LanguageModelGenerate` | `model`（`NNMODEL`）、`vocab`（可选 `VOCAB`）、`prefix_ids`（可选 `TENSOR`，覆盖文本前缀） | `prefix` STRING `"the "`、`num_tokens` INT 16、`temperature` FLOAT 1.0（0 = 贪心）、`seed` INT 0 | 自回归续写：在本地 `torch.Generator` 上贪心或按温度采样下一 token；输出 `ids`（前缀 + 生成）与解码后的 `text`（未接 `vocab` 时为空串） |
+| Language Model Save | `LanguageModelSave` | `model`（`NNMODEL`）、`vocab`（`VOCAB`） | `filename_prefix` STRING `comfydl/language_models` | 把模型写入 `output/<前缀>_00001_.safetensors`——权重之外，spec 链与词表一并封进文件 metadata（格式标签 `comfydl-lm-1`）；`model` 原样透传（保存不打断图），并输出绝对 `path` |
+| Language Model Load | `LanguageModelLoad` | — | `path` STRING `comfydl/language_models_00001_.safetensors` | 读回这类文件（相对路径从 `output/` 起算）：按 metadata 中的蓝图重建模型，以严格 `load_state_dict` 还原权重，输出 `model`（eval 态）、`vocab` 与 `params` 计数；非 Save Language Model 写出的文件会被可读报错拒绝 |
 
 > spec 链是冻结 dataclass 组成的元组——纯值、不含张量——因此交给 ComfyUI 缓存是安全的，链上每个节点
 > 都是其输入的纯函数。参数名沿用 `state_dict` 约定（`embedding.weight`、`blocks.0.attn.q_proj.weight`、
-> `head.weight` …），训练产物可用 `Parameters to Tensor` 拆解，将来也便于接保存节点。
+> `head.weight` …），训练产物可用 `Parameters to Tensor` 拆解，也可用上方的 Save / Load 对保存与重载——
+> 文件 metadata 自带蓝图与词表，新会话里重载即可继续对话，无需重跑 `Vocab Build`。随宿主发布的两个模板
+> 工作流（`example_workflows/` 下的 `Language Model - Train and Chat` 与 `Language Model - Load and Chat`）
+> 演示的正是这种分体式用法：前者训练、对话并保存，后者加载该文件继续对话。
 > `Language Model Generate` 在 `temperature` 为 0 时是确定性的 argmax 走位；非 0 时在带种子的本地
 > 生成器上从 softmax 采样，同一 seed 与前缀必然复现同一段续写。
 
@@ -2196,7 +2202,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 85 个 ComfyUI
+共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 87 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2226,7 +2232,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | Network & Layers/Attention | 7 | 多头 / 自 / 交叉注意力、组装好的 post-LN Transformer 编码器块、因果 / 填充掩码与正弦位置编码，权重走插槽（ComfyUI 核心分类） |
 | Network & Layers/Normalization | 7 | `TENSOR` 类型上的核心归一化（ComfyUI 核心分类） |
 | Network & Layers/Regularization | 1 | 带种子掩码的核心逐元素 dropout（ComfyUI 核心分类） |
-| Network & Layers/Training | 17 | 训练/推理开关、运行统计量、可学习参数、优化器设定、训练循环与语言模型流水线（spec 链 / Build / Train / Forward / Generate）（ComfyUI 核心分类） |
+| Network & Layers/Training | 19 | 训练/推理开关、运行统计量、可学习参数、优化器设定、训练循环、语言模型流水线（spec 链 / Build / Train / Forward / Generate）及其 Save / Load 持久化（ComfyUI 核心分类） |
 | Network & Layers/Pooling | 2 | `TENSOR` 类型上的最大 / 平均池化，滑动窗口与自适应（`output_size=1` 即全局池化）（ComfyUI 核心分类） |
 | Network & Layers/Convolution | 2 | `TENSOR` 类型上的卷积与转置卷积，权重走连线传入（ComfyUI 核心分类） |
 | Network & Layers/Text | 4 | 核心文本流水线：`VOCAB` 类型上的词表构建、文本编码 / 解码与滑窗下一词数据集（ComfyUI 核心分类） |
@@ -2238,9 +2244,9 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 > 前 20 行统计 **ComfyDL 提供的 109 个节点**（其中 8 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
 >
-> 其余 14 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：九个 `Network & Layers/*` 分组（62 个节点）、
+> 其余 14 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：九个 `Network & Layers/*` 分组（64 个节点）、
 > 四个 `model/*` 分组（22 个节点）与 `3d`（1 个节点）。因此随宿主发布的节点库总计
-> **194 个节点、34 个分类** = 109 个 ComfyDL + 85 个核心节点。
+> **196 个节点、34 个分类** = 109 个 ComfyDL + 87 个核心节点。
 >
 > 有两行的数量少于宿主注册表在该分类下的实际节点数，因为注册表把本次改动未触及的原生节点也算在内：
 > `model/latent`（其第三个节点是 `LatentCompositeMasked`）以及 `image`、`utilities`、`image/color`、
