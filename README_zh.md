@@ -67,9 +67,9 @@ penv/bin/python main.py             # Linux / macOS
 
 ## 功能概览
 
-内置节点库共 **177 个节点**，涵盖 32 个类别 —— 其中 **109 个由 ComfyDL 提供**，
-另加在其之上新增的 68 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
-+ `Normalization` 7 个 + `Regularization` 1 个 + `Training` 11 个 + `Pooling` 2 个 + `Convolution` 2 个；
+内置节点库共 **181 个节点**，涵盖 33 个类别 —— 其中 **109 个由 ComfyDL 提供**，
+另加在其之上新增的 72 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
++ `Attention` 4 个 + `Normalization` 7 个 + `Regularization` 1 个 + `Training` 11 个 + `Pooling` 2 个 + `Convolution` 2 个；
 `model` → `loaders` 7 个 + `merging` 11 个 + `latent` 2 个 + `conditioning` 2 个；
 `3d` → `Preview 3D` 1 个）：
 
@@ -80,7 +80,7 @@ penv/bin/python main.py             # Linux / macOS
 | **设备工具** | 3 | GPU/CPU 设备查询 |
 | **GAN** | 2 | GAN 训练更新 |
 | **模型工具** | 7 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
-| **NLP 模型** | 13 | RNN/GRU/RNNLM、注意力与 Seq2Seq 构件 |
+| **NLP 模型** | 12 | RNN/GRU/RNNLM、注意力与 Seq2Seq 构件 |
 | **NLP 工具** | 5 | 文本分词与词表 |
 | **目标检测** | 10 | 锚框、IoU、NMS |
 | **语义分割** | 4 | VOC 语义分割工具 |
@@ -88,7 +88,7 @@ penv/bin/python main.py             # Linux / macOS
 | **张量运算** | 10 | 损失、优化、评估指标 |
 | **可视化** | 13 | 图表与边界框可视化 |
 | **已弃用 · 模型工具** | 1 | 已弃用（软归档）：Model Mode，纯 TENSOR 图改用核心 Training Mode |
-| **已弃用 · NLP 模型** | 3 | 已弃用（软归档）：Add & Norm、Transformer Encoder Block/Encoder |
+| **已弃用 · NLP 模型** | 4 | 已弃用（软归档）：Multi-Head Attention、Add & Norm、Transformer Encoder Block/Encoder |
 | **已弃用 · 张量基础** | 3 | 已弃用（软归档）：Broadcast、Reshape、Activation |
 | **Comfy 图像** | 1 | 图像批次逐通道统计 |
 | **Comfy 图像/颜色** | 3 | 灰度、归一化与亮度/对比度/饱和度 |

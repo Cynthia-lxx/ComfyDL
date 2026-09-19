@@ -13,11 +13,13 @@ d2lcore classes:
                        num_blks, dropout, use_bias)
 
 Deprecated nodes (still registered, moved to ``d2l/_Legacy/NLP Models``):
+  - MultiHeadAttention       : superseded by the core attention nodes in
+                               ``Network & Layers/Attention``
   - AddNorm                  : the same math is available on a bare TENSOR as
                                ``NormalizationLayerNorm`` after ``BasicAdd``
   - TransformerEncoderBlock  : likewise composed from the core layer nodes
   - TransformerEncoder       : likewise composed from the core layer nodes
-  These three build a ``cdlModel`` (module-level) rather than operating on a
+  These build a ``cdlModel`` (module-level) rather than operating on a
   TENSOR, so they keep working; new tensor graphs should compose the core nodes.
 
 All builder nodes return a cdlModel (nn.Module) that can be wired into
@@ -118,7 +120,17 @@ NODE_DISPLAY_NAME_MAPPINGS["CdlAdditiveAttention"] = "Additive Attention"
 
 
 class CdlMultiHeadAttention:
-    """Build a multi-head attention layer.
+    """DEPRECATED - use the core attention nodes instead.
+
+    Superseded on bare TENSOR graphs: ``Network & Layers/Attention`` now offers
+    ``AttentionMultihead`` (q/k/v wired separately), the ``AttentionSelf`` /
+    ``AttentionCross`` conveniences and the assembled ``TransformerEncoderBlock``,
+    all stateless with the projection weights wired in as tensors. This node
+    builds a ``cdlModel`` (module-level) instead of operating on a TENSOR, so it
+    is kept registered and still works; new tensor graphs should use the core
+    attention nodes.
+
+    Build a multi-head attention layer.
 
     d2lcore: MultiHeadAttention(num_hiddens, num_heads, dropout, bias)
     Inputs:
@@ -147,7 +159,8 @@ class CdlMultiHeadAttention:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/NLP Models"
+    CATEGORY = "d2l/_Legacy/NLP Models"
+    DEPRECATED = True
 
     def execute(self, num_hiddens, num_heads, dropout, use_bias):
         if num_hiddens % num_heads != 0:
@@ -158,7 +171,7 @@ class CdlMultiHeadAttention:
 
 
 NODE_CLASS_MAPPINGS["CdlMultiHeadAttention"] = CdlMultiHeadAttention
-NODE_DISPLAY_NAME_MAPPINGS["CdlMultiHeadAttention"] = "Multi-Head Attention"
+NODE_DISPLAY_NAME_MAPPINGS["CdlMultiHeadAttention"] = "Multi-Head Attention (DEPRECATED)"
 
 
 class CdlPositionalEncoding:

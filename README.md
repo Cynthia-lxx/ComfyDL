@@ -72,8 +72,9 @@ Its README covers the details: <https://github.com/Cynthia-lxx/ComfyDL_UI#readme
 
 ## Function Overview
 
-The built-in node library ships **177 nodes** across 32 categories — **109 provided by ComfyDL**
-plus 68 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Normalization` 7
+The built-in node library ships **181 nodes** across 33 categories — **109 provided by ComfyDL**
+plus 72 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Attention` 4
++ `Normalization` 7
 + `Regularization` 1 + `Training` 11 + `Pooling` 2 + `Convolution` 2; `model` → `loaders` 7
 + `merging` 11 + `latent` 2 + `conditioning` 2; `3d` → `Preview 3D` 1) that were added on top of it:
 
@@ -84,7 +85,7 @@ plus 68 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
 | **Model Utils** | 7 | Model info, mode, forward, layers, params, clone & persistence |
-| **NLP Models** | 13 | RNN/GRU/RNNLM, attention & Seq2Seq building blocks |
+| **NLP Models** | 12 | RNN/GRU/RNNLM, attention & Seq2Seq building blocks |
 | **NLP Utils** | 5 | Text tokenization & vocabularies |
 | **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
 | **Segmentation** | 4 | VOC semantic segmentation tools |
@@ -92,7 +93,7 @@ plus 68 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **TorchOps** | 10 | Loss, optimization, metrics |
 | **Visualization** | 13 | Plots, charts & bounding box visualization |
 | **d2l/_Legacy/Model Utils** | 1 | Deprecated (soft-archived): Model Mode; use the core Training Mode |
-| **d2l/_Legacy/NLP Models** | 3 | Deprecated (soft-archived): Add & Norm, Transformer Encoder Block/Encoder |
+| **d2l/_Legacy/NLP Models** | 4 | Deprecated (soft-archived): Multi-Head Attention, Add & Norm, Transformer Encoder Block/Encoder |
 | **d2l/_Legacy/Tensor Basic** | 3 | Deprecated (soft-archived): Broadcast, Reshape, Activation |
 | **image (Comfy core)** | 1 | Per-channel image batch statistics |
 | **image/color (Comfy core)** | 3 | Grayscale, normalize & brightness/contrast/saturation |
