@@ -1658,19 +1658,21 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Network & Layers (49 nodes)
+## 17. ComfyUI / Network & Layers (62 nodes)
 
 Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
-They live in seven `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
-`nodes_attention.py`, `nodes_normalization.py`, `nodes_pooling.py`, `nodes_convolution.py` and
-`nodes_training.py` —
+They live in nine `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
+`nodes_attention.py`, `nodes_normalization.py`, `nodes_pooling.py`, `nodes_convolution.py`,
+`nodes_training.py`, `nodes_nlp.py` and `nodes_lm.py` —
 and form the **Comfy nodes → Network & Layers** branch of the node library, split into the `Activation`,
-`Basic`, `Attention`, `Normalization`, `Regularization`, `Training`, `Pooling` and `Convolution` groups below. All of them exchange data on the shared `TENSOR` slot type, preserve the input
+`Basic`, `Attention`, `Normalization`, `Regularization`, `Training`, `Pooling`, `Convolution` and
+`Text` groups below. All of them exchange data on the shared `TENSOR` slot type, preserve the input
 dtype/device, and are stateless: learnable parameters such as `weight` and `bias` are tensors fed
 through input slots instead of being initialised inside the node, so a node is a pure function and
 can be wired straight to the ComfyDL tensor nodes listed above. The `Training` group additionally
 introduces two first-class graph value types, `PARAMS` and `OPTIMIZER`, which let the same
-stateless convention express *trainable* parameters and an optimisation loop.
+stateless convention express *trainable* parameters and an optimisation loop; the `Training` and
+`Text` groups together add `VOCAB`, `MODELSPEC` and `NNMODEL` for the language-model pipeline.
 
 ### 17.1 Activation (14 nodes)
 
@@ -1753,13 +1755,16 @@ other nodes. `BatchNorm` and `InstanceNorm` are **rank adaptive** — one node e
 > `num_groups`, a repeated dimension) falls back to a documented default with a printed warning,
 > so a widget value never breaks a workflow.
 
-### 17.4 Training (11 nodes)
+### 17.4 Training (17 nodes)
 
-Two families share the `Network & Layers/Training` category. The first is the pair of small "state"
+Four families share the `Network & Layers/Training` category. The first is the pair of small "state"
 nodes (`comfy_extras/nodes_normalization.py`) that carry the train/inference decision and the
 persistent running statistics into the normalization nodes. The second is the training closure
 (`comfy_extras/nodes_training.py`), which adds the two graph value types `PARAMS` and `OPTIMIZER`
-and a node that runs a real optimisation loop inside itself.
+and a node that runs a real optimisation loop inside itself. The third and fourth
+(`comfy_extras/nodes_lm.py`, reform step 8) add the language-model pipeline — a spec chain that
+declares a transformer's structure on the `MODELSPEC` slot, a build node that materialises it into a
+real `nn.Module` on the `NNMODEL` slot, and the train / forward / generate trio that operates on it.
 
 **Train / eval state (2 nodes)**
 
@@ -1813,6 +1818,36 @@ the trainer therefore runs forward, backward and `optimizer.step()` **itself**, 
 >
 > The `loss_history` output is an ordinary 1-D tensor, so the convergence curve can be inspected
 > with any of the visualisation nodes above; `loss` is its last entry as a scalar.
+
+**Language models: spec chain, build, train, generate (6 nodes)**
+
+The language-model pipeline (`comfy_extras/nodes_lm.py`, reform step 8). Because a gradient cannot
+cross a node boundary (see above), the *structure* of a transformer is declared as a chain of frozen
+blueprints on the new `MODELSPEC` slot — the embedding link first, one link per transformer block —
+and `Language Model Build` materialises the chain into a real `nn.Module` on the `NNMODEL` slot.
+`Language Model Train` then runs the full forward + backward + `optimizer.step()` closure itself, on
+a **deep copy**, returning a *new* trained model so the cached input stays untouched. The dataset
+comes from the `Text` group (17.9): `Vocab Build → Text Encode → Sliding Window` produces the
+`(context, next-token)` pairs, and the loss is cross entropy over *every* position (each token
+predicts its successor, the last position predicts the wired target), which is why a 300-step
+teaching run already converges.
+
+| Node | Class | Inputs | Extra widgets | Purpose |
+|------|-------|--------|---------------|---------|
+| Language Model Embedding | `LanguageModelEmbedding` | `spec` (optional `MODELSPEC`, replaces an existing chain's embedding link), `vocab` (optional `VOCAB`, overrides the widget) | `vocab_size` INT 16, `d_model` INT 32, `include_position` BOOLEAN true | The first spec link: token embedding width + vocabulary size + the optional fixed sinusoidal position encoding (no parameters); outputs the one-link `spec` chain and `d_model` |
+| Language Model Transformer Block | `LanguageModelTransformerBlock` | `spec` (`MODELSPEC`) | `num_heads` INT 4 (1~64), `d_ffn` INT 128, `activation` COMBO relu/gelu, `dropout` FLOAT 0.0 (0~0.9) | Appends one pre-LN block (`x + attn(LN(x))` then `x + ffn(LN(x))`) to the chain; the width is **read from the chain**, so a mismatched block is impossible to wire; chain as many as wanted |
+| Language Model Build | `LanguageModelBuild` | `spec` (`MODELSPEC`) | `seed` INT 0 | Materialises the chain into a seeded `nn.Module` (Xavier-uniform linears, zero biases, N(0, 0.01) embeddings; RNG saved/restored); outputs `model` and the `params` count |
+| Language Model Train | `LanguageModelTrain` | `model` (`NNMODEL`), `x` / `y` (`TENSOR`, from Sliding Window), `optimizer` (`OPTIMIZER`) | `steps` INT 300 (1~100000), `batch_size` INT 0 (0 = whole dataset), `seed` INT 0 | The trainer: `steps` × (forward + backward + `optimizer.step()`) on a deep copy inside `torch.inference_mode(False)`; outputs the trained `model` (eval mode), the last `loss` (FLOAT) and `loss_history` (1-D); the same seed reproduces the same run |
+| Language Model Forward | `LanguageModelForward` | `model` (`NNMODEL`), `ids` (`TENSOR`, 1-D stream or 2-D batch) | — | Pure inference pass in eval mode; outputs `logits` `(batch, seq_len, vocab_size)` — `[..., t, :]` is the distribution of the token *after* position `t` |
+| Language Model Generate | `LanguageModelGenerate` | `model` (`NNMODEL`), `vocab` (optional `VOCAB`), `prefix_ids` (optional `TENSOR`, overrides the text) | `prefix` STRING `"the "`, `num_tokens` INT 16, `temperature` FLOAT 1.0 (0 = greedy), `seed` INT 0 | Autoregressive continuation: greedy or temperature-sampled next tokens on a local `torch.Generator`; outputs `ids` (prefix + generated) and the decoded `text` (empty when no `vocab` is linked) |
+
+> The spec chain is a tuple of frozen dataclasses — plain values, no tensors — so it is safe for
+> ComfyUI to cache, and every node on it is a pure function of its input. Parameter names follow the
+> `state_dict` convention (`embedding.weight`, `blocks.0.attn.q_proj.weight`, `head.weight`, …), so a
+> trained model can be taken apart with `Parameters to Tensor` or saved once a save node exists.
+> `Language Model Generate` with `temperature` 0 is a deterministic argmax walk; with a temperature
+> it samples from the softmax on a seeded local generator, so the same seed and prefix always
+> reproduce the same continuation.
 
 
 ### 17.5 Regularization (1 node)
@@ -1897,7 +1932,7 @@ expressed by leaving the optional `bias` slot unconnected.
 > point but different (fp16 activations with fp32 weights), the common type wins and the
 > computation happens there instead of raising a dtype-mismatch error.
 
-### 17.8 Attention (4 nodes)
+### 17.8 Attention (7 nodes)
 
 Core attention nodes (`comfy_extras/nodes_attention.py`), the sequence-layer counterpart of the
 `Basic` family. They follow the same convention as `Linear`: the four projection weights (q / k / v
@@ -1907,7 +1942,8 @@ link of `Training Mode` (17.4), and the attention-weight dropout is drawn from a
 `torch.Generator` seeded by the `seed` widget, so the same seed reproduces the same output bit for
 bit. `AttentionSelf` / `AttentionCross` are the common shapes of `AttentionMultihead` with the q/k/v
 source decided by the node, and `TransformerEncoderBlock` assembles the whole post-LN residual block
-from the wired weights, so one block costs one node instead of seven.
+from the wired weights, so one block costs one node instead of seven. The three mask / position
+utilities (reform step 8) feed the `mask` slots of every node above and the language-model pipeline.
 
 | Node | Class | Inputs | Extra widgets | Purpose |
 |------|-------|--------|---------------|---------|
@@ -1915,6 +1951,9 @@ from the wired weights, so one block costs one node instead of seven.
 | Self-Attention | `AttentionSelf` | `tensor`, the same weight / bias / mask / mode set | same | `AttentionMultihead` with `q = k = v = tensor` — the most common form; output shape equals input shape when `out_weight` is square |
 | Cross-Attention | `AttentionCross` | `tensor` (queries), `context` (keys & values), the same weight / bias / mask / mode set | same | `AttentionMultihead` with q from `tensor` and k/v from `context` — the encoder-decoder / multimodal form |
 | Transformer Encoder Block | `TransformerEncoderBlock` | `tensor`, the four attention weights (square `(E, E)` for the residual), `ffn1_weight` (`(ffn_dim, E)`) / `ffn2_weight` (`(E, ffn_dim)`), the attention & FFN biases (optional), `ln1_weight` / `ln1_bias` / `ln2_weight` / `ln2_bias` (optional `(E,)`; unconnected = non-affine LayerNorm), `mask`, `mode` | `num_heads` INT 4 (1~64), `dropout_p` FLOAT 0.0 (0~0.9), `ffn_activation` COMBO relu/gelu (default `relu`), `seed` INT 0 | One post-LN encoder block: `LN → MHA → Add → LN → FFN → Add`; stack blocks by feeding one output into the next block's `tensor` |
+| Causal Mask | `AttentionCausalMask` | — | `seq_len` INT 8 (1~65536) | The lower-triangular boolean `(seq_len, seq_len)` mask (diagonal included), `True` = attend — the decoder / language-model mask that makes attention autoregressive |
+| Padding Mask | `AttentionPaddingMask` | `lengths` (`(batch,)` integer) | `max_len` INT 0 (0 = read from `max(lengths)`) | The per-sample validity mask `(batch, 1, 1, max_len)`: `True` for positions `< lengths[i]`, `False` for the padded tail; broadcasts over heads and queries |
+| Positional Encoding | `AttentionPositionalEncoding` | `tensor` (optional `(..., length, width)`; when wired the output is `tensor + encoding` and the widgets are read from its shape) | `length` INT 8, `width` INT 32 | The fixed sinusoidal position table `(length, width)` ("Attention Is All You Need", no learnable parameters); outputs `encoding` and the additive-injected `output` |
 
 > A boolean `mask` follows the `F.scaled_dot_product_attention` convention — `True` means "attend",
 > the *opposite* of `torch.nn.MultiheadAttention`, where a `True` position is blocked; an additive
@@ -1924,6 +1963,33 @@ from the wired weights, so one block costs one node instead of seven.
 > to their common dtype (fp16 activations with fp32 weights run in fp32), and a wiring error (a
 > non-divisible `num_heads`, a mismatched weight shape) raises a message that names the expected
 > shape instead of being swallowed.
+>
+> The three utilities are pure functions: `Causal Mask` / `Padding Mask` emit the exact boolean
+> tables the attention nodes' `mask` slots expect (no inversion needed anywhere), and
+> `Positional Encoding` is the same table the `Language Model Embedding` link adds when
+> `include_position` is on — the standalone node covers encoder-style stacks that inject it
+> themselves.
+
+### 17.9 Text (4 nodes)
+
+The text half of the language-model pipeline (`comfy_extras/nodes_nlp.py`, reform step 8 — the
+pre-existing `comfy_extras/nodes_text.py` remains the unrelated Save Text output node), operating on
+the new `VOCAB` slot type and plain `torch.long` index tensors. Everything is deterministic: the vocabulary is counted in frequency
+order (descending, then alphabetical), so the same corpus always builds the same vocabulary, and
+`<unk>` is reserved at index 0 — encoding an unseen token maps to it instead of raising. The model
+half lives in the `Training` group (17.4).
+
+| Node | Class | Inputs | Extra widgets | Purpose |
+|------|-------|--------|---------------|---------|
+| Vocab Build | `TextVocabBuild` | — | `corpus` STRING multiline (default the pangram `"the quick brown fox jumps over the lazy dog"`), `level` COMBO char/word (default `char`), `min_freq` INT 1 | Builds the frozen vocabulary from a corpus; outputs `vocab` (`VOCAB`) and `vocab_size` (INT, `<unk>` included) |
+| Text Encode | `TextEncode` | `vocab` (`VOCAB`) | `text` STRING multiline (default `"the quick brown"`) | Encodes text into a 1-D `torch.long` tensor of token indices; unseen tokens become the `<unk>` index |
+| Text Decode | `TextDecode` | `vocab` (`VOCAB`), `ids` (`TENSOR`) | — | Decodes indices back into text; a 2-D `(batch, seq_len)` batch is decoded row by row and joined with newlines; out-of-range indices decode to `<unk>` |
+| Sliding Window | `TextSlidingWindow` | `ids` (`TENSOR`, 1-D stream) | `window` INT 4 (1~4096) | Cuts the stream into `(context, next-token)` pairs — the next-token dataset of a language model; outputs `x` `(samples, window)` and `y` `(samples,)` |
+
+> `Vocab Build`'s default corpus and `Text Encode`'s default text already agree (every word of the
+> latter occurs in the former), so the default graph runs without touching a widget. Word level
+> collapses whitespace, character level keeps punctuation and spelling — the d2l time-machine
+> recipes; `min_freq` drops rare tokens from the vocabulary (they still encode, as `<unk>`).
 
 ---
 
@@ -2196,7 +2262,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 68
+**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 85
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2223,12 +2289,13 @@ ComfyUI core nodes on top. Both registers are listed below:
 | utilities/conversion | 6 | Comfy value ↔ generic `TENSOR` round-trip (ComfyUI core category) |
 | Network & Layers/Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
-| Network & Layers/Attention | 4 | Core multi-head / self / cross attention and the assembled post-LN Transformer encoder block, weights wired in (ComfyUI core category) |
+| Network & Layers/Attention | 7 | Core multi-head / self / cross attention, the assembled post-LN Transformer encoder block, the causal / padding masks and the sinusoidal positional encoding, weights wired in (ComfyUI core category) |
 | Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Regularization | 1 | Core element-wise dropout with a seeded mask (ComfyUI core category) |
-| Network & Layers/Training | 11 | Train/eval switch, running statistics, learnable parameters, optimizer settings and the training loop (ComfyUI core category) |
+| Network & Layers/Training | 17 | Train/eval switch, running statistics, learnable parameters, optimizer settings, the training loop and the language-model pipeline (spec chain / build / train / forward / generate) (ComfyUI core category) |
 | Network & Layers/Pooling | 2 | Max / average pooling, sliding-window and adaptive (`output_size=1` is global pooling) (ComfyUI core category) |
 | Network & Layers/Convolution | 2 | Convolution & transposed convolution on the `TENSOR` type, weights wired in (ComfyUI core category) |
+| Network & Layers/Text | 4 | Core text pipeline: vocabulary build, text encode / decode and the sliding-window next-token dataset on the `VOCAB` type (ComfyUI core category) |
 | model/loaders | 7 | Checkpoint / diffusion-model / VAE / CLIP loaders at state_dict level (ComfyUI core category) |
 | model/merging | 11 | Key-aligned model & CLIP merging plus `.safetensors` saving (ComfyUI core category) |
 | model/latent | 2 | `VAE Decode` / `VAE Encode` protocol placeholders (ComfyUI core category) |
@@ -2239,9 +2306,9 @@ ComfyUI core nodes on top. Both registers are listed below:
 > `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their display names carry a
 > `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
 >
-> The other 13 rows are pure ComfyUI core categories with no ComfyDL nodes: the eight
-> `Network & Layers/*` groups (49 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
-> The shipped library therefore totals **181 nodes across 33 categories** = 109 ComfyDL + 72 core.
+> The other 14 rows are pure ComfyUI core categories with no ComfyDL nodes: the nine
+> `Network & Layers/*` groups (62 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
+> The shipped library therefore totals **194 nodes across 34 categories** = 109 ComfyDL + 85 core.
 >
 > Two rows list fewer nodes than the host registry holds in that category, because the registry
 > also counts native nodes that this refactor did not touch: `model/latent` (whose third node is

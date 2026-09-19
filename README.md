@@ -72,10 +72,10 @@ Its README covers the details: <https://github.com/Cynthia-lxx/ComfyDL_UI#readme
 
 ## Function Overview
 
-The built-in node library ships **181 nodes** across 33 categories — **109 provided by ComfyDL**
-plus 72 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Attention` 4
+The built-in node library ships **194 nodes** across 34 categories — **109 provided by ComfyDL**
+plus 85 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Attention` 7
 + `Normalization` 7
-+ `Regularization` 1 + `Training` 11 + `Pooling` 2 + `Convolution` 2; `model` → `loaders` 7
++ `Regularization` 1 + `Training` 17 + `Pooling` 2 + `Convolution` 2 + `Text` 4; `model` → `loaders` 7
 + `merging` 11 + `latent` 2 + `conditioning` 2; `3d` → `Preview 3D` 1) that were added on top of it:
 
 | Category | Count | Description |
@@ -101,8 +101,8 @@ plus 72 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **utilities (Comfy core)** | 4 | MessageBox, NoOp pass-through & benchmark timer |
 | **conversion** | 6 |  |
 
-> The 20 categories above are the ones ComfyDL itself provides; the other 12 categories of the
-> shipped library (`Network & Layers/*`, `model/*` and `3d`, 68 nodes in total) are pure ComfyUI
+> The 20 categories above are the ones ComfyDL itself provides; the other 13 categories of the
+> shipped library (`Network & Layers/*`, `model/*` and `3d`, 85 nodes in total) are pure ComfyUI
 > core categories.
 >
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).
