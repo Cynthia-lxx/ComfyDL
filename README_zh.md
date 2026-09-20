@@ -67,9 +67,9 @@ penv/bin/python main.py             # Linux / macOS
 
 ## 功能概览
 
-内置节点库共 **196 个节点**，涵盖 34 个类别 —— 其中 **109 个由 ComfyDL 提供**，
-另加在其之上新增的 87 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
-+ `Attention` 7 个 + `Normalization` 7 个 + `Regularization` 1 个 + `Training` 19 个 + `Pooling` 2 个 + `Convolution` 2 个 + `Text` 4 个；
+内置节点库共 **200 个节点**，涵盖 34 个类别 —— 其中 **109 个由 ComfyDL 提供**，
+另加在其之上新增的 91 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
++ `Attention` 7 个 + `Normalization` 7 个 + `Regularization` 1 个 + `Training` 23 个 + `Pooling` 2 个 + `Convolution` 2 个 + `Text` 4 个；
 `model` → `loaders` 7 个 + `merging` 11 个 + `latent` 2 个 + `conditioning` 2 个；
 `3d` → `Preview 3D` 1 个）：
 
@@ -97,7 +97,7 @@ penv/bin/python main.py             # Linux / macOS
 | **conversion** | 6 |  |
 
 > 上表 20 个类别是 ComfyDL 自身提供的部分；随宿主发布的节点库另外 13 个类别（`Network & Layers/*`、
-> `model/*` 与 `3d` 三条分支，共 87 个节点）是纯 ComfyUI 核心分类。
+> `model/*` 与 `3d` 三条分支，共 91 个节点）是纯 ComfyUI 核心分类。
 >
 > 完整节点参考，请参阅 **[FUNCTIONS.md](./FUNCTIONS.md)**（英文）或 **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)**（中文）。
 

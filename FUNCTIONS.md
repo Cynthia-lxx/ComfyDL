@@ -1658,7 +1658,7 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Network & Layers (64 nodes)
+## 17. ComfyUI / Network & Layers (68 nodes)
 
 Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
 They live in nine `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
@@ -1670,8 +1670,9 @@ and form the **Comfy nodes → Network & Layers** branch of the node library, sp
 dtype/device, and are stateless: learnable parameters such as `weight` and `bias` are tensors fed
 through input slots instead of being initialised inside the node, so a node is a pure function and
 can be wired straight to the ComfyDL tensor nodes listed above. The `Training` group additionally
-introduces two first-class graph value types, `PARAMS` and `OPTIMIZER`, which let the same
-stateless convention express *trainable* parameters and an optimisation loop; the `Training` and
+introduces three first-class graph value types, `PARAMS`, `OPTIMIZER` and `SCHEDULER`, which let the
+same stateless convention express *trainable* parameters, an optimisation loop and a learning-rate
+schedule; the `Training` and
 `Text` groups together add `VOCAB`, `MODELSPEC` and `NNMODEL` for the language-model pipeline.
 
 ### 17.1 Activation (14 nodes)
@@ -1755,13 +1756,14 @@ other nodes. `BatchNorm` and `InstanceNorm` are **rank adaptive** — one node e
 > `num_groups`, a repeated dimension) falls back to a documented default with a printed warning,
 > so a widget value never breaks a workflow.
 
-### 17.4 Training (19 nodes)
+### 17.4 Training (23 nodes)
 
-Four families share the `Network & Layers/Training` category. The first is the pair of small "state"
+Five families share the `Network & Layers/Training` category. The first is the pair of small "state"
 nodes (`comfy_extras/nodes_normalization.py`) that carry the train/inference decision and the
 persistent running statistics into the normalization nodes. The second is the training closure
-(`comfy_extras/nodes_training.py`), which adds the two graph value types `PARAMS` and `OPTIMIZER`
-and a node that runs a real optimisation loop inside itself. The third and fourth
+(`comfy_extras/nodes_training.py`), which adds the three graph value types `PARAMS`, `OPTIMIZER` and
+`SCHEDULER`, a node that runs a real optimisation loop inside itself, and — reform step 9 — the
+scheduler, loss, metrics and evaluation nodes that complete the loop. The third and fourth
 (`comfy_extras/nodes_lm.py`, reform step 8) add the language-model pipeline — a spec chain that
 declares a transformer's structure on the `MODELSPEC` slot, a build node that materialises it into a
 real `nn.Module` on the `NNMODEL` slot, the train / forward / generate trio that operates on it, and
@@ -1784,7 +1786,7 @@ the file's metadata, so a loaded model talks text again in a fresh session).
 > of the run that produced it, while the widget only holds whatever was typed when the graph was
 > saved, so handing a run's statistics forward to `eval` is a matter of two wires.
 
-**Learnable parameters, optimizer settings and the training loop (9 nodes)**
+**Learnable parameters, optimizer settings and the training loop (10 nodes)**
 
 `PARAMS` is an ordered `{name: nn.Parameter}` mapping; `OPTIMIZER` is an optimizer *configuration*
 (`OptimizerConfig`), not a live optimizer — the hyper-parameters live on widgets and only the
@@ -1800,8 +1802,9 @@ the trainer therefore runs forward, backward and `optimizer.step()` **itself**, 
 | Learnable Parameters | `TrainingParameters` | `tensor` (optional) | `name` STRING `"weight"`, `shape` STRING `"2,3"`, `init` COMBO normal/zeros/ones/xavier_uniform/kaiming_uniform (default `normal`), `seed` INT 0 | Creates one named trainable parameter; a **wired tensor wins over** `shape` / `init`. Produces `PARAMS` |
 | Merge Parameters | `TrainingParametersMerge` | `params a`, `params b` | — | Concatenates two sets into one; a name present on both sides is *renamed* (`weight` → `weight_2`) with a warning instead of being overwritten, so no weight is ever lost silently |
 | Parameters to Tensor | `TrainingParametersExtract` | `params` | `name` STRING `"weight"` | Publishes one entry as a plain `TENSOR` (detached) — the bridge from the trainer back to the `Basic` / `Conv` layer nodes (`layer0.weight` → `Linear.weight`); an unknown name raises a readable error listing every available one |
-| Optimizer | `TrainingOptimizer` | — | `optimizer` COMBO AdamW/Adam/SGD/RMSprop (default `AdamW`), `lr` FLOAT 0.01 (0~1), `momentum` 0.9 (0~0.999), `beta1` 0.9 (0~0.999), `beta2` 0.999 (0~0.9999), `eps` 1e-8 (0~1e-3), `weight_decay` 0.01 (0~1), `amsgrad` false | Publishes the settings as `OPTIMIZER`; `SGD` reads `momentum`, `Adam`/`AdamW` read the betas, `RMSprop` reads `beta2` as its `alpha` |
-| Training Loop | `TrainingLoop` | `x`, `y` (`TENSOR`), `optimizer` (`OPTIMIZER`), `params` (optional `PARAMS`, warm start) | `hidden` STRING `"8"`, `activation` COMBO relu/gelu/tanh/sigmoid/none (default `relu`), `loss` COMBO mse/l1/cross_entropy (default `mse`), `steps` INT 200 (1~100000), `batch_size` INT 0 (0~65536; 0 = whole dataset per step), `seed` INT 0 | The trainer: builds an MLP (`in_features` from `x`, `out_features` from `y`, activation between the hidden layers only, `hidden` empty = plain linear regression) and runs `steps` × (forward + backward + `optimizer.step()`). Outputs `params`, `loss` (scalar), `loss_history` (1-D, one entry per step) and `prediction` (detached). Drives a live per-node progress bar (one update per step); that same call is ComfyUI's interrupt check, so a long run stays cancellable |
+| Optimizer | `TrainingOptimizer` | — | `optimizer` COMBO AdamW/Adam/SGD/RMSprop (default `AdamW`), `lr` FLOAT 0.01 (0~1), `momentum` 0.9 (0~0.999), `beta1` 0.9 (0~0.999), `beta2` 0.999 (0~0.9999), `eps` 1e-8 (0~1e-3), `weight_decay` 0.01 (0~1), `amsgrad` false, `grad_clip_norm` FLOAT 0 (0~1000; 0 = off), `grad_clip_value` FLOAT 0 (0~1000; 0 = off) | Publishes the settings as `OPTIMIZER`; `SGD` reads `momentum`, `Adam`/`AdamW` read the betas, `RMSprop` reads `beta2` as its `alpha`. The clip fields travel with the config and the trainer clips right before every `optimizer.step()` — global L2 norm first, then per-element value |
+| LR Scheduler | `TrainingLRScheduler` | — | `scheduler` COMBO CosineAnnealingLR/StepLR/ExponentialLR/OneCycleLR/ReduceLROnPlateau (default `CosineAnnealingLR`), `step_size` INT 30, `gamma` FLOAT 0.1, `t_max` INT 0 (0 = the trainer's step count), `eta_min` FLOAT 0.0, `pct_start` FLOAT 0.3, `patience` INT 10, `factor` FLOAT 0.1 | Publishes the settings as `SCHEDULER`; the trainer builds the real `torch.optim.lr_scheduler` against its own optimizer and step count (`OneCycleLR` takes `max_lr` from the wired optimizer's `lr`, `ReduceLROnPlateau` steps on the smoothed loss, `t_max=0` follows the trainer's `steps`), so no scheduler node needs to know the run length. Fields of schedulers other than the chosen one are ignored |
+| Training Loop | `TrainingLoop` | `x`, `y` (`TENSOR`), `optimizer` (`OPTIMIZER`), `scheduler` (optional `SCHEDULER`), `params` (optional `PARAMS`, warm start) | `hidden` STRING `"8"`, `activation` COMBO relu/gelu/tanh/sigmoid/none (default `relu`), `loss` COMBO mse/l1/smooth_l1/cross_entropy/bce_with_logits/kl_div (default `mse`), `steps` INT 200 (1~100000), `batch_size` INT 0 (0~65536; 0 = whole dataset per step), `seed` INT 0, `early_stop_patience` INT 0 (0 = off), `early_stop_min_delta` FLOAT 1e-4 | The trainer: builds an MLP (`in_features` from `x`, `out_features` from `y`, activation between the hidden layers only, `hidden` empty = plain linear regression) and runs `steps` × (forward + backward + `optimizer.step()`, with gradient clipping from the optimizer config). A linked scheduler steps after every step; early stopping watches the moving average of the step loss (window 8) and, once `patience` steps pass without an improvement of `min_delta`, rolls the parameters back to the best point and truncates `loss_history` there. Outputs `params`, `loss` (scalar), `loss_history` (1-D, one entry per step) and `prediction` (detached). Drives a live per-node progress bar (one update per step); that same call is ComfyUI's interrupt check, so a long run stays cancellable |
 | Save Parameters | `TrainingSaveParameters` | `params` | `filename_prefix` STRING `"comfydl/parameters"` | Writes a `.safetensors` file into the output folder and **passes the set through**, so saving does not end the graph; also outputs the absolute `path` |
 | Load Parameters | `TrainingLoadParameters` | — | `path` STRING `"comfydl/parameters_00001_.safetensors"` | Reads a set back (relative to the output folder, or absolute); non-float entries are dropped and non-float32 ones promoted, both with a report, and a missing file raises a readable error |
 | Parameters to Text | `TrainingParametersToText` | `params` | — | Encodes the set as `CDLPARAMS1:<base64 safetensors>` and pushes it into the node's own UI box, so it can be copied out and pasted into a widget — the channel that survives inside a saved `.json` workflow without touching the disk |
@@ -1814,12 +1817,32 @@ the trainer therefore runs forward, backward and `optimizer.step()` **itself**, 
 > entries whose name *and* shape match the freshly built network, reporting every missing and every
 > skipped key rather than dropping it silently.
 >
-> `PARAMS` and `OPTIMIZER` are declared in `comfy_api/latest/_io.py` (`@comfytype`) exactly like the
+> `PARAMS`, `OPTIMIZER` and `SCHEDULER` are declared in `comfy_api/latest/_io.py` (`@comfytype`)
+> exactly like the
 > `TENSOR` and `LORA_MODEL` types, so they need no frontend registration: unregistered slot types
 > render with the frontend's default colour and can be wired like any other type.
 >
 > The `loss_history` output is an ordinary 1-D tensor, so the convergence curve can be inspected
 > with any of the visualisation nodes above; `loss` is its last entry as a scalar.
+
+**Losses, metrics and evaluation (3 nodes)**
+
+The read-only half of the training closure (reform step 9). The trainer's loss and metric math now
+lives in the shared pure functions of `comfy/training_metrics.py`, so the `Training Loop`, these
+nodes and `Evaluate` all minimise / report the exact same numbers. Everything here is forward only
+— no gradients, no mutation — so these nodes sit safely on the cached path of any workflow.
+
+| Node | Class | Inputs | Extra widgets | Purpose |
+|------|-------|--------|---------------|---------|
+| Loss | `TrainingLoss` | `prediction`, `target` (`TENSOR`) | `loss` COMBO mse/l1/smooth_l1/cross_entropy/bce_with_logits/kl_div (default `mse`) | Computes one scalar loss of the pair — the same function the `Training Loop` minimises. The regression losses take same-shaped values, `cross_entropy` class indices / one-hot, `bce_with_logits` 0/1 targets, `kl_div` probabilities (KL of the target from the prediction's softmax) |
+| Metrics | `TrainingMetrics` | `prediction`, `target` (`TENSOR`) | `metric` COMBO mae/rmse/accuracy/top_3/top_5/perplexity (default `mae`) | Computes one scalar metric of the pair: `mae` / `rmse` for value targets, top-k accuracy (k clamped to the class count) and `perplexity` (`exp` of the cross entropy — the natural LM quality number) for class / token targets |
+| Evaluate | `TrainingEvaluate` | `model` (optional `NNMODEL`, wins when both are wired), `params` (optional `PARAMS`), `x`, `y` (`TENSOR`) | `activation` COMBO relu/gelu/tanh/sigmoid/none (default `relu`; parameters path only), `loss` COMBO auto + the six losses (default `auto`), `metric` COMBO auto + the six metrics + none (default `auto`) | Forward-only evaluation, the read-only twin of a trainer: runs the model (or the MLP rebuilt from the `layer*.*` shapes of the parameter set, activation from the widget) on `x` and reports `loss`, `metric` and the raw `prediction`. `auto` picks cross entropy / accuracy for class-index targets and mse / mae for value targets; `metric=none` skips the metric (`nan`). Neither input is mutated, so the node can sit anywhere in a cached graph |
+
+> `Evaluate`'s parameters path rebuilds the network with exactly the `layer<i>.weight` naming
+> convention the `Training Loop` produces (widths read off the weight shapes), and the `SCHEDULER`
+> link of the trainer carries a frozen `SchedulerConfig`, never a live scheduler — the trainer
+> builds the real `torch.optim.lr_scheduler` against its own optimizer and step count, so the link
+> holds no device state and is safe to cache, exactly like `OPTIMIZER`.
 
 **Language models: spec chain, build, train, generate (6 nodes)**
 
@@ -1839,7 +1862,7 @@ teaching run already converges.
 | Language Model Embedding | `LanguageModelEmbedding` | `spec` (optional `MODELSPEC`, replaces an existing chain's embedding link), `vocab` (optional `VOCAB`, overrides the widget) | `vocab_size` INT 16, `d_model` INT 32, `include_position` BOOLEAN true | The first spec link: token embedding width + vocabulary size + the optional fixed sinusoidal position encoding (no parameters); outputs the one-link `spec` chain and `d_model` |
 | Language Model Transformer Block | `LanguageModelTransformerBlock` | `spec` (`MODELSPEC`) | `num_heads` INT 4 (1~64), `d_ffn` INT 128, `activation` COMBO relu/gelu, `dropout` FLOAT 0.0 (0~0.9) | Appends one pre-LN block (`x + attn(LN(x))` then `x + ffn(LN(x))`) to the chain; the width is **read from the chain**, so a mismatched block is impossible to wire; chain as many as wanted |
 | Language Model Build | `LanguageModelBuild` | `spec` (`MODELSPEC`) | `seed` INT 0 | Materialises the chain into a seeded `nn.Module` (Xavier-uniform linears, zero biases, N(0, 0.01) embeddings; RNG saved/restored); outputs `model` and the `params` count |
-| Language Model Train | `LanguageModelTrain` | `model` (`NNMODEL`), `x` / `y` (`TENSOR`, from Sliding Window), `optimizer` (`OPTIMIZER`) | `steps` INT 300 (1~100000), `batch_size` INT 0 (0 = whole dataset), `seed` INT 0 | The trainer: `steps` × (forward + backward + `optimizer.step()`) on a deep copy inside `torch.inference_mode(False)`; outputs the trained `model` (eval mode), the last `loss` (FLOAT) and `loss_history` (1-D); the same seed reproduces the same run. Reports live progress (one bar update per step) and is cancellable through the same interrupt check |
+| Language Model Train | `LanguageModelTrain` | `model` (`NNMODEL`), `x` / `y` (`TENSOR`, from Sliding Window), `optimizer` (`OPTIMIZER`), `scheduler` (optional `SCHEDULER`) | `steps` INT 300 (1~100000), `batch_size` INT 0 (0 = whole dataset), `seed` INT 0, `early_stop_patience` INT 0 (0 = off), `early_stop_min_delta` FLOAT 1e-4 | The trainer: `steps` × (forward + backward + `optimizer.step()`, with gradient clipping from the optimizer config) on a deep copy inside `torch.inference_mode(False)`; a linked scheduler steps after every step (plateau on the smoothed loss), and early stopping rolls the copy back to the best point and truncates `loss_history` there. Outputs the trained `model` (eval mode), the last `loss` (FLOAT) and `loss_history` (1-D); the same seed reproduces the same run. Reports live progress (one bar update per step) and is cancellable through the same interrupt check |
 | Language Model Forward | `LanguageModelForward` | `model` (`NNMODEL`), `ids` (`TENSOR`, 1-D stream or 2-D batch) | — | Pure inference pass in eval mode; outputs `logits` `(batch, seq_len, vocab_size)` — `[..., t, :]` is the distribution of the token *after* position `t` |
 | Language Model Generate | `LanguageModelGenerate` | `model` (`NNMODEL`), `vocab` (optional `VOCAB`), `prefix_ids` (optional `TENSOR`, overrides the text) | `prefix` STRING `"the "`, `num_tokens` INT 16, `temperature` FLOAT 1.0 (0 = greedy), `seed` INT 0 | Autoregressive continuation: greedy or temperature-sampled next tokens on a local `torch.Generator`; outputs `ids` (prefix + generated) and the decoded `text` (empty when no `vocab` is linked). Reports live progress (one bar update per generated token) through the `progress` callback of `comfy.lm_protocol.generate_tokens` |
 | Language Model Save | `LanguageModelSave` | `model` (`NNMODEL`), `vocab` (`VOCAB`) | `filename_prefix` STRING `comfydl/language_models` | Writes the model to `output/<prefix>_00001_.safetensors` — the weights plus the spec chain and the vocabulary in the file's metadata (format tag `comfydl-lm-1`); passes `model` through unchanged (saving does not end the graph) and reports the absolute `path` |
@@ -2271,7 +2294,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 87
+**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 91
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2301,7 +2324,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | Network & Layers/Attention | 7 | Core multi-head / self / cross attention, the assembled post-LN Transformer encoder block, the causal / padding masks and the sinusoidal positional encoding, weights wired in (ComfyUI core category) |
 | Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Regularization | 1 | Core element-wise dropout with a seeded mask (ComfyUI core category) |
-| Network & Layers/Training | 19 | Train/eval switch, running statistics, learnable parameters, optimizer settings, the training loop, the language-model pipeline (spec chain / build / train / forward / generate) and its save / load persistence (ComfyUI core category) |
+| Network & Layers/Training | 23 | Train/eval switch, running statistics, learnable parameters, optimizer settings (with gradient clipping), the LR scheduler / loss / metrics / evaluation quartet, the training loop, the language-model pipeline (spec chain / build / train / forward / generate) and its save / load persistence (ComfyUI core category) |
 | Network & Layers/Pooling | 2 | Max / average pooling, sliding-window and adaptive (`output_size=1` is global pooling) (ComfyUI core category) |
 | Network & Layers/Convolution | 2 | Convolution & transposed convolution on the `TENSOR` type, weights wired in (ComfyUI core category) |
 | Network & Layers/Text | 4 | Core text pipeline: vocabulary build, text encode / decode and the sliding-window next-token dataset on the `VOCAB` type (ComfyUI core category) |
@@ -2316,8 +2339,8 @@ ComfyUI core nodes on top. Both registers are listed below:
 > `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
 >
 > The other 14 rows are pure ComfyUI core categories with no ComfyDL nodes: the nine
-> `Network & Layers/*` groups (64 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
-> The shipped library therefore totals **196 nodes across 34 categories** = 109 ComfyDL + 87 core.
+> `Network & Layers/*` groups (68 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
+> The shipped library therefore totals **200 nodes across 34 categories** = 109 ComfyDL + 91 core.
 >
 > Two rows list fewer nodes than the host registry holds in that category, because the registry
 > also counts native nodes that this refactor did not touch: `model/latent` (whose third node is

@@ -1657,7 +1657,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 17. ComfyUI / Network & Layers（64 个节点）
+## 17. ComfyUI / Network & Layers（68 个节点）
 
 由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的九个模块
 `nodes_activation.py`、`nodes_layers.py`、`nodes_attention.py`、`nodes_normalization.py`、
@@ -1667,9 +1667,9 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 `Text` 九组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的
 dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，
 节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。`Training`
-组另外引入 `PARAMS` 与 `OPTIMIZER` 两个一等图数据类型，让同一套无状态约定也能表达**可训练**
-参数与优化循环；`Training` 与 `Text` 两组合起来又为语言模型流水线新增 `VOCAB`、`MODELSPEC` 与
-`NNMODEL` 三个数据类型。
+组另外引入 `PARAMS`、`OPTIMIZER` 与 `SCHEDULER` 三个一等图数据类型，让同一套无状态约定也能
+表达**可训练**参数、优化循环与学习率调度；`Training` 与 `Text` 两组合起来又为语言模型流水线
+新增 `VOCAB`、`MODELSPEC` 与 `NNMODEL` 三个数据类型。
 
 ### 17.1 Activation（14 个节点）
 
@@ -1744,12 +1744,13 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 > 控件文本无法解析时（过期的 `normalized_shape`、不能整除的 `num_groups`、重复的维度等）会回退到
 > 既定默认值并打印提示，因此一个控件取值永远不会弄坏工作流。
 
-### 17.4 Training（19 个节点）
+### 17.4 Training（23 个节点）
 
-`Network & Layers/Training` 分类下有四族节点。第一族是两个小巧的“状态”节点
+`Network & Layers/Training` 分类下有五族节点。第一族是两个小巧的“状态”节点
 （`comfy_extras/nodes_normalization.py`），把训练/推理决策与可持久化的运行统计量送入归一化节点。
-第二族是训练闭环（`comfy_extras/nodes_training.py`），新增 `PARAMS` 与 `OPTIMIZER` 两个图数据
-类型，并提供一个在**节点内部**完成真实优化循环的训练节点。第三、四族（`comfy_extras/nodes_lm.py`，
+第二族是训练闭环（`comfy_extras/nodes_training.py`），新增 `PARAMS`、`OPTIMIZER` 与 `SCHEDULER`
+三个图数据类型，提供一个在**节点内部**完成真实优化循环的训练节点，并在 reform step 9 中补上
+调度器、损失、指标与评估四个节点，凑齐整个闭环。第三、四族（`comfy_extras/nodes_lm.py`，
 reform step 8）是语言模型流水线——在 `MODELSPEC` 槽上以 spec 链声明 Transformer 的结构，由 Build 节点
 物化为真正的 `nn.Module` 走 `NNMODEL` 槽，再加上 Train / Forward / Generate 三件套与 Save / Load
 持久化对：spec 链与词表随权重一并封进 `.safetensors` 的 metadata，重载后无需重跑词表即可继续对话。
@@ -1767,7 +1768,7 @@ reform step 8）是语言模型流水线——在 `MODELSPEC` 槽上以 spec 链
 > 接入 `mean` / `var` 插槽时以**连线为准**：连线是被测量出来的当次运行值，而控件只保存了当初
 > 画图时敲进去的数字，因此把 `train` 的统计量转交 `eval` 只需两根线，不必手工抄数。
 
-**可学习参数、优化器设定与训练循环（9 个节点）**
+**可学习参数、优化器设定与训练循环（10 个节点）**
 
 `PARAMS` 是有序的 `{name: nn.Parameter}` 映射；`OPTIMIZER` 是优化器**配置**
 （`OptimizerConfig`）而不是活的优化器——超参留在控件上，只有设定随连线传递。ComfyUI 会把整轮
@@ -1782,8 +1783,9 @@ prompt 包在 `torch.inference_mode()` 里执行，因此 autograd 图无法跨�
 | Learnable Parameters | `TrainingParameters` | `tensor`（可选） | `name` STRING `"weight"`、`shape` STRING `"2,3"`、`init` COMBO normal/zeros/ones/xavier_uniform/kaiming_uniform（默认 `normal`）、`seed` INT 0 | 创建一个具名可训练参数；**连入的张量优先于** `shape` / `init`。输出 `PARAMS` |
 | Merge Parameters | `TrainingParametersMerge` | `params a`、`params b` | — | 把两份参数集合并成一份；两侧同名的键会被**改名**（`weight` → `weight_2`）并告警，而不是覆盖，因此不会静默丢权重 |
 | Parameters to Tensor | `TrainingParametersExtract` | `params` | `name` STRING `"weight"` | 把其中一个条目以普通 `TENSOR` 输出（已 detach）——这是训练产物回流 `Basic` / `Conv` 层节点的桥（`layer0.weight` → `Linear.weight`）；名字不存在时抛可读错误并列出全部可用名字 |
-| Optimizer | `TrainingOptimizer` | — | `optimizer` COMBO AdamW/Adam/SGD/RMSprop（默认 `AdamW`）、`lr` FLOAT 0.01 (0~1)、`momentum` 0.9 (0~0.999)、`beta1` 0.9 (0~0.999)、`beta2` 0.999 (0~0.9999)、`eps` 1e-8 (0~1e-3)、`weight_decay` 0.01 (0~1)、`amsgrad` false | 把设定以 `OPTIMIZER` 发布；`SGD` 读 `momentum`，`Adam`/`AdamW` 读两个 beta，`RMSprop` 把 `beta2` 当作 `alpha` |
-| Training Loop | `TrainingLoop` | `x`、`y`（`TENSOR`）、`optimizer`（`OPTIMIZER`）、`params`（可选 `PARAMS`，热启动） | `hidden` STRING `"8"`、`activation` COMBO relu/gelu/tanh/sigmoid/none（默认 `relu`）、`loss` COMBO mse/l1/cross_entropy（默认 `mse`）、`steps` INT 200 (1~100000)、`batch_size` INT 0 (0~65536；0 = 每步全批)、`seed` INT 0 | 训练器：按 `hidden` 搭一个小 MLP（`in_features` 取自 `x`、`out_features` 取自 `y`，激活只加在隐层之间，`hidden` 留空即纯线性回归），执行 `steps` 次「前向 + 反向 + `optimizer.step()`」。输出 `params`、`loss`（标量）、`loss_history`（1 维，每步一项）与 `prediction`（已 detach）。驱动节点级实时进度条（每步更新一次）；该调用同时是 ComfyUI 的中断检查，长训练可随时取消 |
+| Optimizer | `TrainingOptimizer` | — | `optimizer` COMBO AdamW/Adam/SGD/RMSprop（默认 `AdamW`）、`lr` FLOAT 0.01 (0~1)、`momentum` 0.9 (0~0.999)、`beta1` 0.9 (0~0.999)、`beta2` 0.999 (0~0.9999)、`eps` 1e-8 (0~1e-3)、`weight_decay` 0.01 (0~1)、`amsgrad` false、`grad_clip_norm` FLOAT 0 (0~1000；0 = 关)、`grad_clip_value` FLOAT 0 (0~1000；0 = 关) | 把设定以 `OPTIMIZER` 发布；`SGD` 读 `momentum`，`Adam`/`AdamW` 读两个 beta，`RMSprop` 把 `beta2` 当作 `alpha`。裁剪字段随配置一起传递，训练器在每次 `optimizer.step()` 前裁剪——先全局 L2 范数、再逐元素值 |
+| LR Scheduler | `TrainingLRScheduler` | — | `scheduler` COMBO CosineAnnealingLR/StepLR/ExponentialLR/OneCycleLR/ReduceLROnPlateau（默认 `CosineAnnealingLR`）、`step_size` INT 30、`gamma` FLOAT 0.1、`t_max` INT 0（0 = 训练器的步数）、`eta_min` FLOAT 0.0、`pct_start` FLOAT 0.3、`patience` INT 10、`factor` FLOAT 0.1 | 把设定以 `SCHEDULER` 发布；训练器用它自己的优化器与步数构建真正的 `torch.optim.lr_scheduler`（`OneCycleLR` 的 `max_lr` 取自所连优化器的 `lr`，`ReduceLROnPlateau` 用平滑 loss 步进，`t_max=0` 跟随训练器的 `steps`），因此调度器节点无需预知训练长度。未选中的调度器的字段被忽略 |
+| Training Loop | `TrainingLoop` | `x`、`y`（`TENSOR`）、`optimizer`（`OPTIMIZER`）、`scheduler`（可选 `SCHEDULER`）、`params`（可选 `PARAMS`，热启动） | `hidden` STRING `"8"`、`activation` COMBO relu/gelu/tanh/sigmoid/none（默认 `relu`）、`loss` COMBO mse/l1/smooth_l1/cross_entropy/bce_with_logits/kl_div（默认 `mse`）、`steps` INT 200 (1~100000)、`batch_size` INT 0 (0~65536；0 = 每步全批)、`seed` INT 0、`early_stop_patience` INT 0（0 = 关）、`early_stop_min_delta` FLOAT 1e-4 | 训练器：按 `hidden` 搭一个小 MLP（`in_features` 取自 `x`、`out_features` 取自 `y`，激活只加在隐层之间，`hidden` 留空即纯线性回归），执行 `steps` 次「前向 + 反向 + `optimizer.step()`」（并按优化器配置做梯度裁剪）。连入的调度器每步推进一次；早停监控步 loss 的滑动平均（窗口 8），`patience` 步内平滑 loss 改善不足 `min_delta` 即把参数回滚到最佳点、并把 `loss_history` 截断到那里。输出 `params`、`loss`（标量）、`loss_history`（1 维，每步一项）与 `prediction`（已 detach）。驱动节点级实时进度条（每步更新一次）；该调用同时是 ComfyUI 的中断检查，长训练可随时取消 |
 | Save Parameters | `TrainingSaveParameters` | `params` | `filename_prefix` STRING `"comfydl/parameters"` | 把参数集写成输出目录下的 `.safetensors` 文件并**原样透传**该集合，因此保存不会中断图；另输出绝对 `path` |
 | Load Parameters | `TrainingLoadParameters` | — | `path` STRING `"comfydl/parameters_00001_.safetensors"` | 读回参数集（相对输出目录或绝对路径）；非浮点条目被丢弃、非 float32 被升位，两者都会报告；文件缺失时抛可读错误 |
 | Parameters to Text | `TrainingParametersToText` | `params` | — | 把参数集编码为 `CDLPARAMS1:<base64 safetensors>` 并推进节点自身的 UI 文本框，可直接复制粘贴进控件——这条通道能让参数随 `.json` 工作流一起保存，不碰磁盘 |
@@ -1794,12 +1796,29 @@ prompt 包在 `torch.inference_mode()` 里执行，因此 autograd 图无法跨�
 > autograd 图带进 ComfyUI 的输出缓存；热启动（接入 `params`）只复制名字**与形状**都匹配的条目，
 > 缺失与跳过的键会逐条报告，绝不静默丢弃。
 >
-> `PARAMS` 与 `OPTIMIZER` 在 `comfy_api/latest/_io.py` 里以 `@comfytype` 声明，与 `TENSOR`、
+> `PARAMS`、`OPTIMIZER` 与 `SCHEDULER` 在 `comfy_api/latest/_io.py` 里以 `@comfytype` 声明，与 `TENSOR`、
 > `LORA_MODEL` 完全同构，因此无需前端注册：未登记的插槽类型使用前端默认配色，可以像其他类型一样
 > 连线。
 >
 > `loss_history` 就是一条普通 1 维张量，收敛曲线可直接交给上述任意可视化节点查看；`loss` 是它的
 > 最后一个元素（标量）。
+
+**损失、指标与评估（3 个节点）**
+
+训练闭环的只读半边（reform step 9）。训练器的损失与指标数学现在放在 `comfy/training_metrics.py`
+的共享纯函数里，因此 `Training Loop`、这些节点与 `Evaluate` 最小化 / 报告的是完全相同的数字。
+这里的一切都只做前向——不求梯度、不改输入——可以安全地放在任何工作流的缓存路径上。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|---------------|---------|
+| Loss | `TrainingLoss` | `prediction`、`target`（`TENSOR`） | `loss` COMBO mse/l1/smooth_l1/cross_entropy/bce_with_logits/kl_div（默认 `mse`） | 计算一对预测 / 目标的标量损失——与 `Training Loop` 最小化的是同一个函数。回归损失取同形状数值目标，`cross_entropy` 取类别索引 / one-hot，`bce_with_logits` 取 0/1 目标，`kl_div` 取概率（目标分布相对预测 softmax 的 KL） |
+| Metrics | `TrainingMetrics` | `prediction`、`target`（`TENSOR`） | `metric` COMBO mae/rmse/accuracy/top_3/top_5/perplexity（默认 `mae`） | 计算一对预测 / 目标的标量指标：`mae` / `rmse` 面向数值目标，top-k 准确率（k 钳制到类别数）与 `perplexity`（交叉熵的 `exp`——语言模型最自然的质量数字）面向类别 / token 目标 |
+| Evaluate | `TrainingEvaluate` | `model`（可选 `NNMODEL`，两者都连时优先）、`params`（可选 `PARAMS`）、`x`、`y`（`TENSOR`） | `activation` COMBO relu/gelu/tanh/sigmoid/none（默认 `relu`；仅参数路径）、`loss` COMBO auto + 六种损失（默认 `auto`）、`metric` COMBO auto + 六种指标 + none（默认 `auto`） | 只评估不训练——训练器的只读孪生：把模型（或按参数集 `layer*.*` 形状重建、按控件激活的 MLP）在 `x` 上跑一遍，输出 `loss`、`metric` 与原始 `prediction`。`auto` 对类别索引目标选交叉熵 / 准确率，对数值目标选 mse / mae；`metric=none` 跳过指标（`nan`）。任何输入都不被改写，节点可放在任何缓存图中 |
+
+> `Evaluate` 的参数路径按 `Training Loop` 的 `layer<i>.weight` 命名约定重建网络（宽度读自权重形状），
+> 而训练器的 `SCHEDULER` 连线携带的是冻结的 `SchedulerConfig` 而非活的调度器——训练器用它自己的
+> 优化器与步数构建真正的 `torch.optim.lr_scheduler`，因此连线上没有设备状态，可以像 `OPTIMIZER`
+> 一样安全缓存。
 
 **语言模型：spec 链、物化、训练、生成（6 个节点）**
 
@@ -1816,7 +1835,7 @@ Sliding Window` 产出（上下文，下一 token）样本对；损失是对**�
 | Language Model Embedding | `LanguageModelEmbedding` | `spec`（可选 `MODELSPEC`，替换既有链的嵌入链接点）、`vocab`（可选 `VOCAB`，覆盖控件） | `vocab_size` INT 16、`d_model` INT 32、`include_position` BOOLEAN true | 首个 spec 链接点：词嵌入宽度 + 词表大小 + 可选的固定正弦位置编码（无参数）；输出单链接点的 `spec` 链与 `d_model` |
 | Language Model Transformer Block | `LanguageModelTransformerBlock` | `spec`（`MODELSPEC`） | `num_heads` INT 4 (1~64)、`d_ffn` INT 128、`activation` COMBO relu/gelu、`dropout` FLOAT 0.0 (0~0.9) | 向链追加一个 pre-LN 块（`x + attn(LN(x))`，再 `x + ffn(LN(x))`）；宽度**从链上读取**，宽度错配根本接不进来；想堆多深堆多深 |
 | Language Model Build | `LanguageModelBuild` | `spec`（`MODELSPEC`） | `seed` INT 0 | 把链物化为带种子的 `nn.Module`（线性层 Xavier 均匀、bias 置零、嵌入 N(0, 0.01)；RNG 用完还原）；输出 `model` 与 `params` 参数量 |
-| Language Model Train | `LanguageModelTrain` | `model`（`NNMODEL`）、`x` / `y`（`TENSOR`，来自 Sliding Window）、`optimizer`（`OPTIMIZER`） | `steps` INT 300 (1~100000)、`batch_size` INT 0（0 = 全批）、`seed` INT 0 | 训练器：在 `torch.inference_mode(False)` 内对深拷贝执行 `steps` 次「前向 + 反向 + `optimizer.step()`」；输出训练后的 `model`（eval 态）、末步 `loss`（FLOAT）与 `loss_history`（1 维）；同 seed 完全复现。上报实时进度（每步一次进度条更新），并可通过同一中断检查取消 |
+| Language Model Train | `LanguageModelTrain` | `model`（`NNMODEL`）、`x` / `y`（`TENSOR`，来自 Sliding Window）、`optimizer`（`OPTIMIZER`）、`scheduler`（可选 `SCHEDULER`） | `steps` INT 300 (1~100000)、`batch_size` INT 0（0 = 全批）、`seed` INT 0、`early_stop_patience` INT 0（0 = 关）、`early_stop_min_delta` FLOAT 1e-4 | 训练器：在 `torch.inference_mode(False)` 内对深拷贝执行 `steps` 次「前向 + 反向 + `optimizer.step()`」（并按优化器配置做梯度裁剪）；连入的调度器每步推进一次（plateau 用平滑 loss），早停把副本回滚到最佳点并把 `loss_history` 截断到那里。输出训练后的 `model`（eval 态）、末步 `loss`（FLOAT）与 `loss_history`（1 维）；同 seed 完全复现。上报实时进度（每步一次进度条更新），并可通过同一中断检查取消 |
 | Language Model Forward | `LanguageModelForward` | `model`（`NNMODEL`）、`ids`（`TENSOR`，1 维流或 2 维批） | — | 纯推理前向（eval 态）；输出 `logits` `(batch, seq_len, vocab_size)` —— `[..., t, :]` 是位置 `t` **之后**那个 token 的分布 |
 | Language Model Generate | `LanguageModelGenerate` | `model`（`NNMODEL`）、`vocab`（可选 `VOCAB`）、`prefix_ids`（可选 `TENSOR`，覆盖文本前缀） | `prefix` STRING `"the "`、`num_tokens` INT 16、`temperature` FLOAT 1.0（0 = 贪心）、`seed` INT 0 | 自回归续写：在本地 `torch.Generator` 上贪心或按温度采样下一 token；输出 `ids`（前缀 + 生成）与解码后的 `text`（未接 `vocab` 时为空串）。通过 `comfy.lm_protocol.generate_tokens` 的 `progress` 回调上报实时进度（每生成一个 token 更新一次） |
 | Language Model Save | `LanguageModelSave` | `model`（`NNMODEL`）、`vocab`（`VOCAB`） | `filename_prefix` STRING `comfydl/language_models` | 把模型写入 `output/<前缀>_00001_.safetensors`——权重之外，spec 链与词表一并封进文件 metadata（格式标签 `comfydl-lm-1`）；`model` 原样透传（保存不打断图），并输出绝对 `path` |
@@ -2202,7 +2221,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 87 个 ComfyUI
+共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 91 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2232,7 +2251,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | Network & Layers/Attention | 7 | 多头 / 自 / 交叉注意力、组装好的 post-LN Transformer 编码器块、因果 / 填充掩码与正弦位置编码，权重走插槽（ComfyUI 核心分类） |
 | Network & Layers/Normalization | 7 | `TENSOR` 类型上的核心归一化（ComfyUI 核心分类） |
 | Network & Layers/Regularization | 1 | 带种子掩码的核心逐元素 dropout（ComfyUI 核心分类） |
-| Network & Layers/Training | 19 | 训练/推理开关、运行统计量、可学习参数、优化器设定、训练循环、语言模型流水线（spec 链 / Build / Train / Forward / Generate）及其 Save / Load 持久化（ComfyUI 核心分类） |
+| Network & Layers/Training | 23 | 训练/推理开关、运行统计量、可学习参数、优化器设定（含梯度裁剪）、LR 调度器 / 损失 / 指标 / 评估四件套、训练循环、语言模型流水线（spec 链 / Build / Train / Forward / Generate）及其 Save / Load 持久化（ComfyUI 核心分类） |
 | Network & Layers/Pooling | 2 | `TENSOR` 类型上的最大 / 平均池化，滑动窗口与自适应（`output_size=1` 即全局池化）（ComfyUI 核心分类） |
 | Network & Layers/Convolution | 2 | `TENSOR` 类型上的卷积与转置卷积，权重走连线传入（ComfyUI 核心分类） |
 | Network & Layers/Text | 4 | 核心文本流水线：`VOCAB` 类型上的词表构建、文本编码 / 解码与滑窗下一词数据集（ComfyUI 核心分类） |
@@ -2244,9 +2263,9 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 > 前 20 行统计 **ComfyDL 提供的 109 个节点**（其中 8 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
 >
-> 其余 14 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：九个 `Network & Layers/*` 分组（64 个节点）、
+> 其余 14 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：九个 `Network & Layers/*` 分组（68 个节点）、
 > 四个 `model/*` 分组（22 个节点）与 `3d`（1 个节点）。因此随宿主发布的节点库总计
-> **196 个节点、34 个分类** = 109 个 ComfyDL + 87 个核心节点。
+> **200 个节点、34 个分类** = 109 个 ComfyDL + 91 个核心节点。
 >
 > 有两行的数量少于宿主注册表在该分类下的实际节点数，因为注册表把本次改动未触及的原生节点也算在内：
 > `model/latent`（其第三个节点是 `LatentCompositeMasked`）以及 `image`、`utilities`、`image/color`、
