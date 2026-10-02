@@ -326,7 +326,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 ---
 
-## 6. d2l / NLP Models（12 个节点）
+## 6. d2l / NLP Models（9 个节点）
 
 NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer 与 Seq2Seq 构件。所有构建器都返回 `cdlModel`，可接入 `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` 等节点进行查看与推理。RNN/GRU 前向输入为时间优先 `(num_steps, batch_size, num_inputs)`；注意力模块与 Transformer 编码器为批次优先。
 
@@ -1657,14 +1657,15 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 17. ComfyUI / Network & Layers（68 个节点）
+## 17. ComfyUI / Network & Layers（75 个节点）
 
-由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的九个模块
+由宿主运行时提供的核心神经网络节点（不属于 ComfyDL 子模块），分布在 `comfy_extras` 的十个模块
 `nodes_activation.py`、`nodes_layers.py`、`nodes_attention.py`、`nodes_normalization.py`、
-`nodes_pooling.py`、`nodes_convolution.py`、`nodes_training.py`、`nodes_nlp.py` 与 `nodes_lm.py`
+`nodes_pooling.py`、`nodes_convolution.py`、`nodes_recurrent.py`、`nodes_training.py`、
+`nodes_nlp.py` 与 `nodes_lm.py`
 中，在节点库中构成 **Comfy节点 → Network & Layers** 分支，下分 `Activation`、
-`Basic`、`Attention`、`Normalization`、`Regularization`、`Training`、`Pooling`、`Convolution` 与
-`Text` 九组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的
+`Basic`、`Attention`、`Normalization`、`Regularization`、`Training`、`Pooling`、`Convolution`、
+`Recurrent` 与 `Text` 十组。它们全部通过共享的 `TENSOR` 插槽类型交换数据、保持输入的
 dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习参数以张量形式从输入插槽传入，
 节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。`Training`
 组另外引入 `PARAMS`、`OPTIMIZER` 与 `SCHEDULER` 三个一等图数据类型，让同一套无状态约定也能
@@ -1890,17 +1891,22 @@ batch 维的张量同样接受——内部补上缺少的前导维，结果再�
 > `F.max_pool*d` 没有 `count_include_pad`）；若被忽略的控件被设成非默认值，节点会打印提示，而不是
 > 静默失效。
 
-### 17.7 Convolution（2 个节点）
+### 17.7 Convolution（5 个节点）
 
 核心卷积节点（`comfy_extras/nodes_convolution.py`），是上文 `Basic` 层在网络结构上的可学习对应物。
 它们与 `Linear` 遵循同一约定：节点内部不做任何初始化，`weight` 与 `bias` 都是普通 `TENSOR` 输入，
 因此节点是纯函数，同一组权重可以喂给多个节点。相应地也没有 `in_channels` / `out_channels` /
 `bias` 开关：通道数直接从 `weight.shape` 读出，「不要偏置」用不连 `bias` 可选插槽来表达。
+三个上采样节点（reform step 10）则**完全不带权重**——它们是纯插值 / 纯重排，是 `ConvTranspose`
+的无参数对应物。
 
 | 节点 | 类名 | 输入 | 额外控件 | 作用 |
 |------|-------|--------|--------------|---------|
 | Conv | `ConvolutionConv` | `tensor`、`weight`（`(out, in/groups, k...)`）、`bias`（可选） | `dims` COMBO 1/2/3（默认 2）、`groups` INT 1 (1~4096)、`stride` INT 1 (1~64)、`padding` INT 1 (0~64)、`padding_mode` COMBO zeros/reflect/replicate/circular（默认 `zeros`）、`dilation` INT 1 (1~32) | `F.conv{1,2,3}d`，支持分组卷积、膨胀卷积与四种填充模式 |
 | ConvTranspose | `ConvolutionConvTranspose` | `tensor`、`weight`（`(in, out/groups, k...)`）、`bias`（可选） | `dims` COMBO 1/2/3（默认 2）、`groups` INT 1 (1~4096)、`stride` INT 2 (1~64)、`padding` INT 0 (0~64)、`output_padding` INT 0 (0~64)、`dilation` INT 1 (1~32) | `F.conv_transpose{1,2,3}d`，解码器与生成器所用的上采样对应物 |
+| Upsample | `ConvolutionUpsample` | `tensor`（`(N, C, 空间...)`） | `dims` COMBO 1/2/3（默认 2）、`mode` COMBO nearest/linear/bilinear/bicubic/trilinear（默认 `nearest`）、`scale_factor` FLOAT 2.0 (0.01~64)、`align_corners` BOOLEAN false | `F.interpolate`——无参数的空间放大；mode 必须与 `dims` 匹配（1D = nearest/linear，2D = nearest/bilinear/bicubic，3D = nearest/trilinear），正是 `nn.Upsample` 的契约 |
+| Pixel Shuffle | `ConvolutionPixelShuffle` | `tensor`（`(N, C·r², H, W)`） | `r` INT 2 (1~64) | `F.pixel_shuffle`——`(N, C·r², H, W) → (N, C, H·r, W·r)`；子像素卷积的无参数重排半程 |
+| Pixel Unshuffle | `ConvolutionPixelUnshuffle` | `tensor`（`(N, C, H, W)`） | `r` INT 2 (1~64) | `F.pixel_unshuffle`——精确逆操作：`(N, C, H·r, W·r) → (N, C·r², H, W)`；同 `r` 的 `Pixel Shuffle → Pixel Unshuffle` 是无损往返 |
 
 > `Conv` 的关键在于**参数共享**：*同一个*卷积核在所有空间位置上被复用，因此权重数量只与通道数和
 > 卷积核尺寸有关，而与图像尺寸无关——3×3 的核无论图像是 32×32 还是 1024×1024，每个输入/输出通道
@@ -1919,15 +1925,16 @@ batch 维的张量同样接受——内部补上缺少的前导维，结果再�
 > 两个节点都像 `Linear` 一样做 dtype 提升：当输入与权重同为浮点但类型不同（fp16 激活 + fp32 权重）时，
 > 以更宽的类型为准，而不是抛 dtype 不匹配错误。
 
-### 17.8 Attention（7 个节点）
+### 17.8 Attention（8 个节点）
 
 核心注意力节点（`comfy_extras/nodes_attention.py`），是 `Basic` 家族在序列层上的对应物。它们遵循与
 `Linear` 相同的约定：四组投影权重（q / k / v / out）是普通 `TENSOR` 输入、经插槽接线传入，节点内部
 不做任何初始化，同一组权重可以喂给多个节点。训练/推理开关经 `Training Mode`（17.4）的 `mode` 连线
 传递；注意力权重的 dropout 由 `seed` 控件播种的本地 `torch.Generator` 生成，同一 seed 逐位复现同一
 输出。`AttentionSelf` / `AttentionCross` 是 `AttentionMultihead` 在"q/k/v 从哪来"上的常用形态封装，
-`TransformerEncoderBlock` 则用接线的权重把整个 post-LN 残差块组装成一个节点——搭一个块从 7 个节点
-降到 1 个。三个掩码 / 位置工具（reform step 8）为上述节点与语言模型流水线供应 `mask` 插槽的输入。
+`TransformerEncoderBlock` 与 `TransformerDecoderBlock`（reform step 10）用接线的权重把整个 post-LN
+残差块组装成一个节点——搭一个块从 7 个节点降到 1 个。三个掩码 / 位置工具（reform step 8）为上述节点与
+语言模型流水线供应 `mask` 插槽的输入。
 
 | 节点 | 类名 | 输入 | 额外控件 | 作用 |
 |------|-------|--------|--------------|---------|
@@ -1935,6 +1942,7 @@ batch 维的张量同样接受——内部补上缺少的前导维，结果再�
 | Self-Attention | `AttentionSelf` | `tensor`，其余权重 / bias / mask / mode 同上 | 同上 | `AttentionMultihead` 取 `q = k = v = tensor` —— 最常用形态；`out_weight` 为方阵时输出形状与输入一致 |
 | Cross-Attention | `AttentionCross` | `tensor`（查询源）、`context`（键值源），其余同上 | 同上 | `AttentionMultihead` 取 q 来自 `tensor`、k/v 来自 `context` —— encoder-decoder / 多模态常用形态 |
 | Transformer Encoder Block | `TransformerEncoderBlock` | `tensor`、四组注意力权重（残差要求方阵 `(E, E)`）、`ffn1_weight`（`(ffn_dim, E)`）/ `ffn2_weight`（`(E, ffn_dim)`）、注意力与 FFN 的 bias（可选）、`ln1_weight` / `ln1_bias` / `ln2_weight` / `ln2_bias`（可选 `(E,)`；不连 = 无仿射 LayerNorm）、`mask`、`mode` | `num_heads` INT 4 (1~64)、`dropout_p` FLOAT 0.0 (0~0.9)、`ffn_activation` COMBO relu/gelu（默认 `relu`）、`seed` INT 0 | 单节点的 post-LN 编码器块：`LN → MHA → Add → LN → FFN → Add`；把上一块的输出接入下一块的 `tensor` 即可堆叠 |
+| Transformer Decoder Block | `TransformerDecoderBlock` | `tensor`、`context`（交叉注意力键值源，如编码器输出）、自注意力四组权重（方阵 `(E, E)`）、交叉注意力四组权重（`cross_q` `(E, E)`、`cross_k` / `cross_v` `(E, E_kv)`、`cross_out` `(E, E)`）、`ffn1_weight` / `ffn2_weight`、全部 bias（可选）、`ln1..ln3` 各组 weight / bias（可选 `(E,)`；不连 = 无仿射）、`self_mask` / `cross_mask`（可选）、`mode` | `num_heads` INT 4 (1~64)、`dropout_p` FLOAT 0.0 (0~0.9)、`ffn_activation` COMBO relu/gelu（默认 `relu`）、`seed` INT 0 | 单节点的 post-LN 解码器块：`Self-Attn → Add → LN → Cross-Attn → Add → LN → FFN → Add → LN`；给 `self_mask` 接 Causal Mask 即得自回归性质，把输出接入下一块的 `tensor` 即可堆叠 |
 | Causal Mask | `AttentionCausalMask` | — | `seq_len` INT 8 (1~65536) | 下三角布尔 `(seq_len, seq_len)` 掩码（含对角线），`True` = 可注意 —— 让注意力自回归的解码器 / 语言模型掩码 |
 | Padding Mask | `AttentionPaddingMask` | `lengths`（`(batch,)` 整数） | `max_len` INT 0（0 = 取 `max(lengths)`） | 逐样本有效位掩码 `(batch, 1, 1, max_len)`：位置 `< lengths[i]` 为 `True`，填充尾部为 `False`；可广播到头上与查询维 |
 | Positional Encoding | `AttentionPositionalEncoding` | `tensor`（可选 `(..., length, width)`；连线时输出 `tensor + 编码`，控件改由其形状读出） | `length` INT 8、`width` INT 32 | 固定正弦位置表 `(length, width)`（"Attention Is All You Need"，无可学习参数）；输出 `encoding` 与加性注入后的 `output` |
@@ -1950,7 +1958,32 @@ batch 维的张量同样接受——内部补上缺少的前导维，结果再�
 > （任何地方都不需要再取反），`Positional Encoding` 与 `Language Model Embedding` 链接点在
 > `include_position` 开启时注入的是同一张表——独立节点服务于想自己做加性注入的编码器式堆叠。
 
-### 17.9 Text（4 个节点）
+### 17.9 Recurrent（3 个节点）
+
+核心循环网络节点（`comfy_extras/nodes_recurrent.py`，reform step 10）——注意力组在序列族上的另一
+对应物：经典 tanh 单元、四门双状态的 LSTM 与两门单状态的 GRU。cell 数学**显式**手写（正如注意力
+家族手写 softmax 那样），而不是委托给 `nn.RNN` / `nn.LSTM` / `nn.GRU`；所有权重、偏置与初始状态都
+经输入插槽传入：布局与 `nn.RNNBase` 完全一致，checkpoint 的 `weight_ih_l0` / `weight_hh_l0` /
+`bias_ih_l0` / `bias_hh_l0` 张量可以直接插进来，两个 bias 相加，与 torch 相同。门的行序为
+`[i, f, g, o]`（LSTM）与 `[r, z, n]`（GRU），与 torch 一致。单层、batch_first；堆叠 = 上一节点的
+`y` 接下一节点的 `x`，`hn` / `cn` 回接下一次执行的 `h0` / `c0` 即可续写序列。刻意不设
+`num_layers` / `bidirectional` / `dropout` 控件——组合优于配置。
+
+| 节点 | 类名 | 输入 | 额外控件 | 作用 |
+|------|-------|--------|--------------|---------|
+| RNN | `RecurrentRNN` | `x`（`(B, T, I)`；裸 `(T, I)` 视作 batch=1）、`weight_ih`（`(H, I)`）/ `weight_hh`（`(H, H)`）/ `bias_ih` / `bias_hh`（`(H,)`，均可选）、`h0`（`(B, H)` 或 `(1, B, H)`，可选） | `hidden_size` INT 16 (1~4096) | 经典单元 `h_t = tanh(W_ih·x_t + b_ih + W_hh·h_{t-1} + b_hh)`；输出 `y` `(B, T, H)` 与 `hn` `(B, H)` |
+| LSTM | `RecurrentLSTM` | `x`、`weight_ih`（`(4H, I)`）/ `weight_hh`（`(4H, H)`）/ `bias_ih` / `bias_hh`（`(4H,)`，均可选）、`h0` / `c0`（`(B, H)` 或 `(1, B, H)`，可选） | `hidden_size` INT 16 (1~4096) | 四门单元（行序 `[i, f, g, o]`）：`c_t = f·c_{t-1} + i·g`，`h_t = o·tanh(c_t)`；输出 `y`、`hn` **和** `cn`——细胞状态走自己的一对插槽 |
+| GRU | `RecurrentGRU` | `x`、`weight_ih`（`(3H, I)`）/ `weight_hh`（`(3H, H)`）/ `bias_ih` / `bias_hh`（`(3H,)`，均可选）、`h0`（可选） | `hidden_size` INT 16 (1~4096) | 两门单元（行序 `[r, z, n]`）：重置门 `r` 只缩放候选 `n` 的隐侧贡献，然后 `h_t = (1-z)·n + z·h_{t-1}`；输出 `y` 与 `hn` |
+
+> 「不连即为零」：未接的权重是零权重，未接的 `h0` / `c0` 是零状态，因此一个只连了 `x` 的新节点直接
+> 就能跑（产出全零状态——真正的活要接上权重；这就是无状态节点在"开箱可用"上的表达方式，而不是在
+> 节点里凭空发明随机初始化）。非浮点输入以 float32 运行；混合浮点 dtype 像 `Linear` / `Conv` 一样
+> 提升到公共类型。所有输出都 `detach()`，输出再喂给优化器或别的节点的状态插槽时，ComfyUI 的缓存依然
+> 有效。冒烟器用同一组接线权重逐步对照 `nn.RNN` / `nn.LSTM` / `nn.GRU`，包括全零分支（必须得到
+> 恰好 `tanh(0) = 0` 的状态）。被取代的 d2l 构建器（`RNN (from scratch)` / `RNN (high-level)` /
+> `GRU`）软归档到 `d2l/_Legacy/NLP Models`，旧图继续可用。
+
+### 17.10 Text（4 个节点）
 
 语言模型流水线的文本侧（`comfy_extras/nodes_nlp.py`，reform step 8；既有 `comfy_extras/nodes_text.py`
 仍是与之无关的 Save Text 输出节点），运行在新 `VOCAB` 槽类型与普通 `torch.long` 索引张量之上。一切
@@ -2221,7 +2254,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 91 个 ComfyUI
+共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2232,8 +2265,8 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | utilities | 4 | Windows MessageBox、NoOp 空操作、计时与神秘的 "?"（ComfyUI 核心分类） |
 | d2l/Model Utils | 7 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
 | d2l/_Legacy/Model Utils | 1 | 已弃用（软归档）：`Model Mode`，纯 `TENSOR` 图改用核心 `Training Mode` |
-| d2l/NLP Models | 12 | RNN/GRU/RNNLM、注意力与 Seq2Seq 模型构件 |
-| d2l/_Legacy/NLP Models | 4 | 已弃用（软归档）：`Multi-Head Attention`、`Add & Norm`、`Transformer Encoder Block`、`Transformer Encoder` |
+| d2l/NLP Models | 9 | RNNLM 与注意力/Seq2Seq 模型构件（RNN/GRU 构建器已软归档） |
+| d2l/_Legacy/NLP Models | 7 | 已弃用（软归档）：`Multi-Head Attention`、`Add & Norm`、`Transformer Encoder Block`、`Transformer Encoder`，以及被核心 Recurrent 节点取代的 `RNN (from scratch)` / `RNN (high-level)` / `GRU` 构建器，均有核心等价节点 |
 | d2l/NLP Utils | 5 | 文本分词与词表 |
 | d2l/Tensor Basic | 5 | 张量 I/O、卷积、转置、广播、重塑、激活函数 |
 | d2l/_Legacy/Tensor Basic | 3 | 已弃用（软归档）：`Broadcast`、`Reshape`、`Activation`，均有核心等价节点 |
@@ -2248,12 +2281,13 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | utilities/conversion | 6 | Comfy 语义值与通用 `TENSOR` 的往返转换（ComfyUI 核心分类） |
 | Network & Layers/Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
 | Network & Layers/Basic | 8 | `TENSOR` 类型上的核心基础层与张量运算（ComfyUI 核心分类） |
-| Network & Layers/Attention | 7 | 多头 / 自 / 交叉注意力、组装好的 post-LN Transformer 编码器块、因果 / 填充掩码与正弦位置编码，权重走插槽（ComfyUI 核心分类） |
+| Network & Layers/Attention | 8 | 多头 / 自 / 交叉注意力、组装好的 post-LN Transformer 编码器与解码器块、因果 / 填充掩码与正弦位置编码，权重走插槽（ComfyUI 核心分类） |
 | Network & Layers/Normalization | 7 | `TENSOR` 类型上的核心归一化（ComfyUI 核心分类） |
 | Network & Layers/Regularization | 1 | 带种子掩码的核心逐元素 dropout（ComfyUI 核心分类） |
 | Network & Layers/Training | 23 | 训练/推理开关、运行统计量、可学习参数、优化器设定（含梯度裁剪）、LR 调度器 / 损失 / 指标 / 评估四件套、训练循环、语言模型流水线（spec 链 / Build / Train / Forward / Generate）及其 Save / Load 持久化（ComfyUI 核心分类） |
 | Network & Layers/Pooling | 2 | `TENSOR` 类型上的最大 / 平均池化，滑动窗口与自适应（`output_size=1` 即全局池化）（ComfyUI 核心分类） |
-| Network & Layers/Convolution | 2 | `TENSOR` 类型上的卷积与转置卷积，权重走连线传入（ComfyUI 核心分类） |
+| Network & Layers/Convolution | 5 | 卷积与转置卷积（权重走连线）加上无参数上采样族：插值 Upsample、Pixel Shuffle 及其逆（ComfyUI 核心分类） |
+| Network & Layers/Recurrent | 3 | 核心循环单元——RNN / LSTM / GRU，显式门数学，权重与初始状态走连线（ComfyUI 核心分类） |
 | Network & Layers/Text | 4 | 核心文本流水线：`VOCAB` 类型上的词表构建、文本编码 / 解码与滑窗下一词数据集（ComfyUI 核心分类） |
 | model/loaders | 7 | state_dict 层面的 checkpoint / 扩散模型 / VAE / CLIP 加载（ComfyUI 核心分类） |
 | model/merging | 11 | 按键对齐的模型与 CLIP 合并，以及 `.safetensors` 落盘（ComfyUI 核心分类） |
@@ -2261,11 +2295,11 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` 协议占位节点（ComfyUI 核心分类） |
 | 3d | 1 | `Preview 3D`，前端绑定的 3D 预览画布（ComfyUI 核心分类） |
 
-> 前 20 行统计 **ComfyDL 提供的 109 个节点**（其中 8 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
+> 前 20 行统计 **ComfyDL 提供的 109 个节点**（其中 11 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
 >
-> 其余 14 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：九个 `Network & Layers/*` 分组（68 个节点）、
+> 其余 15 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：十个 `Network & Layers/*` 分组（75 个节点）、
 > 四个 `model/*` 分组（22 个节点）与 `3d`（1 个节点）。因此随宿主发布的节点库总计
-> **200 个节点、34 个分类** = 109 个 ComfyDL + 91 个核心节点。
+> **207 个节点、35 个分类** = 109 个 ComfyDL + 98 个核心节点。
 >
 > 有两行的数量少于宿主注册表在该分类下的实际节点数，因为注册表把本次改动未触及的原生节点也算在内：
 > `model/latent`（其第三个节点是 `LatentCompositeMasked`）以及 `image`、`utilities`、`image/color`、

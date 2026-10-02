@@ -12,6 +12,13 @@ All model builders return a cdlModel (d2l Module) that can be wired into
 CdlModelForward / CdlModelInfo / CdlModelSave etc. for inspection and
 inference. The RNNLM* builders take an existing RNN/GRU cdlModel as input
 and wrap it with an output projection to vocab_size classes.
+
+Deprecated nodes (still registered, moved to ``d2l/_Legacy/NLP Models``):
+  - CdlRNNScratch / CdlRNN / CdlGRU  - superseded by the core stateless
+    ``Network & Layers/Recurrent`` nodes (RNN / LSTM / GRU) that operate on
+    the ``TENSOR`` slot type with weights wired in. These cdlModel builders
+    keep working for existing workflows; new tensor graphs should use the
+    core recurrent nodes.
 """
 
 import torch
@@ -60,7 +67,16 @@ def _device_of(model):
 
 
 class CdlRNNScratch:
-    """Build an RNN from scratch (tanh cell, manual parameters).
+    """DEPRECATED - use the core ``RecurrentRNN`` node (``Network & Layers/Recurrent``).
+
+    Superseded on bare TENSOR graphs: the core recurrent family (reform step 10)
+    now offers ``RNN`` / ``LSTM`` / ``GRU`` as stateless nodes whose weights,
+    biases and initial states are wired in as tensors, so one node runs any
+    checkpoint. This builder constructs a ``cdlModel`` (module-level) instead of
+    operating on a TENSOR, so it is kept registered and still works; new tensor
+    graphs should use the core recurrent nodes.
+
+    Build an RNN from scratch (tanh cell, manual parameters).
 
     d2lcore: RNNScratch(num_inputs, num_hiddens, sigma)
     Inputs:
@@ -85,7 +101,8 @@ class CdlRNNScratch:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/NLP Models"
+    CATEGORY = "d2l/_Legacy/NLP Models"
+    DEPRECATED = True
 
     def execute(self, num_inputs, num_hiddens, sigma):
         model = RNNScratch(num_inputs, num_hiddens, sigma=sigma)
@@ -93,11 +110,19 @@ class CdlRNNScratch:
 
 
 NODE_CLASS_MAPPINGS["CdlRNNScratch"] = CdlRNNScratch
-NODE_DISPLAY_NAME_MAPPINGS["CdlRNNScratch"] = "RNN (from scratch)"
+NODE_DISPLAY_NAME_MAPPINGS["CdlRNNScratch"] = "RNN (from scratch) (DEPRECATED)"
 
 
 class CdlRNN:
-    """Build an RNN using PyTorch's high-level nn.RNN.
+    """DEPRECATED - use the core ``RecurrentRNN`` node (``Network & Layers/Recurrent``).
+
+    Superseded on bare TENSOR graphs by the stateless core ``RNN`` node whose
+    weights, biases and initial state are wired in as tensors (reform step 10).
+    This builder constructs a ``cdlModel`` (module-level) instead of operating
+    on a TENSOR, so it is kept registered and still works; new tensor graphs
+    should use the core recurrent nodes.
+
+    Build an RNN using PyTorch's high-level nn.RNN.
 
     d2lcore: RNN(num_inputs, num_hiddens)
     Inputs:
@@ -120,7 +145,8 @@ class CdlRNN:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/NLP Models"
+    CATEGORY = "d2l/_Legacy/NLP Models"
+    DEPRECATED = True
 
     def execute(self, num_inputs, num_hiddens):
         model = RNN(num_inputs, num_hiddens)
@@ -128,11 +154,19 @@ class CdlRNN:
 
 
 NODE_CLASS_MAPPINGS["CdlRNN"] = CdlRNN
-NODE_DISPLAY_NAME_MAPPINGS["CdlRNN"] = "RNN (high-level)"
+NODE_DISPLAY_NAME_MAPPINGS["CdlRNN"] = "RNN (high-level) (DEPRECATED)"
 
 
 class CdlGRU:
-    """Build a multilayer GRU using PyTorch's high-level nn.GRU.
+    """DEPRECATED - use the core ``RecurrentGRU`` node (``Network & Layers/Recurrent``).
+
+    Superseded on bare TENSOR graphs by the stateless core ``GRU`` node whose
+    weights, biases and initial state are wired in as tensors (reform step 10).
+    This builder constructs a ``cdlModel`` (module-level) instead of operating
+    on a TENSOR, so it is kept registered and still works; new tensor graphs
+    should use the core recurrent nodes.
+
+    Build a multilayer GRU using PyTorch's high-level nn.GRU.
 
     d2lcore: GRU(num_inputs, num_hiddens, num_layers, dropout)
     Inputs:
@@ -159,7 +193,8 @@ class CdlGRU:
     RETURN_TYPES = ("cdlModel",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
-    CATEGORY = "d2l/NLP Models"
+    CATEGORY = "d2l/_Legacy/NLP Models"
+    DEPRECATED = True
 
     def execute(self, num_inputs, num_hiddens, num_layers, dropout):
         model = GRU(num_inputs, num_hiddens, num_layers, dropout=dropout)
@@ -167,7 +202,7 @@ class CdlGRU:
 
 
 NODE_CLASS_MAPPINGS["CdlGRU"] = CdlGRU
-NODE_DISPLAY_NAME_MAPPINGS["CdlGRU"] = "GRU"
+NODE_DISPLAY_NAME_MAPPINGS["CdlGRU"] = "GRU (DEPRECATED)"
 
 
 class CdlRNNLMScratch:

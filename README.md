@@ -72,10 +72,10 @@ Its README covers the details: <https://github.com/Cynthia-lxx/ComfyDL_UI#readme
 
 ## Function Overview
 
-The built-in node library ships **200 nodes** across 34 categories — **109 provided by ComfyDL**
-plus 91 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Attention` 7
+The built-in node library ships **207 nodes** across 35 categories — **109 provided by ComfyDL**
+plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Attention` 8
 + `Normalization` 7
-+ `Regularization` 1 + `Training` 23 + `Pooling` 2 + `Convolution` 2 + `Text` 4; `model` → `loaders` 7
++ `Regularization` 1 + `Training` 23 + `Pooling` 2 + `Convolution` 5 + `Recurrent` 3 + `Text` 4; `model` → `loaders` 7
 + `merging` 11 + `latent` 2 + `conditioning` 2; `3d` → `Preview 3D` 1) that were added on top of it:
 
 | Category | Count | Description |
@@ -85,7 +85,7 @@ plus 91 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
 | **Model Utils** | 7 | Model info, mode, forward, layers, params, clone & persistence |
-| **NLP Models** | 12 | RNN/GRU/RNNLM, attention & Seq2Seq building blocks |
+| **NLP Models** | 9 | RNNLM & attention/Seq2Seq building blocks (RNN/GRU builders soft-archived) |
 | **NLP Utils** | 5 | Text tokenization & vocabularies |
 | **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
 | **Segmentation** | 4 | VOC semantic segmentation tools |
@@ -93,7 +93,7 @@ plus 91 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **TorchOps** | 10 | Loss, optimization, metrics |
 | **Visualization** | 13 | Plots, charts & bounding box visualization |
 | **d2l/_Legacy/Model Utils** | 1 | Deprecated (soft-archived): Model Mode; use the core Training Mode |
-| **d2l/_Legacy/NLP Models** | 4 | Deprecated (soft-archived): Multi-Head Attention, Add & Norm, Transformer Encoder Block/Encoder |
+| **d2l/_Legacy/NLP Models** | 7 | Deprecated (soft-archived): Multi-Head Attention, Add & Norm, Transformer Encoder Block/Encoder; use the core Attention/Recurrent nodes |
 | **d2l/_Legacy/Tensor Basic** | 3 | Deprecated (soft-archived): Broadcast, Reshape, Activation |
 | **image (Comfy core)** | 1 | Per-channel image batch statistics |
 | **image/color (Comfy core)** | 3 | Grayscale, normalize & brightness/contrast/saturation |
@@ -101,8 +101,8 @@ plus 91 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **utilities (Comfy core)** | 4 | MessageBox, NoOp pass-through & benchmark timer |
 | **conversion** | 6 |  |
 
-> The 20 categories above are the ones ComfyDL itself provides; the other 13 categories of the
-> shipped library (`Network & Layers/*`, `model/*` and `3d`, 91 nodes in total) are pure ComfyUI
+> The 20 categories above are the ones ComfyDL itself provides; the other 14 categories of the
+> shipped library (`Network & Layers/*`, `model/*` and `3d`, 98 nodes in total) are pure ComfyUI
 > core categories.
 >
 > For the complete node reference, see **[FUNCTIONS.md](./FUNCTIONS.md)** (English) or **[FUNCTIONS_zh.md](./FUNCTIONS_zh.md)** (中文).

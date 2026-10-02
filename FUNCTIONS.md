@@ -327,7 +327,7 @@ Merged into the ComfyUI core category `utilities` (frontend group: 实用工具)
 
 ---
 
-## 6. d2l / NLP Models (12 nodes)
+## 6. d2l / NLP Models (9 nodes)
 
 NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer and Seq2Seq building blocks. All builders return a `cdlModel` that can be wired into `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` etc. for inspection and inference. RNN/GRU forwards expect time-major inputs `(num_steps, batch_size, num_inputs)`; attention modules and the Transformer encoder expect batch-first inputs.
 
@@ -1658,14 +1658,15 @@ Merged into the ComfyUI core category `image` (next to the core `GetImageSize` n
 
 ---
 
-## 17. ComfyUI / Network & Layers (68 nodes)
+## 17. ComfyUI / Network & Layers (75 nodes)
 
 Core neural-network nodes shipped by the host runtime (not part of the ComfyDL submodule).
-They live in nine `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
+They live in ten `comfy_extras` modules — `nodes_activation.py`, `nodes_layers.py`,
 `nodes_attention.py`, `nodes_normalization.py`, `nodes_pooling.py`, `nodes_convolution.py`,
-`nodes_training.py`, `nodes_nlp.py` and `nodes_lm.py` —
+`nodes_recurrent.py`, `nodes_training.py`, `nodes_nlp.py` and `nodes_lm.py` —
 and form the **Comfy nodes → Network & Layers** branch of the node library, split into the `Activation`,
-`Basic`, `Attention`, `Normalization`, `Regularization`, `Training`, `Pooling`, `Convolution` and
+`Basic`, `Attention`, `Normalization`, `Regularization`, `Training`, `Pooling`, `Convolution`,
+`Recurrent` and
 `Text` groups below. All of them exchange data on the shared `TENSOR` slot type, preserve the input
 dtype/device, and are stateless: learnable parameters such as `weight` and `bias` are tensors fed
 through input slots instead of being initialised inside the node, so a node is a pure function and
@@ -1926,19 +1927,24 @@ dimensions are added internally and dropped from the result again.
 > `count_include_pad`; a non-default value of the ignored widget prints a note instead of silently
 > doing nothing.
 
-### 17.7 Convolution (2 nodes)
+### 17.7 Convolution (5 nodes)
 
 Core convolution nodes (`comfy_extras/nodes_convolution.py`), the learnable spatial counterpart of
 the `Basic` layers above. They follow the same convention as `Linear`: nothing is initialised
 inside the node — `weight` and `bias` are ordinary `TENSOR` inputs, so the node is a pure function
 and one set of weights can be fed to several nodes. Consequently there is no `in_channels` /
 `out_channels` / `bias` switch: the channel counts are read off `weight.shape`, and "no bias" is
-expressed by leaving the optional `bias` slot unconnected.
+expressed by leaving the optional `bias` slot unconnected. The three upsampling nodes (reform step
+10) carry **no** weights at all — they are pure interpolation / reshaping, the parameter-free
+counterparts of `ConvTranspose`.
 
 | Node | Class | Inputs | Extra widgets | Purpose |
 |------|-------|--------|---------------|---------|
 | Conv | `ConvolutionConv` | `tensor`, `weight` (`(out, in/groups, k...)`), `bias` (optional) | `dims` COMBO 1/2/3 (default 2), `groups` INT 1 (1~4096), `stride` INT 1 (1~64), `padding` INT 1 (0~64), `padding_mode` COMBO zeros/reflect/replicate/circular (default `zeros`), `dilation` INT 1 (1~32) | `F.conv{1,2,3}d`, with grouped / dilated kernels and four padding modes |
 | ConvTranspose | `ConvolutionConvTranspose` | `tensor`, `weight` (`(in, out/groups, k...)`), `bias` (optional) | `dims` COMBO 1/2/3 (default 2), `groups` INT 1 (1~4096), `stride` INT 2 (1~64), `padding` INT 0 (0~64), `output_padding` INT 0 (0~64), `dilation` INT 1 (1~32) | `F.conv_transpose{1,2,3}d` — the upsampling counterpart decoders and generators use |
+| Upsample | `ConvolutionUpsample` | `tensor` (`(N, C, spatial...)`) | `dims` COMBO 1/2/3 (default 2), `mode` COMBO nearest/linear/bilinear/bicubic/trilinear (default `nearest`), `scale_factor` FLOAT 2.0 (0.01~64), `align_corners` BOOLEAN false | `F.interpolate` — parameter-free spatial enlargement; the mode must match `dims` (1D = nearest/linear, 2D = nearest/bilinear/bicubic, 3D = nearest/trilinear), exactly the `nn.Upsample` contract |
+| Pixel Shuffle | `ConvolutionPixelShuffle` | `tensor` (`(N, C*r², H, W)`) | `r` INT 2 (1~64) | `F.pixel_shuffle` — `(N, C·r², H, W) → (N, C, H·r, W·r)`; the parameter-free reshaping half of sub-pixel convolution |
+| Pixel Unshuffle | `ConvolutionPixelUnshuffle` | `tensor` (`(N, C, H, W)`) | `r` INT 2 (1~64) | `F.pixel_unshuffle` — the exact inverse: `(N, C, H·r, W·r) → (N, C·r², H, W)`; `Pixel Shuffle → Pixel Unshuffle` at the same `r` is a lossless round trip |
 
 > **Parameter sharing** is the point of `Conv`: the *same* kernel is reused at every spatial
 > position, so the number of weights depends on the channel counts and the kernel size but never on
@@ -1964,7 +1970,7 @@ expressed by leaving the optional `bias` slot unconnected.
 > point but different (fp16 activations with fp32 weights), the common type wins and the
 > computation happens there instead of raising a dtype-mismatch error.
 
-### 17.8 Attention (7 nodes)
+### 17.8 Attention (8 nodes)
 
 Core attention nodes (`comfy_extras/nodes_attention.py`), the sequence-layer counterpart of the
 `Basic` family. They follow the same convention as `Linear`: the four projection weights (q / k / v
@@ -1973,8 +1979,9 @@ and one weight set can be fed to several nodes. The train/eval switch travels th
 link of `Training Mode` (17.4), and the attention-weight dropout is drawn from a local
 `torch.Generator` seeded by the `seed` widget, so the same seed reproduces the same output bit for
 bit. `AttentionSelf` / `AttentionCross` are the common shapes of `AttentionMultihead` with the q/k/v
-source decided by the node, and `TransformerEncoderBlock` assembles the whole post-LN residual block
-from the wired weights, so one block costs one node instead of seven. The three mask / position
+source decided by the node, and `TransformerEncoderBlock` / `TransformerDecoderBlock` (reform step
+10) assemble the whole post-LN residual block from the wired weights, so one block costs one node
+instead of seven. The three mask / position
 utilities (reform step 8) feed the `mask` slots of every node above and the language-model pipeline.
 
 | Node | Class | Inputs | Extra widgets | Purpose |
@@ -1983,6 +1990,7 @@ utilities (reform step 8) feed the `mask` slots of every node above and the lang
 | Self-Attention | `AttentionSelf` | `tensor`, the same weight / bias / mask / mode set | same | `AttentionMultihead` with `q = k = v = tensor` — the most common form; output shape equals input shape when `out_weight` is square |
 | Cross-Attention | `AttentionCross` | `tensor` (queries), `context` (keys & values), the same weight / bias / mask / mode set | same | `AttentionMultihead` with q from `tensor` and k/v from `context` — the encoder-decoder / multimodal form |
 | Transformer Encoder Block | `TransformerEncoderBlock` | `tensor`, the four attention weights (square `(E, E)` for the residual), `ffn1_weight` (`(ffn_dim, E)`) / `ffn2_weight` (`(E, ffn_dim)`), the attention & FFN biases (optional), `ln1_weight` / `ln1_bias` / `ln2_weight` / `ln2_bias` (optional `(E,)`; unconnected = non-affine LayerNorm), `mask`, `mode` | `num_heads` INT 4 (1~64), `dropout_p` FLOAT 0.0 (0~0.9), `ffn_activation` COMBO relu/gelu (default `relu`), `seed` INT 0 | One post-LN encoder block: `LN → MHA → Add → LN → FFN → Add`; stack blocks by feeding one output into the next block's `tensor` |
+| Transformer Decoder Block | `TransformerDecoderBlock` | `tensor`, `context` (cross-attention keys & values, e.g. the encoder output), the self-attention four weights (square `(E, E)`), the cross-attention four weights (`cross_q` `(E, E)`, `cross_k` / `cross_v` `(E, E_kv)`, `cross_out` `(E, E)`), `ffn1_weight` / `ffn2_weight`, all biases (optional), `ln1..ln3` weight / bias pairs (optional `(E,)`; unconnected = non-affine), `self_mask` / `cross_mask` (optional), `mode` | `num_heads` INT 4 (1~64), `dropout_p` FLOAT 0.0 (0~0.9), `ffn_activation` COMBO relu/gelu (default `relu`), `seed` INT 0 | One post-LN decoder block: `Self-Attn → Add → LN → Cross-Attn → Add → LN → FFN → Add → LN`; wire a Causal Mask into `self_mask` for the autoregressive property, stack blocks by feeding the output into the next block's `tensor` |
 | Causal Mask | `AttentionCausalMask` | — | `seq_len` INT 8 (1~65536) | The lower-triangular boolean `(seq_len, seq_len)` mask (diagonal included), `True` = attend — the decoder / language-model mask that makes attention autoregressive |
 | Padding Mask | `AttentionPaddingMask` | `lengths` (`(batch,)` integer) | `max_len` INT 0 (0 = read from `max(lengths)`) | The per-sample validity mask `(batch, 1, 1, max_len)`: `True` for positions `< lengths[i]`, `False` for the padded tail; broadcasts over heads and queries |
 | Positional Encoding | `AttentionPositionalEncoding` | `tensor` (optional `(..., length, width)`; when wired the output is `tensor + encoding` and the widgets are read from its shape) | `length` INT 8, `width` INT 32 | The fixed sinusoidal position table `(length, width)` ("Attention Is All You Need", no learnable parameters); outputs `encoding` and the additive-injected `output` |
@@ -2002,7 +2010,38 @@ utilities (reform step 8) feed the `mask` slots of every node above and the lang
 > `include_position` is on — the standalone node covers encoder-style stacks that inject it
 > themselves.
 
-### 17.9 Text (4 nodes)
+### 17.9 Recurrent (3 nodes)
+
+Core recurrent nodes (`comfy_extras/nodes_recurrent.py`, reform step 10) — the sequential-family
+counterpart of the attention group: the vanilla tanh cell, the LSTM with its four gates and two
+states, and the GRU with its two gates and one state. The cell math is written out **explicitly**
+(like the attention family's hand-rolled softmax) instead of delegating to `nn.RNN` /
+`nn.LSTM` / `nn.GRU`, and every weight, bias and initial state arrives through an input slot: the
+layout matches `nn.RNNBase` exactly, so a checkpoint's `weight_ih_l0` / `weight_hh_l0` /
+`bias_ih_l0` / `bias_hh_l0` tensors plug straight in and the two biases add, as in torch. The gate
+row order is `[i, f, g, o]` (LSTM) and `[r, z, n]` (GRU), as in torch. Single layer, batch-first;
+stacking is the previous node's `y` into the next node's `x`, and `hn` / `cn` round-trip into the
+next execution's `h0` / `c0` to continue a sequence. No `num_layers` / `bidirectional` / `dropout`
+widgets on purpose — composition over configuration.
+
+| Node | Class | Inputs | Extra widgets | Purpose |
+|------|-------|--------|---------------|---------|
+| RNN | `RecurrentRNN` | `x` (`(B, T, I)`; a bare `(T, I)` runs as a batch of one), `weight_ih` (`(H, I)`) / `weight_hh` (`(H, H)`) / `bias_ih` / `bias_hh` (`(H,)`; all optional), `h0` (`(B, H)` or `(1, B, H)`, optional) | `hidden_size` INT 16 (1~4096) | The vanilla cell `h_t = tanh(W_ih·x_t + b_ih + W_hh·h_{t-1} + b_hh)`; outputs `y` `(B, T, H)` and `hn` `(B, H)` |
+| LSTM | `RecurrentLSTM` | `x`, `weight_ih` (`(4H, I)`) / `weight_hh` (`(4H, H)`) / `bias_ih` / `bias_hh` (`(4H,)`; all optional), `h0` / `c0` (`(B, H)` or `(1, B, H)`, optional) | `hidden_size` INT 16 (1~4096) | The four-gate cell (`[i, f, g, o]` rows): `c_t = f·c_{t-1} + i·g`, `h_t = o·tanh(c_t)`; outputs `y`, `hn` **and** `cn` — the cell state travels on its own slot pair |
+| GRU | `RecurrentGRU` | `x`, `weight_ih` (`(3H, I)`) / `weight_hh` (`(3H, H)`) / `bias_ih` / `bias_hh` (`(3H,)`; all optional), `h0` (optional) | `hidden_size` INT 16 (1~4096) | The two-gate cell (`[r, z, n]` rows): the reset gate `r` scales **only** the hidden side of the candidate `n`, then `h_t = (1-z)·n + z·h_{t-1}`; outputs `y` and `hn` |
+
+> Unconnected means zero: an unwired weight is a zero weight and an unwired `h0` / `c0` is a zero
+> state, so a freshly placed node with only `x` wired already runs (producing zero states — wire the
+> weights in for real work; that's the "out-of-the-box" guarantee without inventing random
+> inits inside a stateless node). Non-float inputs run in float32; mixed float dtypes are promoted
+> to their common type like `Linear` / `Conv`. All outputs are `detach()`ed, so ComfyUI's caching
+> stays meaningful when the outputs feed an optimizer or another node's state slots. The smoke
+> tester pins each cell step by step against `nn.RNN` / `nn.LSTM` / `nn.GRU` with the same wired
+> weights, including the zero-everything branch (which must yield exactly `tanh(0) = 0` states).
+> The superseded d2l builders (`RNN (from scratch)` / `RNN (high-level)` / `GRU`) are soft-archived
+> under `d2l/_Legacy/NLP Models` and keep working for old graphs.
+
+### 17.10 Text (4 nodes)
 
 The text half of the language-model pipeline (`comfy_extras/nodes_nlp.py`, reform step 8 — the
 pre-existing `comfy_extras/nodes_text.py` remains the unrelated Save Text output node), operating on
@@ -2294,7 +2333,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 91
+**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2305,8 +2344,8 @@ ComfyUI core nodes on top. Both registers are listed below:
 | utilities | 4 | Windows MessageBox, NoOp pass-through, timing & a mysterious "?" (ComfyUI core category) |
 | d2l/Model Utils | 7 | Model info, mode, forward, layers, params, clone & persistence |
 | d2l/_Legacy/Model Utils | 1 | Deprecated (soft-archived): `Model Mode`; use the core `Training Mode` on tensor graphs |
-| d2l/NLP Models | 12 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
-| d2l/_Legacy/NLP Models | 4 | Deprecated (soft-archived): `Multi-Head Attention`, `Add & Norm`, `Transformer Encoder Block`, `Transformer Encoder` |
+| d2l/NLP Models | 9 | RNN/GRU/RNNLM, attention & Seq2Seq model building blocks |
+| d2l/_Legacy/NLP Models | 7 | Deprecated (soft-archived): `Multi-Head Attention`, `Add & Norm`, `Transformer Encoder Block`, `Transformer Encoder`, and the `RNN (from scratch)` / `RNN (high-level)` / `GRU` builders superseded by the core Recurrent nodes; all with core equivalents |
 | d2l/NLP Utils | 5 | Text tokenization & vocabularies |
 | d2l/Tensor Basic | 5 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
 | d2l/_Legacy/Tensor Basic | 3 | Deprecated (soft-archived): `Broadcast`, `Reshape`, `Activation`, all with core equivalents |
@@ -2321,12 +2360,13 @@ ComfyUI core nodes on top. Both registers are listed below:
 | utilities/conversion | 6 | Comfy value ↔ generic `TENSOR` round-trip (ComfyUI core category) |
 | Network & Layers/Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
-| Network & Layers/Attention | 7 | Core multi-head / self / cross attention, the assembled post-LN Transformer encoder block, the causal / padding masks and the sinusoidal positional encoding, weights wired in (ComfyUI core category) |
+| Network & Layers/Attention | 8 | Core multi-head / self / cross attention, the assembled post-LN Transformer encoder & decoder blocks, the causal / padding masks and the sinusoidal positional encoding, weights wired in (ComfyUI core category) |
 | Network & Layers/Normalization | 7 | Core normalizations on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Regularization | 1 | Core element-wise dropout with a seeded mask (ComfyUI core category) |
 | Network & Layers/Training | 23 | Train/eval switch, running statistics, learnable parameters, optimizer settings (with gradient clipping), the LR scheduler / loss / metrics / evaluation quartet, the training loop, the language-model pipeline (spec chain / build / train / forward / generate) and its save / load persistence (ComfyUI core category) |
 | Network & Layers/Pooling | 2 | Max / average pooling, sliding-window and adaptive (`output_size=1` is global pooling) (ComfyUI core category) |
-| Network & Layers/Convolution | 2 | Convolution & transposed convolution on the `TENSOR` type, weights wired in (ComfyUI core category) |
+| Network & Layers/Convolution | 5 | Convolution & transposed convolution, weights wired in, plus the parameter-free upsampling family: interpolate upsample, pixel shuffle and its inverse (ComfyUI core category) |
+| Network & Layers/Recurrent | 3 | Core recurrent cells — RNN / LSTM / GRU with explicit gate math, weights and initial states wired in (ComfyUI core category) |
 | Network & Layers/Text | 4 | Core text pipeline: vocabulary build, text encode / decode and the sliding-window next-token dataset on the `VOCAB` type (ComfyUI core category) |
 | model/loaders | 7 | Checkpoint / diffusion-model / VAE / CLIP loaders at state_dict level (ComfyUI core category) |
 | model/merging | 11 | Key-aligned model & CLIP merging plus `.safetensors` saving (ComfyUI core category) |
@@ -2334,13 +2374,13 @@ ComfyUI core nodes on top. Both registers are listed below:
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` protocol placeholders (ComfyUI core category) |
 | 3d | 1 | `Preview 3D`, the frontend-bound 3D preview canvas (ComfyUI core category) |
 
-> The first 20 rows list the **109 ComfyDL-provided nodes** (8 of them soft-archived into
+> The first 20 rows list the **109 ComfyDL-provided nodes** (11 of them soft-archived into
 > `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their display names carry a
 > `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
 >
-> The other 14 rows are pure ComfyUI core categories with no ComfyDL nodes: the nine
-> `Network & Layers/*` groups (68 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
-> The shipped library therefore totals **200 nodes across 34 categories** = 109 ComfyDL + 91 core.
+> The other 15 rows are pure ComfyUI core categories with no ComfyDL nodes: the ten
+> `Network & Layers/*` groups (75 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
+> The shipped library therefore totals **207 nodes across 35 categories** = 109 ComfyDL + 98 core.
 >
 > Two rows list fewer nodes than the host registry holds in that category, because the registry
 > also counts native nodes that this refactor did not touch: `model/latent` (whose third node is
