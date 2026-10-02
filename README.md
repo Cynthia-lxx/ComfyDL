@@ -5,6 +5,9 @@
   <a href="./README_zh.md">中文版本 / Chinese</a>
 </div>
 
+> **GUI version available:** [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) ships
+> ComfyDL as a built-in node pack on a ready-to-run ComfyUI fork — clone it, launch `main.py`,
+> and the nodes are already there. See [Installation](#installation).
 
 ---
 

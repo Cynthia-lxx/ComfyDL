@@ -5,6 +5,10 @@
   <a href="./README.md">English Version / 英文版</a>
 </div>
 
+> **已有 GUI 版本：** [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) 把 ComfyDL 作为
+> 内置节点包注册在开箱即用的 ComfyUI 运行时分支上——克隆后运行 `main.py` 即可，节点已就位。
+> 详见[安装](#安装)。
+
 ---
 
 ## 这是什么？
