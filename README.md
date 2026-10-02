@@ -27,6 +27,18 @@ A tiny node with a toggle that does... something. Try it and see.
 
 ![The Mysterious ?](./assets/example_what.png)
 
+### Training a Language Model, Live
+A small language model trained end to end inside the graph — Vocab Build → Text Encode →
+Sliding Window → the Language Model pipeline → Generate → Save. Since the live-preview update,
+the `Language Model Train` node streams its cross-entropy curve **under itself while it trains**
+(the preview card below the node).
+
+![Language Model training workflow](./assets/languange_model_train_workflow.png)
+
+<p align="center">
+  <img src="./assets/language_model_train_node_focus.png" alt="Language Model Train node with its live loss-curve preview" width="440" />
+</p>
+
 ---
 
 ## Installation

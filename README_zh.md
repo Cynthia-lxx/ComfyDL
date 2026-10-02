@@ -24,6 +24,17 @@
 
 ![神秘的 ?](./assets/example_what.png)
 
+### 训练一个小语言模型（实时 loss 曲线）
+在图内端到端训练一个小语言模型——Vocab Build → Text Encode → Sliding Window →
+Language Model 流水线 → Generate → Save。实时预览上线后，`Language Model Train` 节点在训练的
+同时会把 cross-entropy 曲线**实时刷在自己节点下方**（节点下方那张预览卡片）。
+
+![语言模型训练工作流](./assets/languange_model_train_workflow.png)
+
+<p align="center">
+  <img src="./assets/language_model_train_node_focus.png" alt="Language Model Train 节点与其实时 loss 曲线预览" width="440" />
+</p>
+
 ---
 
 ## 安装
