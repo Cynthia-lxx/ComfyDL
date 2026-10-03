@@ -48,14 +48,16 @@ Language Model 流水线 → Generate → Save。实时预览上线后，`Langua
 ### 方式一 —— GUI 版本：[ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI)
 
 [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) 是 ComfyUI 的运行时分支，已把 ComfyDL
-作为内置节点包注册好。不需要放进 `custom_nodes`，不需要单独安装依赖，也不需要手动接线，
-只需要这个分支本身：
+作为内置节点包注册好。不需要放进 `custom_nodes`，也不需要手动接线——克隆后创建虚拟环境
+（推荐，避免包冲突），安装依赖并启动：
 
 ```bash
 git clone https://github.com/Cynthia-lxx/ComfyDL_UI
 cd ComfyDL_UI
-penv\Scripts\python.exe main.py     # Windows
-penv/bin/python main.py             # Linux / macOS
+python -m venv .venv
+.venv\Scripts\activate      # Windows   （Linux / macOS 为 .venv/bin/activate）
+pip install -r requirements.txt
+python main.py
 ```
 
 细节见其说明文档：<https://github.com/Cynthia-lxx/ComfyDL_UI#readme>。

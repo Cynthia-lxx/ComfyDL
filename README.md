@@ -52,14 +52,17 @@ existing ComfyUI.
 ### Option 1 — the GUI build: [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI)
 
 [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) is a runtime fork of ComfyUI that
-already ships ComfyDL as a built-in node pack. No `custom_nodes` step, no separate dependency
-install, no manual wiring — only the fork itself:
+already ships ComfyDL as a built-in node pack. No `custom_nodes` step, no manual wiring —
+clone it, create a virtual environment (recommended, to avoid package conflicts), install,
+and launch:
 
 ```bash
 git clone https://github.com/Cynthia-lxx/ComfyDL_UI
 cd ComfyDL_UI
-penv\Scripts\python.exe main.py     # Windows
-penv/bin/python main.py             # Linux / macOS
+python -m venv .venv
+.venv\Scripts\activate      # Windows   (.venv/bin/activate on Linux / macOS)
+pip install -r requirements.txt
+python main.py
 ```
 
 Its README covers the details: <https://github.com/Cynthia-lxx/ComfyDL_UI#readme>.
