@@ -2124,47 +2124,35 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
 
 ---
 
-## 19. ComfyUI / model（22 个节点）
+## 19. ComfyUI / model（24 个节点）
 
-**model 协议层**（`comfy_extras/nodes_model_loaders.py`、`nodes_model_merging.py` 与
-`nodes_model_inference.py`）。`MODEL`、`CLIP`、`VAE` 重新成为图中的一等数据，权重再次成为工作流可以
-加载、搬运、混合与写回的东西。
+**扩散模型层**（`comfy_extras/nodes_model_loaders.py`、`nodes_model_merging.py`、
+`nodes_model_inference.py` 与 `nodes_generation.py`）。`MODEL`、`CLIP`、`VAE` 是一等数据，权重可以
+加载、搬运、混合、写回；并且自**回水合**之后还能真正**跑起来**：checkpoint 按结构识别架构并构建出
+可运行模型，VAE 编/解码像素，CLIP 编码提示词，`KSampler` 用回捞的 `comfy.sample` / `comfy.samplers`
+/ `comfy.k_diffusion` 栈对潜变量去噪。
 
-这一层与原生实现最大的不同，是它在 **state_dict** 层面而不是模块层面工作。脱水阶段移除了 `ldm` 模型
-实现，因此这里不做任何结构识别：权重文件被当作 key → 张量的扁平映射，节点唯一理解的「结构」是那套
-约定俗成的**键前缀**：
-
-| 前缀 | 归入 |
-|---|---|
-| `diffusion_model.`（以及所有未匹配的键） | `MODEL` |
-| `first_stage_model.` | `VAE` |
-| `cond_stage_model.` / `conditioner.` / `text_encoders.` | `CLIP` |
-
-于是任何 loader 都能直接吃 `.safetensors` / `.ckpt` 文件。三组权重装进按**引用**持有张量的容器
-（不复制，内存占用即文件大小），并且逐字往返键集：载入时剥掉的外层容器前缀（`model.`、
-`state_dict.`、`module.`，自动探测，也可用 `prefix_strip` 控件显式指定）在保存时原样写回。这正是
-「载入 → 合并 → 保存」能产出与输入键集完全一致的文件的原因——往返在构造上就是无损的。
-
-`MODEL` 组是「只有权重」的唯一例外：它额外被包进 `ModelPatcher`，从而是一个真正的 `MODEL` 值，
-与 ComfyUI 其余部分保持类型兼容。某一组没有键时输出的是合法的**空**容器而不是 `None`，
-因此「只含部分权重」的 checkpoint 不会打断下游连线。
+loader 仍暴露 `prefix_strip` 控件，用于键带外层容器前缀（`model.`、`state_dict.`、`module.`，自动探测或
+显式指定）的文件，因此普通的 `.safetensors` / `.ckpt` 能无损往返于「载入 → 合并 → 保存」之间。在
+loader 层之下，权重按**引用**持有（不复制），`MODEL` 组被包进 `ModelPatcher` 以与 ComfyUI 其余部分
+保持类型兼容。
 
 **两档行为**，以便一眼看清本构建里什么能真正跑起来：
 
 | 档位 | 行为 | 节点 |
 |---|---|---|
-| L1——真实执行 | 真正读文件、拆组、合并、落盘 | 5 个 loader、7 个合并节点、4 个保存节点（共 16 个） |
-| L2——已注册但不可执行 | 节点存在且 IO 契约与原生一致，工作流可以连线并通过校验；但执行时会抛出 `RuntimeError`，说明缺少哪个模块、如何恢复（绝不会是裸的 `ModuleNotFoundError`） | `Load LoRA (Model and CLIP)`、`Load LoRA`、`VAE Decode`、`VAE Encode`、`CLIP Text Encode (Prompt)`、`CLIP Set Last Layer`（共 6 个） |
+| L1——真实执行 | 载入（结构识别 + 真实权重）、合并、保存、VAE 编/解码、CLIP 编码、KSampler | 除两个 LoRA loader 外的全部节点（共 22 个） |
+| L2——已注册但不可执行 | 节点存在且 IO 契约与原生一致，工作流可以连线并通过校验；但执行时会抛出 `RuntimeError`，说明缺少哪个模块、如何恢复（绝不会是裸的 `ModuleNotFoundError`） | `Load LoRA (Model and CLIP)`、`Load LoRA`（共 2 个） |
 
-L2 是刻意保留的：IO 契约让用户今天就能搭出完整文生图流程图，而每个节点都会在 docstring 与报错信息里
-写明自己在等被移除引擎的哪一块。将来把对应模块回捞回来，它们原地即成为可用节点。
+L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶段没有恢复它。除此之外，下面的节点都已接到
+真实的 ComfyUI 引擎上。
 
 ### 19.1 Loaders（7 个节点）
 
 | 节点 | 类名 | 输入 | 控件 | 输出 / 作用 |
 |------|-------|--------|---------|-------------------|
-| Load Checkpoint | `CheckpointLoaderSimple` | `ckpt_name` COMBO（`models/checkpoints`） | `prefix_strip` STRING `"auto"` | `MODEL`、`CLIP`、`VAE`——把一个文件拆进三个组 |
-| Load Diffusion Model | `UNETLoader` | `unet_name` COMBO（`models/unet`、`models/diffusion_models`） | `prefix_strip` STRING `"auto"` | `MODEL`——整个文件就是扩散模型 |
+| Load Checkpoint | `CheckpointLoaderSimple` | `ckpt_name` COMBO（`models/checkpoints`） | `prefix_strip` STRING `"auto"` | `MODEL`、`CLIP`、`VAE`——从 state dict 识别架构并构建可运行模型（真实 `comfy.sd.load_checkpoint_guess_config`） |
+| Load Diffusion Model | `UNETLoader` | `unet_name` COMBO（`models/unet`、`models/diffusion_models`） | `prefix_strip` STRING `"auto"` | `MODEL`——识别并载入扩散模型（真实 `comfy.sd.load_unet`） |
 | Load VAE | `VAELoader` | `vae_name` COMBO（`models/vae`） | `prefix_strip` STRING `"auto"` | `VAE` |
 | Load CLIP | `CLIPLoader` | `clip_name` COMBO（`models/text_encoders`，同时兼容旧的 `models/clip`） | `prefix_strip` STRING `"auto"` | `CLIP` |
 | Load CLIP (Dual) | `DualCLIPLoader` | `clip_name1`、`clip_name2` COMBO | `prefix_strip` STRING `"auto"` | `CLIP`——两个文件的并集，两个编码器作为一个值传递 |
@@ -2208,8 +2196,8 @@ L2 是刻意保留的：IO 契约让用户今天就能搭出完整文生图流�
 
 ### 19.3 Latent（2 个节点）
 
-两个都是协议占位节点（L2）：注册了与原生一致的 IO 契约，工作流可以通过校验；但解码 / 编码图像需要被
-脱水的自编码器结构，因此执行时会抛出说明这一点的 `RuntimeError`。
+两个都跑回捞的自编码器：`VAE Decode` 把潜变量变回像素，`VAE Encode` 把像素编码成潜变量，
+走的是真实的 `comfy/ldm` 自编码器。
 
 | 节点 | 类名 | 输入 | 输出 |
 |------|-------|--------|--------|
@@ -2218,7 +2206,8 @@ L2 是刻意保留的：IO 契约让用户今天就能搭出完整文生图流�
 
 ### 19.4 Conditioning（2 个节点）
 
-同理的协议占位节点（L2）：文本编码需要文本编码器结构。
+两个都跑回捞的文本编码器栈：`CLIP Text Encode` 把提示词编成条件，`CLIP Set Last Layer` 为
+"clip skip" 技巧截断编码器。
 
 | 节点 | 类名 | 输入 | 控件 | 输出 |
 |------|-------|--------|---------|--------|
@@ -2226,6 +2215,17 @@ L2 是刻意保留的：IO 契约让用户今天就能搭出完整文生图流�
 | CLIP Set Last Layer | `CLIPSetLastLayer` | `clip` CLIP | `stop_at_clip_layer` INT -1 (-24~-1) | `CLIP`——为 "clip skip" 技巧截断编码器（常用 `-2`） |
 
 > 宿主注册表的 `model/latent` 分类下还有原生节点 `LatentCompositeMasked`，不属于本次改动，此处不列。
+
+### 19.5 Sampling（2 个节点）
+
+回水合阶段恢复了补全文生图流程的生成节点：`Empty Latent Image` 分配起始潜变量，`KSampler` 用真实的
+`comfy.sample` / `comfy.samplers` / `comfy.k_diffusion` 栈对其去噪。代码位于
+`comfy_extras/nodes_generation.py`。
+
+| 节点 | 类名 | 输入 | 控件 | 输出 |
+|------|-------|--------|---------|--------|
+| Empty Latent Image | `EmptyLatentImage` | `width` INT 512（16~16384，步长 8）、`height` INT 512（16~16384，步长 8）、`batch_size` INT 1（1~4096） | — | `LATENT`——形状为 `(batch, 4, H/8, W/8)` 的空张量 |
+| KSampler | `KSampler` | `model` MODEL、`seed` INT 0、`steps` INT 20（1~10000）、`cfg` FLOAT 8.0（0~100）、`sampler_name` COMBO、`scheduler` COMBO、`positive` CONDITIONING、`negative` CONDITIONING、`latent_image` LATENT、`denoise` FLOAT 1.0（0~1） | — | `LATENT` |
 
 ---
 

@@ -2190,52 +2190,37 @@ silently promoting, which would make the round trip lossy.
 
 ---
 
-## 19. ComfyUI / model (22 nodes)
+## 19. ComfyUI / model (24 nodes)
 
-The **model protocol layer** (`comfy_extras/nodes_model_loaders.py`, `nodes_model_merging.py` and
-`nodes_model_inference.py`). `MODEL`, `CLIP` and `VAE` are back in the graph as first-class values,
-so weights are again something a workflow can load, move around, blend and write back.
+The **diffusion model layer** (`comfy_extras/nodes_model_loaders.py`, `nodes_model_merging.py`,
+`nodes_model_inference.py` and `nodes_generation.py`). `MODEL`, `CLIP` and `VAE` are first-class
+values, so weights can be loaded, moved around, blended, written back, and — since the rehydration
+pass — actually *run*: checkpoints are detected by architecture and built into runnable models, the
+VAE encodes / decodes pixels, CLIP encodes prompts, and `KSampler` denoises latents with the
+restored `comfy.sample` / `comfy.samplers` / `comfy.k_diffusion` stack.
 
-What makes this layer different from the native implementation is that it works at the
-**state_dict** level instead of the module level. The dehydration pass removed the `ldm` model
-implementations, so nothing here recognises an architecture: a weight file is treated as a flat
-mapping of key → tensor, and the only structure the nodes understand is the well-known *key prefix*:
-
-| Prefix | Bucket |
-|---|---|
-| `diffusion_model.` (plus every unmatched key) | `MODEL` |
-| `first_stage_model.` | `VAE` |
-| `cond_stage_model.` / `conditioner.` / `text_encoders.` | `CLIP` |
-
-Every loader can therefore work with a plain `.safetensors` / `.ckpt` file. The buckets are held by
-containers that keep their tensors **by reference** (no copy, so the memory cost equals the file
-size) and round-trip their keys verbatim: whatever outer container prefix was stripped on the way
-in (`model.`, `state_dict.`, `module.` — auto-detected, or set explicitly with the `prefix_strip`
-widget) is written back on the way out. That is what makes `load → merge → save` produce a file
-whose keys match the input — the round trip is lossless by construction.
-
-The `MODEL` bucket is the one exception to "just weights": it is additionally wrapped in a
-`ModelPatcher` so it is a real `MODEL` value and stays type-compatible with the rest of ComfyUI. A
-bucket with no keys still yields a valid **empty** container rather than `None`, so a
-partially-populated checkpoint never breaks the links below it.
+The loaders still expose the `prefix_strip` widget for files whose keys carry an outer container
+prefix (`model.`, `state_dict.`, `module.` — auto-detected, or set explicitly), so a plain
+`.safetensors` / `.ckpt` round-trips losslessly through `load → merge → save`. Below the loader
+layer, weights are kept **by reference** (no copy) and the `MODEL` bucket is wrapped in a
+`ModelPatcher` so it stays type-compatible with the rest of ComfyUI.
 
 **Two tiers of behaviour**, so it is clear what actually runs in this build:
 
 | Tier | Behaviour | Nodes |
 |---|---|---|
-| L1 — really executes | reads, splits, merges and writes real weights | the 5 loaders, the 7 merge nodes and the 4 save nodes (16) |
-| L2 — registered, not executable | the node exists with the native IO contract, so a workflow can be wired and validated, but running it raises a `RuntimeError` that names the missing module and how to restore it (never a bare `ModuleNotFoundError`) | `Load LoRA (Model and CLIP)`, `Load LoRA`, `VAE Decode`, `VAE Encode`, `CLIP Text Encode (Prompt)`, `CLIP Set Last Layer` (6) |
+| L1 — really executes | load (architecture detection + real weights), merge, save, VAE encode/decode, CLIP encode, KSampler | every node here except the two LoRA loaders (22) |
+| L2 — registered, not executable | the node exists with the native IO contract, so a workflow can be wired and validated, but running it raises a `RuntimeError` that names the missing module and how to restore it (never a bare `ModuleNotFoundError`) | `Load LoRA (Model and CLIP)`, `Load LoRA` (2) |
 
-L2 is deliberate: the IO contract is what lets a user lay out a full txt2img graph today, and each
-node states in its docstring and in its error message which piece of the removed engine it is
-waiting for. Restoring the dehydrated module turns each of them into a working node in place.
+L2 is the only remaining gap: the LoRA loaders need the weight-adaptation code, which the
+rehydration pass did not restore. Everything else below is wired to the real ComfyUI engine.
 
 ### 19.1 Loaders (7 nodes)
 
 | Node | Class | Inputs | Widgets | Outputs / Purpose |
 |------|-------|--------|---------|-------------------|
-| Load Checkpoint | `CheckpointLoaderSimple` | `ckpt_name` COMBO (`models/checkpoints`) | `prefix_strip` STRING `"auto"` | `MODEL`, `CLIP`, `VAE` — splits one file into the three buckets |
-| Load Diffusion Model | `UNETLoader` | `unet_name` COMBO (`models/unet`, `models/diffusion_models`) | `prefix_strip` STRING `"auto"` | `MODEL` — the whole file is the diffusion model |
+| Load Checkpoint | `CheckpointLoaderSimple` | `ckpt_name` COMBO (`models/checkpoints`) | `prefix_strip` STRING `"auto"` | `MODEL`, `CLIP`, `VAE` — detects the architecture from the state dict and builds runnable models (real `comfy.sd.load_checkpoint_guess_config`) |
+| Load Diffusion Model | `UNETLoader` | `unet_name` COMBO (`models/unet`, `models/diffusion_models`) | `prefix_strip` STRING `"auto"` | `MODEL` — detects and loads the diffusion model (real `comfy.sd.load_unet`) |
 | Load VAE | `VAELoader` | `vae_name` COMBO (`models/vae`) | `prefix_strip` STRING `"auto"` | `VAE` |
 | Load CLIP | `CLIPLoader` | `clip_name` COMBO (`models/text_encoders`, legacy `models/clip` is searched too) | `prefix_strip` STRING `"auto"` | `CLIP` |
 | Load CLIP (Dual) | `DualCLIPLoader` | `clip_name1`, `clip_name2` COMBO | `prefix_strip` STRING `"auto"` | `CLIP` — the union of both files, so two encoders arrive as one value |
@@ -2282,9 +2267,8 @@ count as output nodes, so a graph that ends in a save node still runs.
 
 ### 19.3 Latent (2 nodes)
 
-Both are protocol placeholders (L2): the native IO contract is registered so a workflow validates,
-but decoding / encoding an image needs the autoencoder architecture that was dehydrated, so
-executing them raises a `RuntimeError` saying so.
+Both run the restored autoencoder: `VAE Decode` turns latents into pixels and `VAE Encode` turns
+pixels into latents via the real `comfy/ldm` autoencoder.
 
 | Node | Class | Inputs | Output |
 |------|-------|--------|--------|
@@ -2293,7 +2277,8 @@ executing them raises a `RuntimeError` saying so.
 
 ### 19.4 Conditioning (2 nodes)
 
-Protocol placeholders (L2) for the same reason: text encoding needs a text-encoder architecture.
+Both run the restored text-encoder stack: `CLIP Text Encode` turns a prompt into conditioning and
+`CLIP Set Last Layer` truncates the encoder for the "clip skip" trick.
 
 | Node | Class | Inputs | Widgets | Output |
 |------|-------|--------|---------|--------|
@@ -2302,6 +2287,17 @@ Protocol placeholders (L2) for the same reason: text encoding needs a text-encod
 
 > The host registry's `model/latent` category also holds the native `LatentCompositeMasked`, which
 > is not part of this refactor and is not listed here.
+
+### 19.5 Sampling (2 nodes)
+
+The rehydration pass restored the generation nodes that complete a txt2img graph: `Empty Latent
+Image` allocates the starting latent and `KSampler` denoises it with the real `comfy.sample` /
+`comfy.samplers` / `comfy.k_diffusion` stack. They live in `comfy_extras/nodes_generation.py`.
+
+| Node | Class | Inputs | Widgets | Output |
+|------|-------|--------|---------|--------|
+| Empty Latent Image | `EmptyLatentImage` | `width` INT 512 (16~16384, step 8), `height` INT 512 (16~16384, step 8), `batch_size` INT 1 (1~4096) | — | `LATENT` — a `(batch, 4, H/8, W/8)` empty tensor |
+| KSampler | `KSampler` | `model` MODEL, `seed` INT 0, `steps` INT 20 (1~10000), `cfg` FLOAT 8.0 (0~100), `sampler_name` COMBO, `scheduler` COMBO, `positive` CONDITIONING, `negative` CONDITIONING, `latent_image` LATENT, `denoise` FLOAT 1.0 (0~1) | — | `LATENT` |
 
 ---
 
