@@ -95,7 +95,6 @@ class CdlReadText:
             sep=delimiter,
             header=0 if header else None,
             engine="python",
-            low_memory=False,
         )
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
@@ -139,7 +138,6 @@ class CdlReadString:
             sep=delimiter,
             header=0 if header else None,
             engine="python",
-            low_memory=False,
         )
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
