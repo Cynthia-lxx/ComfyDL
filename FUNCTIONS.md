@@ -2442,6 +2442,50 @@ feeds, and it is the only 3D node the dehydrated build needs.
 
 ---
 
+## 21. d2l / Training (1 node)
+
+`CdlLinRegTrain` (`comfydl/nodes/linreg_train.py`) is the fine-grained, from-scratch
+linear-regression trainer. Unlike the coarse `Training Loop` (which builds an MLP and
+runs the `OPTIMIZER`/`SCHEDULER` stack), it implements the textbook `d2l` recipe
+directly — `y_hat = X @ w + b`, mean squared loss, mini-batch SGD — and exposes the
+four results so a learner can *verify* the training against the stateless `CdlLinReg`
++ `CdlSquaredLoss` nodes:
+
+    CdlLinRegTrain --w,b--> CdlLinReg --y_hat--> CdlSquaredLoss
+                      |
+                      `--y_hat---------------------------------------^
+
+### Linear Regression Train
+- **Class**: `CdlLinRegTrain`
+- **d2lcore function**: `linreg` + `sgd` (textbook recipe)
+- **Purpose**: Train `y = X @ w + b` from scratch with mini-batch SGD on the mean
+  squared loss. Outputs the learned `w` / `b`, the per-step `loss_history` and the
+  training `y_hat`.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `X` | `TENSOR` | Feature matrix `[n, f]` (required) |
+  | `y` | `TENSOR` | Label vector `[n]` or `[n, 1]` (required) |
+  | `num_steps` | `INT` | Optimisation steps (default 100, 1~100000) |
+  | `batch_size` | `INT` | Rows sampled per step; 0 = whole dataset (default 32, 0~65536) |
+  | `lr` | `FLOAT` | SGD learning rate (default 0.03, 1e-5~1) |
+  | `seed` | `INT` | RNG seed for the batch shuffle (default 0, 0~99999) |
+  | `dataset` | `DATASET` | Labelled dataset; wins over `X` / `y` when present (optional, forceInput) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `w` | `TENSOR` | Weight vector `[f, 1]` |
+  | `b` | `TENSOR` | Bias scalar `[1]` |
+  | `loss_history` | `TENSOR` | Per-step squared-loss curve `[num_steps]` (1-D) |
+  | `y_hat` | `TENSOR` | Predictions on the training inputs `[n, 1]` |
+
+> The node runs inside its own `torch.inference_mode(False)` block, so gradients can
+> flow within the step; every output is detached, so no autograd graph leaks into
+> ComfyUI's cache. All outputs are finite and the loss curve is strictly decreasing on
+> a linearly-structured problem.
+
+---
+
 ## Appendix
 
 ### Node Registration Mechanism
@@ -2450,7 +2494,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**109 nodes** across 20 categories come from ComfyDL itself; the shipped node library adds 98
+**125 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2471,6 +2515,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
 | d2l/Datasets | 25 | Dataset download, loading, preview, statistics, DATASET adapters, format readers, and writers |
+| d2l/Training | 1 | From-scratch linear-regression trainer (mini-batch SGD): w / b / loss_history / y_hat |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
@@ -2491,13 +2536,13 @@ ComfyUI core nodes on top. Both registers are listed below:
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` protocol placeholders (ComfyUI core category) |
 | 3d | 1 | `Preview 3D`, the frontend-bound 3D preview canvas (ComfyUI core category) |
 
-> The first 20 rows list the **109 ComfyDL-provided nodes** (11 of them soft-archived into
+> The first 21 rows list the **125 ComfyDL-provided nodes** (11 of them soft-archived into
 > `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their display names carry a
 > `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
 >
 > The other 15 rows are pure ComfyUI core categories with no ComfyDL nodes: the ten
 > `Network & Layers/*` groups (75 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
-> The shipped library therefore totals **207 nodes across 35 categories** = 109 ComfyDL + 98 core.
+> The shipped library therefore totals **223 nodes across 36 categories** = 125 ComfyDL + 98 core.
 >
 > Two rows list fewer nodes than the host registry holds in that category, because the registry
 > also counts native nodes that this refactor did not touch: `model/latent` (whose third node is

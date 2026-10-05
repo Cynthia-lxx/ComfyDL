@@ -2329,6 +2329,44 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
 
 ---
 
+## 21. d2l / Training（1 个节点）
+
+`CdlLinRegTrain`（`comfydl/nodes/linreg_train.py`）是从零实现的细粒度线性回归训练器。与粗粒度的
+`Training Loop`（搭建 MLP 并跑 `OPTIMIZER`/`SCHEDULER` 栈）不同，它直接落地教科书的 `d2l` 配方——
+`y_hat = X @ w + b`、均方损失、小批量 SGD——并把四个结果暴露出来，让学习者能用无状态的
+`CdlLinReg` + `CdlSquaredLoss` 节点**验证**训练是否正确：
+
+    CdlLinRegTrain --w,b--> CdlLinReg --y_hat--> CdlSquaredLoss
+                      |
+                      `--y_hat---------------------------------------^
+
+### 线性回归训练
+- **类名**：`CdlLinRegTrain`
+- **d2lcore 函数**：`linreg` + `sgd`（教科书配方）
+- **功能**：从零用均方损失上的小批量 SGD 训练 `y = X @ w + b`。输出学到的 `w` / `b`、逐步的 `loss_history` 与训练集上的 `y_hat`。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `X` | `TENSOR` | 特征矩阵 `[n, f]`（必填） |
+  | `y` | `TENSOR` | 标签向量 `[n]` 或 `[n, 1]`（必填） |
+  | `num_steps` | `INT` | 优化步数（默认 100，1~100000） |
+  | `batch_size` | `INT` | 每步采样行数；0 = 用全部数据（默认 32，0~65536） |
+  | `lr` | `FLOAT` | SGD 学习率（默认 0.03，1e-5~1） |
+  | `seed` | `INT` | 批次洗牌的随机种子（默认 0，0~99999） |
+  | `dataset` | `DATASET` | 带标签的数据集；存在时覆盖 `X` / `y`（可选，forceInput） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `w` | `TENSOR` | 权重向量 `[f, 1]` |
+  | `b` | `TENSOR` | 偏置标量 `[1]` |
+  | `loss_history` | `TENSOR` | 逐步均方损失曲线 `[num_steps]`（1-D） |
+  | `y_hat` | `TENSOR` | 训练集上的预测 `[n, 1]` |
+
+> 节点在自己的 `torch.inference_mode(False)` 块内运行，梯度可在步内流动；所有输出均已 detach，不会把
+> 计算图泄漏进 ComfyUI 的缓存。在线性结构的问题上，所有输出均为有限值，且损失曲线严格下降。
+
+---
+
 ## 附录
 
 ### 节点注册机制
@@ -2337,7 +2375,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **109 个节点**，分属 20 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **125 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2358,6 +2396,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
 | d2l/Datasets | 25 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点 |
+| d2l/Training | 1 | 从零训练的线性回归训练器（小批量 SGD）：输出 w / b / loss_history / y_hat |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
@@ -2378,11 +2417,11 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` 协议占位节点（ComfyUI 核心分类） |
 | 3d | 1 | `Preview 3D`，前端绑定的 3D 预览画布（ComfyUI 核心分类） |
 
-> 前 20 行统计 **ComfyDL 提供的 109 个节点**（其中 11 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
+> 前 21 行统计 **ComfyDL 提供的 125 个节点**（其中 11 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
 >
 > 其余 15 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：十个 `Network & Layers/*` 分组（75 个节点）、
 > 四个 `model/*` 分组（22 个节点）与 `3d`（1 个节点）。因此随宿主发布的节点库总计
-> **207 个节点、35 个分类** = 109 个 ComfyDL + 98 个核心节点。
+> **223 个节点、36 个分类** = 125 个 ComfyDL + 98 个核心节点。
 >
 > 有两行的数量少于宿主注册表在该分类下的实际节点数，因为注册表把本次改动未触及的原生节点也算在内：
 > `model/latent`（其第三个节点是 `LatentCompositeMasked`）以及 `image`、`utilities`、`image/color`、
