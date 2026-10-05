@@ -1,7 +1,7 @@
 {
   "version": 0.4,
-  "last_node_id": 10,
-  "last_link_id": 10,
+  "last_node_id": 11,
+  "last_link_id": 11,
   "nodes": [
     {
       "id": 1,
@@ -21,7 +21,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "# Tabular Regression, Production-Grade\n\nA complete production regression pipeline on data generated **inside the graph** — no files, no downloads: `Formula Data Generator → DATASET → Regression Train → metrics + predictions`, with the table previewed, the training loss watched live, and the predictions exported back to CSV. Press **Queue** to run — the loss curve renders in the Plot node and its Preview Image below."
+        "# Tabular Regression, Production-Grade\n\nA complete production regression pipeline on data generated **inside the graph** — no files, no downloads: `Formula Data Generator → DATASET → Regression Train → metrics + predictions`, with the table previewed, the training loss watched live, and the predictions exported back to CSV. The trained model is also **saved to `output/regression_model.pt`** — reuse it later with the *Regression Model: Load & Predict* template. Press **Queue** to run — the loss curve renders in the Plot node and its Preview Image below."
       ]
     },
     {
@@ -191,7 +191,9 @@
         {
           "name": "nn_model",
           "type": "nn_model",
-          "links": null,
+          "links": [
+            11
+          ],
           "slot_index": 0
         },
         {
@@ -419,6 +421,42 @@
         "Node name for S&R": "PreviewImage"
       },
       "widgets_values": []
+    },
+    {
+      "id": 11,
+      "type": "CdlModelSave",
+      "pos": [
+        1140,
+        900
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "nn_model",
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "message",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlModelSave"
+      },
+      "widgets_values": [
+        "output/regression_model.pt"
+      ]
     }
   ],
   "links": [
@@ -501,6 +539,14 @@
       10,
       0,
       "IMAGE"
+    ],
+    [
+      11,
+      5,
+      0,
+      11,
+      0,
+      "nn_model"
     ]
   ],
   "groups": [

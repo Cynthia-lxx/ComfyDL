@@ -492,6 +492,13 @@ class CdlRegressionModelLoad:
     Errors: raises a readable ``ValueError`` for a missing file or a
           state_dict that does not look like a regression model (no
           ``core.0.weight``).
+
+    Scheduling note: the loader reads from disk and has **no graph dependency
+    on ``Model Save``** — ComfyUI's scheduler may run it before the save in
+    the same graph (there is nothing to order them by). Never put save and
+    load in one graph; run the save first (e.g. the *Tabular Regression:
+    Production* template) and load afterwards (the *Load & Predict* template)
+    or in a later session.
     """
 
     @classmethod
