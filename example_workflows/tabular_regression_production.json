@@ -506,9 +506,9 @@
       "title": "1 · Generate data (no files needed)",
       "bounding": [
         20,
-        270,
+        230,
         440,
-        520
+        580
       ],
       "color": "#3f789e",
       "font_size": 24,
@@ -518,9 +518,9 @@
       "title": "2 · Inspect the table",
       "bounding": [
         560,
-        190,
+        150,
         780,
-        220
+        280
       ],
       "color": "#2a363b",
       "font_size": 24,
@@ -530,9 +530,9 @@
       "title": "3 · Train & monitor",
       "bounding": [
         560,
-        430,
+        390,
         1010,
-        660
+        720
       ],
       "color": "#b58b2a",
       "font_size": 24,
@@ -542,9 +542,9 @@
       "title": "4 · Export predictions",
       "bounding": [
         1640,
-        430,
+        390,
         440,
-        430
+        490
       ],
       "color": "#2a363b",
       "font_size": 24,

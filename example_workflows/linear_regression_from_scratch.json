@@ -401,9 +401,9 @@
       "title": "1 · Generate data (in-graph)",
       "bounding": [
         20,
-        250,
+        210,
         400,
-        340
+        400
       ],
       "color": "#3f789e",
       "font_size": 24,
@@ -413,9 +413,9 @@
       "title": "2 · Train from scratch (mini-batch SGD)",
       "bounding": [
         500,
-        250,
+        210,
         460,
-        380
+        440
       ],
       "color": "#b58b2a",
       "font_size": 24,
@@ -425,9 +425,9 @@
       "title": "3 · Verify the learned w, b",
       "bounding": [
         1040,
-        250,
+        210,
         780,
-        240
+        300
       ],
       "color": "#2a363b",
       "font_size": 24,
