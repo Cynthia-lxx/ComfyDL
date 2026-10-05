@@ -1,0 +1,414 @@
+{
+  "version": 0.4,
+  "last_node_id": 7,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        1000,
+        110
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# Linear Regression, From Scratch\n\nThis workflow trains **y = X·w + b** with mini-batch SGD exactly like the d2l textbook — and then **verifies** the learned `w` / `b` with the stateless `Linear Regression` + `Squared Loss` nodes. All data is generated inside the graph: no files, no downloads. Press **Queue** to run."
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CdlSyntheticData",
+      "pos": [
+        40,
+        220
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "links": [
+            1,
+            3
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "links": [
+            2,
+            7
+          ],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlSyntheticData"
+      },
+      "widgets_values": [
+        2,
+        1000,
+        0.1,
+        0
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CdlLinRegTrain",
+      "pos": [
+        400,
+        220
+      ],
+      "size": [
+        360,
+        240
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "link": 1
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "w",
+          "type": "TENSOR",
+          "links": [
+            4
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "b",
+          "type": "TENSOR",
+          "links": [
+            5
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "loss_history",
+          "type": "TENSOR",
+          "links": [
+            8
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "y_hat",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlLinRegTrain"
+      },
+      "widgets_values": [
+        100,
+        32,
+        0.03,
+        0
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CdlLinReg",
+      "pos": [
+        800,
+        220
+      ],
+      "size": [
+        300,
+        150
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "link": 3
+        },
+        {
+          "name": "w",
+          "type": "TENSOR",
+          "link": 4
+        },
+        {
+          "name": "b",
+          "type": "TENSOR",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "y_hat",
+          "type": "TENSOR",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlLinReg"
+      }
+    },
+    {
+      "id": 5,
+      "type": "CdlSquaredLoss",
+      "pos": [
+        1140,
+        220
+      ],
+      "size": [
+        300,
+        150
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "y_hat",
+          "type": "TENSOR",
+          "link": 6
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "loss",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlSquaredLoss"
+      }
+    },
+    {
+      "id": 6,
+      "type": "CdlPlot",
+      "pos": [
+        400,
+        520
+      ],
+      "size": [
+        360,
+        280
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "link": 8
+        },
+        {
+          "name": "Y",
+          "type": "TENSOR",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlPlot"
+      },
+      "widgets_values": [
+        "step",
+        "training loss",
+        "linear",
+        "linear",
+        6.0,
+        4.0,
+        "",
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0
+      ]
+    },
+    {
+      "id": 7,
+      "type": "MarkdownNote",
+      "pos": [
+        800,
+        520
+      ],
+      "size": [
+        640,
+        280
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## The verification loop\n\n`Linear Regression Train` outputs the learned `w` / `b`. The stateless `Linear Regression` node recomputes `y_hat = X·w + b`, and `Squared Loss` compares it against the ground-truth `y` — the verified loss must match the tail of the training loss curve (watch the **loss curve** Plot node below the trainer).\n\n### Try your own data\n\nWire any labelled `DATASET` (e.g. `Read CSV → Dataset`, or `Formula Data Generator`) into the trainer's **dataset** input — it overrides the synthetic `X` / `y`. Tune `num_steps` / `batch_size` / `lr` on the trainer for your scale."
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      3,
+      0,
+      "TENSOR"
+    ],
+    [
+      2,
+      2,
+      1,
+      3,
+      1,
+      "TENSOR"
+    ],
+    [
+      3,
+      2,
+      0,
+      4,
+      0,
+      "TENSOR"
+    ],
+    [
+      4,
+      3,
+      0,
+      4,
+      1,
+      "TENSOR"
+    ],
+    [
+      5,
+      3,
+      1,
+      4,
+      2,
+      "TENSOR"
+    ],
+    [
+      6,
+      4,
+      0,
+      5,
+      0,
+      "TENSOR"
+    ],
+    [
+      7,
+      2,
+      1,
+      5,
+      1,
+      "TENSOR"
+    ],
+    [
+      8,
+      3,
+      2,
+      6,
+      0,
+      "TENSOR"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "1 · Generate data (in-graph)",
+      "bounding": [
+        20,
+        180,
+        360,
+        290
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "2 · Train from scratch (mini-batch SGD)",
+      "bounding": [
+        390,
+        180,
+        390,
+        330
+      ],
+      "color": "#b58b2a",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "3 · Verify the learned w, b",
+      "bounding": [
+        790,
+        180,
+        670,
+        220
+      ],
+      "color": "#2a363b",
+      "font_size": 24,
+      "locked": false
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6,
+      "offset": [
+        20,
+        20
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "0.3.1"
+    }
+  }
+}

@@ -19,11 +19,10 @@
 
 ## Examples in Action
 
-> **Note:** The example workflows that used to ship with ComfyDL have been **archived**. They predate the
-> ongoing node refactor, so they no longer match the current node set and are no longer offered as workflow
-> templates in the UI. They are kept for reference under
-> [`example_workflows/_archived/`](./example_workflows/_archived), and a fresh set of runnable examples will be
-> published once the refactor is complete.
+> **Note:** The example workflows that ship with ComfyDL are served as **workflow templates** in the UI
+> (Templates → ComfyDL Examples): the two *Language Model* workflows plus the two *Regression* workflows.
+> Older examples that predate the node refactor are kept for reference under
+> [`example_workflows/_archived/`](./example_workflows/_archived).
 
 ### The Mysterious "?"
 A tiny node with a toggle that does... something. Try it and see.
@@ -90,7 +89,7 @@ Its README covers the details: <https://github.com/Cynthia-lxx/ComfyDL_UI#readme
 
 ## Function Overview
 
-The built-in node library ships **207 nodes** across 35 categories — **109 provided by ComfyDL**
+The built-in node library ships **225 nodes** across 35 categories — **127 provided by ComfyDL**
 plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Attention` 8
 + `Normalization` 7
 + `Regularization` 1 + `Training` 23 + `Pooling` 2 + `Convolution` 5 + `Recurrent` 3 + `Text` 4; `model` → `loaders` 7
@@ -99,7 +98,7 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | Category | Count | Description |
 |---|---|---|
 | **CV Models** | 5 | CNN fundamentals & model construction |
-| **Datasets** | 25 | Dataset download, load, preview & stats |
+| **Datasets** | 26 | Dataset download, load, preview & stats |
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
 | **Model Utils** | 7 | Model info, mode, forward, layers, params, clone & persistence |
@@ -109,7 +108,7 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **Segmentation** | 4 | VOC semantic segmentation tools |
 | **Tensor Basic** | 5 | Tensor I/O, conv, transpose, broadcast, activation |
 | **TorchOps** | 10 | Loss, optimization, metrics |
-| **Training** | 2 | Textbook linear-regression trainer + one-box production regression trainer (live loss preview) |
+| **Training** | 2 | From-scratch linear-regression trainer (mini-batch SGD) |
 | **Visualization** | 13 | Plots, charts & bounding box visualization |
 | **d2l/_Legacy/Model Utils** | 1 | Deprecated (soft-archived): Model Mode; use the core Training Mode |
 | **d2l/_Legacy/NLP Models** | 7 | Deprecated (soft-archived): Multi-Head Attention, Add & Norm, Transformer Encoder Block/Encoder; use the core Attention/Recurrent nodes |
@@ -136,7 +135,7 @@ ComfyDL/
 ├── nodes/           # ComfyUI node definitions (thin mapping layer)
 │                    #   incl. self-developed model_utils.py, image_tools.py &
 │                    #   nlp model wrappers (model_nlp.py, model_attention.py, model_seq2seq.py)
-└── example_workflows/  # Archived sample workflow JSONs (see _archived/, no longer offered as templates)
+└── example_workflows/  # Example workflows served as UI templates (+ _archived/ legacy set)
 ```
 
 > **Note:** A mirror copy of `src/d2lcore/` also exists at the repository root as `d2lcore/` (outside the plugin folder). They must be kept in sync whenever the D2L core logic is modified.

@@ -1313,7 +1313,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 
 ---
 
-## 12. d2l / Datasets (25 nodes)
+## 12. d2l / Datasets (26 nodes)
 
 Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics. The three `DATASET` adapters below bridge the universal `DATASET` type to the raw `TENSOR` x/y and `cdlDataloader` conduits.
 
@@ -1435,6 +1435,38 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 - **Purpose**: Renders the `DATASET` head as a `STRING` for quick inspection.
 - **Inputs**: `dataset` (`DATASET`, `forceInput`), `head` (`INT`, default 5)
 - **Outputs**: `preview` (`STRING`)
+
+### Formula Data Generator
+- **Class**: `CdlFormulaDataGen` (`comfydl/nodes/data_gen.py`)
+- **Purpose**: Generates a labelled tabular dataset from a math formula or a
+  trained model — the out-of-the-box data source for regression experiments.
+  *Formula mode*: the expression over `x0, x1, ...` (AST-whitelisted
+  arithmetic + math functions, vectorised) defines the signal; the feature
+  count follows the highest variable index. *Model mode*: wire an `nn_model`
+  into the optional slot and the formula is ignored — labels come from
+  `model(X)`, re-simulating unlimited fresh data from an exported regressor
+  (digital twin). Features are sampled uniform/normal over the
+  `[x_min, x_max]` window; labels can be perturbed with gaussian or uniform
+  noise (`noise_std`), all deterministic per `seed` via a local generator.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `formula` | `STRING` (multiline) | Expression over `x0, x1, ...`, e.g. `2 + 3*x0 - 1.5*x1 + 0.5*sin(6*x0)` (ignored in model mode) |
+  | `num_examples` | `INT` | Rows to generate (default 1000, 1~1,000,000) |
+  | `x_min` / `x_max` | `FLOAT` | Per-feature sampling window (defaults -3.0 / 3.0) |
+  | `sampling` | combo | `uniform` = `U[x_min, x_max]`; `normal` = window-centred Gaussian (default `uniform`) |
+  | `noise` | combo | `none` / `gaussian` = `N(0, noise_std)` / `uniform` = `U[-noise_std, +noise_std]` (default `gaussian`) |
+  | `noise_std` | `FLOAT` | Noise scale (default 0.1) |
+  | `seed` | `INT` | RNG seed (default 0) |
+  | `model` | `nn_model` | Optional; when wired, switches to model mode (forceInput) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `X` | `TENSOR` | Feature matrix `[n, k]` |
+  | `y` | `TENSOR` | Labels `[n, 1]` (clean signal + noise) |
+  | `dataset` | `DATASET` | Feature names `x0..x{k-1}`, target `y`, provenance metadata |
+- **Errors**: raises a readable `ValueError` for an empty/invalid/non-whitelisted
+  formula, an inverted sampling window, or non-finite labels.
 
 ### Load Array → DataLoader
 - **Class**: `CdlLoadArray`
@@ -2531,7 +2563,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**126 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
+**127 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2551,7 +2583,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
-| d2l/Datasets | 25 | Dataset download, loading, preview, statistics, DATASET adapters, format readers, and writers |
+| d2l/Datasets | 26 | Dataset download, loading, preview, statistics, DATASET adapters, format readers, and writers |
 | d2l/Training | 2 | Textbook linear-regression trainer (mini-batch SGD: w / b / loss_history / y_hat) + one-box production regression trainer with live loss preview |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |

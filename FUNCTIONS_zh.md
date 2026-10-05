@@ -1311,7 +1311,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 12. d2l / Datasets（25 个节点）
+## 12. d2l / Datasets（26 个节点）
 
 数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。下面三个 `DATASET` 适配器将通用 `DATASET` 类型与原始 `TENSOR` x/y 及 `cdlDataloader` 通道相互打通。
 
@@ -1396,6 +1396,33 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ### Dataset → Preview（数据集 → 预览）
 - **类名**：`CdlDatasetPreview` — 将 `DATASET` 头部渲染为 `STRING` 便于快速查看。输入：`dataset`（`forceInput`）、`head`（`INT`，默认 5）。输出 `preview`（`STRING`）。
+
+### Formula Data Generator（公式数据生成器）
+- **类名**：`CdlFormulaDataGen`（`comfydl/nodes/data_gen.py`）
+- **功能**：从数学公式或已训练模型生成带标签的表格数据集——回归实验的开箱即用数据源。
+  *公式模式*：以 `x0, x1, ...` 为变量的表达式（AST 白名单算术 + 数学函数，全向量化）定义信号，
+  特征数由最高变量下标决定。*模型模式*：接入可选 `nn_model` 槽位后公式被忽略——标签来自
+  `model(X)`，可从已导出的回归模型再仿真无限新数据（数字孪生）。特征按 uniform/normal 在
+  `[x_min, x_max]` 窗口内采样；标签可加 gaussian/uniform 噪声（`noise_std`），`seed` 局部生成器
+  全程确定性。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `formula` | `STRING`（多行） | `x0, x1, ...` 表达式，如 `2 + 3*x0 - 1.5*x1 + 0.5*sin(6*x0)`（模型模式下忽略） |
+  | `num_examples` | `INT` | 生成行数（默认 1000，1~1,000,000） |
+  | `x_min` / `x_max` | `FLOAT` | 每特征采样窗口（默认 -3.0 / 3.0） |
+  | `sampling` | 下拉 | `uniform` = `U[x_min, x_max]`；`normal` = 窗口中心高斯（默认 `uniform`） |
+  | `noise` | 下拉 | `none` / `gaussian` = `N(0, noise_std)` / `uniform` = `U[-noise_std, +noise_std]`（默认 `gaussian`） |
+  | `noise_std` | `FLOAT` | 噪声幅度（默认 0.1） |
+  | `seed` | `INT` | 随机种子（默认 0） |
+  | `model` | `nn_model` | 可选；接入后切换为模型模式（forceInput） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `X` | `TENSOR` | 特征矩阵 `[n, k]` |
+  | `y` | `TENSOR` | 标签 `[n, 1]`（干净信号 + 噪声） |
+  | `dataset` | `DATASET` | 特征名 `x0..x{k-1}`、目标 `y`、来源元数据 |
+- **报错**：公式为空/非法/越白名单、采样窗口倒置、标签出现非有限值时抛出可读 `ValueError`。
 
 ### Load Array → DataLoader
 - **类名**：`CdlLoadArray`
@@ -2409,7 +2436,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **126 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **127 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2429,7 +2456,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
-| d2l/Datasets | 25 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点 |
+| d2l/Datasets | 26 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点 |
 | d2l/Training | 2 | 教科书式线性回归训练器（小批量 SGD：w / b / loss_history / y_hat）+ 带实时 loss 预览的一盒式生产回归训练器 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
