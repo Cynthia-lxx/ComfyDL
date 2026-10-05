@@ -1,18 +1,18 @@
 {
   "version": 0.4,
-  "last_node_id": 7,
-  "last_link_id": 8,
+  "last_node_id": 8,
+  "last_link_id": 9,
   "nodes": [
     {
       "id": 1,
       "type": "MarkdownNote",
       "pos": [
-        40,
-        40
+        0,
+        0
       ],
       "size": [
-        1000,
-        110
+        1500,
+        150
       ],
       "flags": {},
       "order": 0,
@@ -21,7 +21,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "# Linear Regression, From Scratch\n\nThis workflow trains **y = X·w + b** with mini-batch SGD exactly like the d2l textbook — and then **verifies** the learned `w` / `b` with the stateless `Linear Regression` + `Squared Loss` nodes. All data is generated inside the graph: no files, no downloads. Press **Queue** to run."
+        "# Linear Regression, From Scratch\n\nThis workflow trains **y = X·w + b** with mini-batch SGD exactly like the d2l textbook — and then **verifies** the learned `w` / `b` with the stateless `Linear Regression` + `Squared Loss` nodes. All data is generated inside the graph: no files, no downloads. Press **Queue** to run — the loss curve renders in the Plot node and its Preview Image below."
       ]
     },
     {
@@ -29,11 +29,11 @@
       "type": "CdlSyntheticData",
       "pos": [
         40,
-        220
+        280
       ],
       "size": [
-        320,
-        200
+        340,
+        280
       ],
       "flags": {},
       "order": 1,
@@ -73,12 +73,12 @@
       "id": 3,
       "type": "CdlLinRegTrain",
       "pos": [
-        400,
-        220
+        520,
+        280
       ],
       "size": [
-        360,
-        240
+        400,
+        320
       ],
       "flags": {},
       "order": 2,
@@ -141,12 +141,12 @@
       "id": 4,
       "type": "CdlLinReg",
       "pos": [
-        800,
-        220
+        1060,
+        280
       ],
       "size": [
-        300,
-        150
+        320,
+        180
       ],
       "flags": {},
       "order": 3,
@@ -186,12 +186,12 @@
       "id": 5,
       "type": "CdlSquaredLoss",
       "pos": [
-        1140,
-        220
+        1480,
+        280
       ],
       "size": [
-        300,
-        150
+        320,
+        180
       ],
       "flags": {},
       "order": 4,
@@ -224,12 +224,12 @@
       "id": 6,
       "type": "CdlPlot",
       "pos": [
-        400,
-        520
+        520,
+        740
       ],
       "size": [
-        360,
-        280
+        440,
+        400
       ],
       "flags": {},
       "order": 5,
@@ -250,7 +250,9 @@
         {
           "name": "image",
           "type": "IMAGE",
-          "links": null,
+          "links": [
+            9
+          ],
           "slot_index": 0
         }
       ],
@@ -275,12 +277,12 @@
       "id": 7,
       "type": "MarkdownNote",
       "pos": [
-        800,
-        520
+        1060,
+        740
       ],
       "size": [
-        640,
-        280
+        740,
+        400
       ],
       "flags": {},
       "order": 6,
@@ -289,8 +291,35 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "## The verification loop\n\n`Linear Regression Train` outputs the learned `w` / `b`. The stateless `Linear Regression` node recomputes `y_hat = X·w + b`, and `Squared Loss` compares it against the ground-truth `y` — the verified loss must match the tail of the training loss curve (watch the **loss curve** Plot node below the trainer).\n\n### Try your own data\n\nWire any labelled `DATASET` (e.g. `Read CSV → Dataset`, or `Formula Data Generator`) into the trainer's **dataset** input — it overrides the synthetic `X` / `y`. Tune `num_steps` / `batch_size` / `lr` on the trainer for your scale."
+        "## The verification loop\n\n`Linear Regression Train` outputs the learned `w` / `b`. The stateless `Linear Regression` node recomputes `y_hat = X·w + b`, and `Squared Loss` compares it against the ground-truth `y` — the verified loss must match the tail of the training loss curve (watch the **loss curve** Plot node on the left).\n\n### Try your own data\n\nWire any labelled `DATASET` (e.g. `Read CSV → Dataset`, or `Formula Data Generator`) into the trainer's **dataset** input — it overrides the synthetic `X` / `y`. Tune `num_steps` / `batch_size` / `lr` on the trainer for your scale."
       ]
+    },
+    {
+      "id": 8,
+      "type": "PreviewImage",
+      "pos": [
+        40,
+        740
+      ],
+      "size": [
+        420,
+        360
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
     }
   ],
   "links": [
@@ -357,6 +386,14 @@
       6,
       0,
       "TENSOR"
+    ],
+    [
+      9,
+      6,
+      0,
+      8,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [
@@ -364,9 +401,9 @@
       "title": "1 · Generate data (in-graph)",
       "bounding": [
         20,
-        180,
-        360,
-        290
+        250,
+        400,
+        340
       ],
       "color": "#3f789e",
       "font_size": 24,
@@ -375,10 +412,10 @@
     {
       "title": "2 · Train from scratch (mini-batch SGD)",
       "bounding": [
-        390,
-        180,
-        390,
-        330
+        500,
+        250,
+        460,
+        380
       ],
       "color": "#b58b2a",
       "font_size": 24,
@@ -387,10 +424,10 @@
     {
       "title": "3 · Verify the learned w, b",
       "bounding": [
-        790,
-        180,
-        670,
-        220
+        1040,
+        250,
+        780,
+        240
       ],
       "color": "#2a363b",
       "font_size": 24,
@@ -400,10 +437,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6,
+      "scale": 0.5,
       "offset": [
-        20,
-        20
+        0,
+        0
       ]
     },
     "node_versions": {
