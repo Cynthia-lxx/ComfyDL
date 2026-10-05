@@ -38,6 +38,19 @@ Design notes
   plain scripts) the node simply trains without any preview, in line with
   "a preview is a courtesy, not a contract".
 
+Host inference mode
+-------------------
+ComfyUI evaluates the whole prompt inside ``torch.inference_mode()``
+(``execution.py``).  ``inference_mode(False)`` re-enables autograd for the
+code within the scope, but every tensor that arrived from the outer inference
+mode (upstream node outputs, dataset payloads) is an *inference tensor*: it
+can be neither updated in place nor saved for backward, and any tensor derived
+from it outside the scope would be one too (the standardisation statistics and
+the model parameters included).  The documented workaround is to clone such
+tensors *inside* the disabled scope — the clone is created in normal mode.
+This node therefore materialises ``X`` / ``y``, builds the model and runs the
+whole fit inside its ``inference_mode(False)`` scope.
+
 Inputs
 ------
 * ``dataset`` (DATASET, optional, forceInput): the preferred conduit. Wins over
@@ -290,7 +303,7 @@ class CdlRegressionTrain:
         save_path="",
     ):
         # ------------------------------------------------------------------ #
-        # 1. Resolve the data source (DATASET wins, mirroring the adapters).
+        # 1. Resolve the data source (DATASET wins, mirroring the adapters). #
         # ------------------------------------------------------------------ #
         if dataset is not None:
             if not isinstance(dataset, CdlDataset):
@@ -305,82 +318,93 @@ class CdlRegressionTrain:
                 )
             X, y = dataset.features, dataset.labels
 
-        X = torch.as_tensor(X, dtype=torch.float32)
-        y = torch.as_tensor(y, dtype=torch.float32)
-        if X.dim() == 1:
-            X = X.unsqueeze(1)
-        if y.dim() == 0:
-            y = y.reshape(1, 1)
-        elif y.dim() == 1:
-            y = y.reshape(-1, 1)
-        if X.shape[0] != y.shape[0]:
-            raise ValueError(
-                f"CdlRegressionTrain: X has {X.shape[0]} rows but y has "
-                f"{y.shape[0]}; the sample counts must match."
+        # Everything below runs inside one normal-mode scope (see module
+        # docstring "Host inference mode"): ComfyUI evaluates the prompt under
+        # torch.inference_mode(), so incoming tensors are inference tensors —
+        # they can be neither updated in place nor saved for backward, and
+        # every tensor derived from them out there (standardisation stats, the
+        # model parameters) would be an inference tensor too.  Cloning inside
+        # this scope converts them to normal tensors.
+        with torch.inference_mode(False):
+            # ---------------------------------------------------------- #
+            # 1b. Materialise the inputs as normal tensors.              #
+            # ---------------------------------------------------------- #
+            X = torch.as_tensor(X, dtype=torch.float32).clone()
+            y = torch.as_tensor(y, dtype=torch.float32).clone()
+            if X.dim() == 1:
+                X = X.unsqueeze(1)
+            if y.dim() == 0:
+                y = y.reshape(1, 1)
+            elif y.dim() == 1:
+                y = y.reshape(-1, 1)
+            if X.shape[0] != y.shape[0]:
+                raise ValueError(
+                    f"CdlRegressionTrain: X has {X.shape[0]} rows but y has "
+                    f"{y.shape[0]}; the sample counts must match."
+                )
+
+            n, f = X.shape
+            out = y.shape[1] if y.dim() > 1 else 1
+
+            # ---------------------------------------------------------- #
+            # 2. Train / validation split.                               #
+            # ---------------------------------------------------------- #
+            do_split = float(test_size) > 0.0 and n >= 2
+            gen = torch.Generator().manual_seed(int(seed))
+            if do_split:
+                perm = torch.randperm(n, generator=gen)
+                n_val = int(round(n * float(test_size)))
+                n_val = min(max(n_val, 1), n - 1)  # keep both splits non-empty
+                val_idx = perm[:n_val]
+                train_idx = perm[n_val:]
+            else:
+                train_idx = torch.arange(n)
+                val_idx = torch.arange(n)
+
+            # ---------------------------------------------------------- #
+            # 3. Standardise features (z-score) using TRAIN stats only.  #
+            # ---------------------------------------------------------- #
+            if standardize == "yes":
+                mean = X[train_idx].mean(dim=0)
+                std = X[train_idx].std(dim=0, unbiased=False)
+                # Guard against zero-variance columns (e.g. a constant feature).
+                std = torch.where(std < 1e-8, torch.ones_like(std), std)
+            else:
+                mean = std = None
+
+            # ---------------------------------------------------------- #
+            # 4. Build the model (standardisation folded in as buffers). #
+            # ---------------------------------------------------------- #
+            hidden_sizes = _parse_hidden(hidden)
+            model = _Regressor(
+                f, out, hidden_sizes, activation,
+                mean.clone() if mean is not None else None,
+                std.clone() if std is not None else None,
             )
 
-        n, f = X.shape
-        out = y.shape[1] if y.dim() > 1 else 1
+            train_X, train_y = X[train_idx], y[train_idx]
+            val_X, val_y = X[val_idx], y[val_idx]
 
-        # ------------------------------------------------------------------ #
-        # 2. Train / validation split.
-        # ------------------------------------------------------------------ #
-        do_split = float(test_size) > 0.0 and n >= 2
-        gen = torch.Generator().manual_seed(int(seed))
-        if do_split:
-            perm = torch.randperm(n, generator=gen)
-            n_val = int(round(n * float(test_size)))
-            n_val = min(max(n_val, 1), n - 1)  # keep both splits non-empty
-            val_idx = perm[:n_val]
-            train_idx = perm[n_val:]
-        else:
-            train_idx = torch.arange(n)
-            val_idx = torch.arange(n)
+            loss_fn = _LOSS[loss]
+            optimizer = torch.optim.Adam(model.parameters(), lr=float(lr))
 
-        # ------------------------------------------------------------------ #
-        # 3. Standardise features (z-score) using TRAIN statistics only.
-        # ------------------------------------------------------------------ #
-        if standardize == "yes":
-            mean = X[train_idx].mean(dim=0)
-            std = X[train_idx].std(dim=0, unbiased=False)
-            # Guard against zero-variance columns (e.g. a constant feature).
-            std = torch.where(std < 1e-8, torch.ones_like(std), std)
-        else:
-            mean = std = None
+            bs = int(batch_size)
+            bs = n if bs <= 0 else min(bs, n)
+            shuffle_gen = torch.Generator().manual_seed(int(seed))
 
-        # ------------------------------------------------------------------ #
-        # 4. Build the model (standardisation folded in as buffers).
-        # ------------------------------------------------------------------ #
-        hidden_sizes = _parse_hidden(hidden)
-        model = _Regressor(
-            f, out, hidden_sizes, activation,
-            mean.clone() if mean is not None else None,
-            std.clone() if std is not None else None,
-        )
+            history: List[torch.Tensor] = []
+            stopper = _EarlyStop(int(early_stop_patience), float(early_stop_min_delta))
+            best_state: Optional[dict] = None
+            best_len = 0
+            stopped_at: Optional[int] = None
 
-        train_X, train_y = X[train_idx], y[train_idx]
-        val_X, val_y = X[val_idx], y[val_idx]
+            pbar, previewer = _make_progress(int(steps))
+            total_steps = int(steps)
+            last_step = total_steps - 1
 
-        loss_fn = _LOSS[loss]
-        optimizer = torch.optim.Adam(model.parameters(), lr=float(lr))
-
-        bs = int(batch_size)
-        bs = n if bs <= 0 else min(bs, n)
-        shuffle_gen = torch.Generator().manual_seed(int(seed))
-
-        history: List[torch.Tensor] = []
-        stopper = _EarlyStop(int(early_stop_patience), float(early_stop_min_delta))
-        best_state: Optional[dict] = None
-        best_len = 0
-        stopped_at: Optional[int] = None
-
-        pbar, previewer = _make_progress(int(steps))
-        total_steps = int(steps)
-        last_step = total_steps - 1
-
-        # Everything runs outside ComfyUI's inference_mode: a gradient cannot
-        # cross a node boundary, so the whole fit happens inside one scope.
-        with torch.inference_mode(False):
+            # ---------------------------------------------------------- #
+            # 5. Optimiser loop (with live loss-curve preview).          #
+            # ---------------------------------------------------------- #
             for step in range(total_steps):
                 if bs < train_X.shape[0]:
                     order = torch.randperm(train_X.shape[0], generator=shuffle_gen)[:bs]
@@ -427,7 +451,7 @@ class CdlRegressionTrain:
         loss_history = torch.stack(history).detach()
 
         # ------------------------------------------------------------------ #
-        # 5. Optionally persist (state_dict: weights + standardization buffers).
+        # 6. Optionally persist (state_dict: weights + standardization bufs).#
         # ------------------------------------------------------------------ #
         if save_path:
             torch.save(model.state_dict(), save_path)

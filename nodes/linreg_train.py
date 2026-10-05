@@ -26,6 +26,17 @@ The four ports are:
 The node accepts the data either as a labelled ``DATASET`` (features + labels)
 or as two raw ``TENSOR``s ``X`` / ``y``.  When both are given the ``DATASET``
 wins, mirroring the adapter convention used elsewhere in ComfyDL.
+
+Host inference mode
+-------------------
+ComfyUI evaluates the whole prompt inside ``torch.inference_mode()``
+(``execution.py``).  ``inference_mode(False)`` re-enables autograd for the
+code within the scope, but every tensor that arrived from the outer inference
+mode (upstream node outputs, dataset payloads) is an *inference tensor*: it
+can be neither updated in place nor saved for backward.  The documented
+workaround is to clone such tensors *inside* the disabled scope — the clone is
+created in normal mode.  This node therefore materialises ``X`` / ``y`` and
+creates ``w`` / ``b`` inside its ``inference_mode(False)`` scope.
 """
 
 from __future__ import annotations
@@ -95,32 +106,36 @@ class CdlLinRegTrain:
                 )
             X, y = dataset.features, dataset.labels
 
-        X = torch.as_tensor(X, dtype=torch.float32)
-        y = torch.as_tensor(y, dtype=torch.float32)
-        if X.dim() == 1:
-            X = X.unsqueeze(1)
-        if y.dim() == 0:
-            y = y.unsqueeze(0)
-        y = y.reshape(-1, 1)
-        if X.shape[0] != y.shape[0]:
-            raise ValueError(
-                f"CdlLinRegTrain: X has {X.shape[0]} rows but y has "
-                f"{y.shape[0]}; the sample counts must match."
-            )
-
-        n, f = X.shape
-        # batch_size == 0 means "use the whole dataset every step"
-        bs = n if batch_size == 0 else min(batch_size, n)
-
-        w = torch.zeros((f, 1), dtype=torch.float32, requires_grad=True)
-        b = torch.zeros((1,), dtype=torch.float32, requires_grad=True)
-
-        generator = torch.Generator().manual_seed(int(seed))
-        loss_history: list[torch.Tensor] = []
-
-        # ComfyUI evaluates inside torch.inference_mode(); autograd cannot cross
-        # a node boundary, so we open our own gradient scope for the whole run.
+        # Everything below runs inside one normal-mode scope: ComfyUI
+        # evaluates the prompt under torch.inference_mode(), so incoming
+        # tensors are inference tensors (no in-place updates, no saving for
+        # backward) and any tensor derived from them out there would be one
+        # too.  Cloning inside the scope converts them to normal tensors, and
+        # w / b are created here so they are normal as well.
         with torch.inference_mode(False):
+            X = torch.as_tensor(X, dtype=torch.float32).clone()
+            y = torch.as_tensor(y, dtype=torch.float32).clone()
+            if X.dim() == 1:
+                X = X.unsqueeze(1)
+            if y.dim() == 0:
+                y = y.unsqueeze(0)
+            y = y.reshape(-1, 1)
+            if X.shape[0] != y.shape[0]:
+                raise ValueError(
+                    f"CdlLinRegTrain: X has {X.shape[0]} rows but y has "
+                    f"{y.shape[0]}; the sample counts must match."
+                )
+
+            n, f = X.shape
+            # batch_size == 0 means "use the whole dataset every step"
+            bs = n if batch_size == 0 else min(batch_size, n)
+
+            w = torch.zeros((f, 1), dtype=torch.float32, requires_grad=True)
+            b = torch.zeros((1,), dtype=torch.float32, requires_grad=True)
+
+            generator = torch.Generator().manual_seed(int(seed))
+            loss_history: list[torch.Tensor] = []
+
             for _ in range(int(num_steps)):
                 idx = torch.randint(0, n, (bs,), generator=generator)
                 Xb, yb = X[idx], y[idx]
@@ -134,8 +149,8 @@ class CdlLinRegTrain:
                     b.grad.zero_()
                 loss_history.append(loss.detach())
 
-        with torch.no_grad():
-            y_hat = torch.matmul(X, w) + b
+            with torch.no_grad():
+                y_hat = torch.matmul(X, w) + b
 
         return (
             w.detach(),
