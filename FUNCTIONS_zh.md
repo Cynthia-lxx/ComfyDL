@@ -1311,7 +1311,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 12. d2l / Datasets（13 个节点）
+## 12. d2l / Datasets（20 个节点）
 
 数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。下面三个 `DATASET` 适配器将通用 `DATASET` 类型与原始 `TENSOR` x/y 及 `cdlDataloader` 通道相互打通。
 
@@ -1354,6 +1354,30 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `dataloader` | `cdlDataloader` | 可迭代的 mini-batch 加载器 |
+
+### Read CSV → Dataset（读取 CSV → 数据集）
+- **类名**：`CdlReadCSV`
+- **功能**：将 CSV 文件读取为 `DATASET`。
+- **输入**：`file`（`STRING`，默认 `cdl_dataset.csv`）、`target`（`STRING` 可选，标签列名）、`delimiter`（`STRING`，默认 `,`）、`dtype`（`COMBO` float32/float64）、`header`（`BOOLEAN`，默认 True）
+- **输出**：`dataset`（`DATASET`）
+
+### Read Text → Dataset（读取文本 → 数据集）
+- **类名**：`CdlReadText` — 读取分隔符文本文件（默认制表符，使用 Python 引擎支持任意空白分隔）。输入：`file`、`target`、`delimiter`（默认 `\t`）、`dtype`、`header`（默认 False）。输出 `dataset`。
+
+### Read String → Dataset（读取字符串 → 数据集）
+- **类名**：`CdlReadString` — 解析内联分隔 `STRING`（直接粘贴小样本）。输入：`text`（`STRING` 多行）、`target`、`delimiter`、`dtype`、`header`（默认 True）。输出 `dataset`。
+
+### Read JSON → Dataset（读取 JSON → 数据集）
+- **类名**：`CdlReadJSON` — 读取 JSON 文件（记录列表或列字典）。输入：`file`、`target`、`dtype`。输出 `dataset`。
+
+### Read XLSX → Dataset（读取 XLSX → 数据集）
+- **类名**：`CdlReadXLSX` — 读取 Excel 工作簿（需 openpyxl）。输入：`file`、`target`、`sheet`（`STRING`，默认 `0`）、`dtype`。输出 `dataset`。
+
+### Read DB → Dataset（读取数据库 → 数据集）
+- **类名**：`CdlReadDB` — 通过 SQLAlchemy 对 SQLite 数据库执行 SQL 查询并读为 `DATASET`。输入：`db_path`、`query`（`STRING` 多行，如 `SELECT * FROM data`）、`target`、`dtype`。输出 `dataset`。
+
+### Read AccDB → Dataset（读取 Access → 数据集）
+- **类名**：`CdlReadAccDB` — 通过 pyodbc 读取 Microsoft Access `.accdb`/`.mdb`（需 `pip install pyodbc` 及 Access 驱动）。输入：`db_path`、`query`、`target`、`dtype`。输出 `dataset`。
 
 ### Load Array → DataLoader
 - **类名**：`CdlLoadArray`
@@ -2315,7 +2339,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
-| d2l/Datasets | 13 | 数据集下载、加载、预览、统计与 DATASET 适配器 |
+| d2l/Datasets | 20 | 数据集下载、加载、预览、统计、DATASET 适配器与格式读取节点 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |

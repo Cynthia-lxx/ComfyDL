@@ -1313,7 +1313,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 
 ---
 
-## 12. d2l / Datasets (13 nodes)
+## 12. d2l / Datasets (20 nodes)
 
 Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics. The three `DATASET` adapters below bridge the universal `DATASET` type to the raw `TENSOR` x/y and `cdlDataloader` conduits.
 
@@ -1356,6 +1356,55 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
   | Name | Type | Description |
   |------|------|-------------|
   | `dataloader` | `cdlDataloader` | Iterable mini-batch loader |
+
+### Read CSV → Dataset
+- **Class**: `CdlReadCSV`
+- **Purpose**: Reads a CSV file into a `DATASET`.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `file` | `STRING` | Path (default `cdl_dataset.csv`) |
+  | `target` | `STRING` (optional) | Label column name (empty = unlabelled) |
+  | `delimiter` | `STRING` | Column separator (default `,`) |
+  | `dtype` | `COMBO` | `float32` / `float64` |
+  | `header` | `BOOLEAN` | First row is a header (default True) |
+- **Outputs**: `dataset` (`DATASET`)
+
+### Read Text → Dataset
+- **Class**: `CdlReadText`
+- **Purpose**: Reads a whitespace/comma/tab-delimited text file into a `DATASET` (Python CSV engine, so any single-char delimiter works).
+- **Inputs**: `file`, `target`, `delimiter` (default `\t`), `dtype`, `header` (default False)
+- **Outputs**: `dataset` (`DATASET`)
+
+### Read String → Dataset
+- **Class**: `CdlReadString`
+- **Purpose**: Parses an inline `STRING` of delimited numbers into a `DATASET` (paste a small sample directly into the node).
+- **Inputs**: `text` (`STRING` multiline), `target`, `delimiter` (default `\t`), `dtype`, `header` (default True)
+- **Outputs**: `dataset` (`DATASET`)
+
+### Read JSON → Dataset
+- **Class**: `CdlReadJSON`
+- **Purpose**: Reads a JSON file (list-of-records or column dictionary) into a `DATASET`.
+- **Inputs**: `file`, `target`, `dtype`
+- **Outputs**: `dataset` (`DATASET`)
+
+### Read XLSX → Dataset
+- **Class**: `CdlReadXLSX`
+- **Purpose**: Reads an Excel `.xlsx` / `.xls` workbook into a `DATASET` (needs `openpyxl`).
+- **Inputs**: `file`, `target`, `sheet` (`STRING`, default `0`), `dtype`
+- **Outputs**: `dataset` (`DATASET`)
+
+### Read DB → Dataset
+- **Class**: `CdlReadDB`
+- **Purpose**: Runs a SQL query against a SQLite database (via the bundled SQLAlchemy) into a `DATASET`.
+- **Inputs**: `db_path`, `query` (`STRING` multiline, e.g. `SELECT * FROM data`), `target`, `dtype`
+- **Outputs**: `dataset` (`DATASET`)
+
+### Read AccDB → Dataset
+- **Class**: `CdlReadAccDB`
+- **Purpose**: Reads a Microsoft Access `.accdb` / `.mdb` database via `pyodbc` into a `DATASET` (needs `pip install pyodbc` plus the Microsoft Access Database Engine driver).
+- **Inputs**: `db_path`, `query` (`STRING` multiline), `target`, `dtype`
+- **Outputs**: `dataset` (`DATASET`)
 
 ### Load Array → DataLoader
 - **Class**: `CdlLoadArray`
@@ -2391,7 +2440,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
-| d2l/Datasets | 13 | Dataset download, loading, preview, statistics, and DATASET adapters |
+| d2l/Datasets | 20 | Dataset download, loading, preview, statistics, DATASET adapters, and format readers |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
