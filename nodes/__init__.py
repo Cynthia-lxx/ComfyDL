@@ -57,6 +57,10 @@ NNMODEL = nn_model  # legacy alias (previous unified name)
 cdlVocab = "cdlVocab"
 # cdlDataloader: PyTorch DataLoader
 cdlDataloader = "cdlDataloader"
+# DATASET: universal dataset type (features + labels + column names + meta),
+# passed by reference between ComfyDL data-IO / training nodes. Slots are
+# coloured teal (#1ABC9C) via app/frontend_patch.py.
+DATASET = "DATASET"
 
 # Node registration - imported by __init__.py at module load
 NODE_CLASS_MAPPINGS = {}

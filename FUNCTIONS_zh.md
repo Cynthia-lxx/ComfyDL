@@ -19,6 +19,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 | `nn_model` | `nn.Module` | PyTorch 模型实例 —— 已在核心声明，与训练体系共用 |
 | `cdlVocab` | `dict` | 词表字典，包含 `idx_to_token` 和 `token_to_idx` —— ComfyDL 专有 |
 | `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch 数据加载器 —— ComfyDL 专有 |
+| `DATASET` | `CdlDataset` | 通用数据集打包：特征 + 标签 + 列名 + 元数据；ComfyDL 专有，插槽显示为青绿色 `#1ABC9C` |
 
 `TENSOR` 与 `BBOX` 定义在 ComfyUI 核心中（`comfy/comfy_types/node_typing.py` 与
 `comfy_api/latest/_io.py`），因此 ComfyDL 节点可与核心节点（如 `Network & Layers` 系列）在同一插槽上
@@ -1310,9 +1311,49 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 12. d2l / Datasets（10 个节点）
+## 12. d2l / Datasets（13 个节点）
 
-数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。
+数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。下面三个 `DATASET` 适配器将通用 `DATASET` 类型与原始 `TENSOR` x/y 及 `cdlDataloader` 通道相互打通。
+
+### Tensors → Dataset（张量 → 数据集）
+- **类名**：`CdlTensorsToDataset`
+- **功能**：将 `TENSOR` 特征（及可选标签）打包为单个 `DATASET` 对象，使数据能在数据集 I/O 与回归节点间流动。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `X` | `TENSOR` | 特征矩阵 `[n, f]` |
+  | `y` | `TENSOR`（可选） | 标签向量 `[n]` 或 `[n, 1]` |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `dataset` | `DATASET` | 打包后的数据集 |
+
+### Dataset → Tensors（数据集 → 张量）
+- **类名**：`CdlDatasetToTensors`
+- **功能**：将一个 `DATASET` 拆回 `X` / `y` 两个 `TENSOR`。无标签时 `y` 返回空张量。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `dataset` | `DATASET` | 待拆分的数据集（`forceInput`） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `X` | `TENSOR` | 特征矩阵 |
+  | `y` | `TENSOR` | 标签向量（无标签时为空） |
+
+### Dataset → DataLoader（数据集 → 数据加载器）
+- **类名**：`CdlDatasetToLoader`
+- **功能**：将一个 `DATASET` 转换为 `cdlDataloader`（复用 `CdlLoadArray` 机制），产出的批次结构与统计 / 预览节点期望的一致。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|------|------|
+  | `dataset` | `DATASET` | — | 源数据集（`forceInput`） |
+  | `batch_size` | `INT` | 32 | 每批样本数 |
+  | `shuffle` | `BOOLEAN` | True | 每个 epoch 是否打乱 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `dataloader` | `cdlDataloader` | 可迭代的 mini-batch 加载器 |
 
 ### Load Array → DataLoader
 - **类名**：`CdlLoadArray`
@@ -2274,7 +2315,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
-| d2l/Datasets | 10 | 数据集下载、加载、预览与统计 |
+| d2l/Datasets | 13 | 数据集下载、加载、预览、统计与 DATASET 适配器 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |

@@ -19,6 +19,7 @@ ComfyDL nodes exchange structured data through the following ComfyUI slot types:
 | `nn_model` | `nn.Module` | PyTorch model instance — declared in core, shared with the training system |
 | `cdlVocab` | `dict` | Vocabulary dictionary containing `idx_to_token` and `token_to_idx` — ComfyDL-only |
 | `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch data loader — ComfyDL-only |
+| `DATASET` | `CdlDataset` | Universal dataset bundle — features + labels + column names + metadata; ComfyDL-only, rendered teal `#1ABC9C` |
 
 `TENSOR` and `BBOX` are declared in the ComfyUI core (`comfy/comfy_types/node_typing.py`
 and `comfy_api/latest/_io.py`), so ComfyDL nodes and core nodes (such as the `Network &
@@ -1312,9 +1313,49 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 
 ---
 
-## 12. d2l / Datasets (10 nodes)
+## 12. d2l / Datasets (13 nodes)
 
-Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics.
+Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics. The three `DATASET` adapters below bridge the universal `DATASET` type to the raw `TENSOR` x/y and `cdlDataloader` conduits.
+
+### Tensors → Dataset
+- **Class**: `CdlTensorsToDataset`
+- **Purpose**: Bundles `TENSOR` features (and optional labels) into a single `DATASET` object so the data can flow through the dataset I/O and regression nodes.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `X` | `TENSOR` | Feature matrix `[n, f]` |
+  | `y` | `TENSOR` (optional) | Label vector `[n]` or `[n, 1]` |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `dataset` | `DATASET` | The bundled dataset |
+
+### Dataset → Tensors
+- **Class**: `CdlDatasetToTensors`
+- **Purpose**: Splits a `DATASET` back into its `X` / `y` `TENSOR`s. When the dataset is unlabelled, `y` is returned as an empty tensor.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `dataset` | `DATASET` | The dataset to split (`forceInput`) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `X` | `TENSOR` | Feature matrix |
+  | `y` | `TENSOR` | Label vector (empty if absent) |
+
+### Dataset → DataLoader
+- **Class**: `CdlDatasetToLoader`
+- **Purpose**: Converts a `DATASET` into a `cdlDataloader` (reusing the `CdlLoadArray` machinery), yielding the same batch structure the statistics / preview nodes expect.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `dataset` | `DATASET` | Source dataset (`forceInput`) |
+  | `batch_size` | `INT` | Samples per batch (default 32) |
+  | `shuffle` | `BOOLEAN` | Shuffle each epoch (default True) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `dataloader` | `cdlDataloader` | Iterable mini-batch loader |
 
 ### Load Array → DataLoader
 - **Class**: `CdlLoadArray`
@@ -2350,7 +2391,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
-| d2l/Datasets | 10 | Dataset download, loading, preview, and statistics |
+| d2l/Datasets | 13 | Dataset download, loading, preview, statistics, and DATASET adapters |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
