@@ -103,7 +103,7 @@ python main.py
 | **语义分割** | 4 | VOC 语义分割工具 |
 | **张量基础** | 5 | 张量 I/O、卷积、转置、广播、激活函数 |
 | **张量运算** | 10 | 损失、优化、评估指标 |
-| **训练** | 2 | 从零训练的线性回归训练器（小批量 SGD） |
+| **训练** | 2 | 教科书式线性回归训练器 + 一盒式生产回归训练器（实时 loss 预览） |
 | **可视化** | 13 | 图表与边界框可视化 |
 | **已弃用 · 模型工具** | 1 | 已弃用（软归档）：Model Mode，纯 TENSOR 图改用核心 Training Mode |
 | **已弃用 · NLP 模型** | 7 | 已弃用（软归档）：Multi-Head Attention、Add & Norm、Transformer Encoder Block/Encoder 与 RNN/GRU 构建器，改用核心 Attention/Recurrent 节点 |

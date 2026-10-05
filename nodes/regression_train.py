@@ -30,6 +30,13 @@ Design notes
 * ``hidden`` lets you graduate from plain linear regression (empty string) to a
   small feed-forward network (e.g. ``"16,8"``) without leaving the node,
   exactly like ``TrainingLoop``'s hidden-layer widget.
+* Training reports through ComfyUI's official progress channel: exactly one
+  ``ProgressBar`` call per optimiser step, with a live loss-curve preview
+  frame attached (``comfy.loss_preview.LossCurvePreviewer``, rate-limited
+  inside the previewer, final frame force-rendered). Both helpers are
+  imported lazily inside ``execute`` — outside the ComfyUI host (unit tests,
+  plain scripts) the node simply trains without any preview, in line with
+  "a preview is a courtesy, not a contract".
 
 Inputs
 ------
@@ -100,6 +107,53 @@ def _parse_hidden(hidden: str) -> Tuple[int, ...]:
         if value > 0:
             sizes.append(value)
     return tuple(sizes)
+
+
+def _make_progress(steps: int):
+    """Create the ``(ProgressBar, LossCurvePreviewer)`` pair for live reporting.
+
+    What: wires the node into ComfyUI's official progress side channel —
+          ``comfy.utils.ProgressBar.update_absolute(value, total, preview)`` —
+          and a curve previewer whose frames ride that channel's third
+          argument.
+    In:   ``steps`` — the total optimiser steps (the progress bar's total).
+    Out:  the pair, or ``(None, None)`` when the host ``comfy`` core is not
+          importable (unit tests, headless scripts): the node then trains
+          without any reporting. Any failure degrades to no preview instead of
+          breaking the run — a preview is a courtesy, not a contract.
+    """
+    try:
+        import comfy.utils
+        from comfy import loss_preview
+
+        return (
+            comfy.utils.ProgressBar(int(steps)),
+            loss_preview.LossCurvePreviewer(title="loss"),
+        )
+    except Exception:  # noqa: BLE001 - no host, no preview
+        return None, None
+
+
+def _report_step(pbar, previewer, loss: float, done: int, total: int, force: bool) -> None:
+    """Push exactly one progress call for one optimiser step.
+
+    What: the per-step reporting contract shared with ``TrainingLoop`` — one
+          call per step either way, so external step counters stay exact.
+    In:   ``pbar`` / ``previewer`` — the pair from :func:`_make_progress`
+          (either may be ``None``); ``loss`` — the detached scalar training
+          loss of this step; ``done`` / ``total`` — progress counters;
+          ``force`` — ``True`` on a run's final step (natural end or early
+          stop) so the last pushed frame is the complete curve.
+    """
+    frame = None
+    if pbar is not None and previewer is not None:
+        frame = previewer.record(loss, force=force)
+    if pbar is None:
+        return
+    if frame is not None:
+        pbar.update_absolute(done, total, frame)
+    else:
+        pbar.update(1)
 
 
 class _Regressor(nn.Module):
@@ -320,10 +374,14 @@ class CdlRegressionTrain:
         best_len = 0
         stopped_at: Optional[int] = None
 
+        pbar, previewer = _make_progress(int(steps))
+        total_steps = int(steps)
+        last_step = total_steps - 1
+
         # Everything runs outside ComfyUI's inference_mode: a gradient cannot
         # cross a node boundary, so the whole fit happens inside one scope.
         with torch.inference_mode(False):
-            for step in range(int(steps)):
+            for step in range(total_steps):
                 if bs < train_X.shape[0]:
                     order = torch.randperm(train_X.shape[0], generator=shuffle_gen)[:bs]
                     xb, yb = train_X[order], train_y[order]
@@ -340,10 +398,20 @@ class CdlRegressionTrain:
                     vloss = float(loss_fn(model(val_X), val_y).detach())
                 if stopper.update(step, vloss):
                     stopped_at = step
+                    # Early stop ends the run on this step: force-render so the
+                    # last pushed frame is the complete curve.
+                    _report_step(
+                        pbar, previewer, float(step_loss.detach()),
+                        step + 1, total_steps, force=True,
+                    )
                     break
                 if stopper.improved:
                     best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
                     best_len = len(history)
+                _report_step(
+                    pbar, previewer, float(step_loss.detach()),
+                    step + 1, total_steps, force=(step == last_step),
+                )
 
             if stopped_at is not None and best_state is not None:
                 model.load_state_dict(best_state)

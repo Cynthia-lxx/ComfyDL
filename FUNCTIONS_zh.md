@@ -2365,6 +2365,40 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
 > 节点在自己的 `torch.inference_mode(False)` 块内运行，梯度可在步内流动；所有输出均已 detach，不会把
 > 计算图泄漏进 ComfyUI 的缓存。在线性结构的问题上，所有输出均为有限值，且损失曲线严格下降。
 
+### 回归训练
+- **类名**：`CdlRegressionTrain`（`comfydl/nodes/regression_train.py`）
+- **功能**：一盒式生产级回归管线——可选训练/验证拆分、折入模型的 z-score 标准化、小批量 Adam
+  训练（平滑早停并回滚到最优权重），以及在验证集上的 MAE / RMSE 指标。
+- **实时预览**：走 ComfyUI 官方进度通道——每个优化步恰好一次 `ProgressBar` 调用，并附带实时
+  loss 曲线帧（`comfy.loss_preview.LossCurvePreviewer`，内部限频、末帧保证完整）。脱离
+  ComfyUI 宿主时静默训练、无预览。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `X` | `TENSOR` | 特征矩阵 `[n, f]`（未接 `DATASET` 时的后备输入） |
+  | `y` | `TENSOR` | 目标 `[n]` 或 `[n, k]`（后备输入） |
+  | `test_size` | `FLOAT` | 验证集比例；0 = 在全部数据上评估（默认 0.2） |
+  | `standardize` | 下拉 | `yes` / `no`——用训练集统计量做 z-score（默认 `yes`） |
+  | `hidden` | `STRING` | 逗号分隔的隐层宽度，如 `16,8`；空 = 线性回归 |
+  | `activation` | 下拉 | 仅用于隐层之间：relu / tanh / sigmoid / none（默认 `relu`） |
+  | `loss` | 下拉 | `mse` / `mae`（默认 `mse`） |
+  | `steps` | `INT` | 优化步数（默认 500，1~100000） |
+  | `batch_size` | `INT` | 每步行数；0 = 全批量（默认 0） |
+  | `lr` | `FLOAT` | Adam 学习率（默认 0.1，1e-5~1） |
+  | `seed` | `INT` | 随机种子（默认 0，0~99999） |
+  | `early_stop_patience` | `INT` | 连续无改善步数阈值；0 = 关闭（默认 30） |
+  | `early_stop_min_delta` | `FLOAT` | 平滑损失的最小改善量（默认 1e-4） |
+  | `save_path` | `STRING` | `state_dict` 保存路径；空 = 不保存 |
+  | `dataset` | `DATASET` | 带标签的数据集；存在时覆盖 `X` / `y`（可选，forceInput） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `nn_model` | `nn_model` | 训好的模块，标准化已折入 |
+  | `mae` | `TENSOR` | 验证集 MAE（原目标空间） |
+  | `rmse` | `TENSOR` | 验证集 RMSE（原目标空间） |
+  | `predictions` | `TENSOR` | 全量输入上的模型输出 `[n, k]` |
+  | `loss_history` | `TENSOR` | 逐步训练损失曲线（早停时截断到最优步） |
+
 ---
 
 ## 附录
@@ -2396,7 +2430,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
 | d2l/Datasets | 25 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点 |
-| d2l/Training | 2 | 从零训练的线性回归训练器（小批量 SGD）：输出 w / b / loss_history / y_hat |
+| d2l/Training | 2 | 教科书式线性回归训练器（小批量 SGD：w / b / loss_history / y_hat）+ 带实时 loss 预览的一盒式生产回归训练器 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |

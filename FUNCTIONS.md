@@ -2442,7 +2442,7 @@ feeds, and it is the only 3D node the dehydrated build needs.
 
 ---
 
-## 21. d2l / Training (1 node)
+## 21. d2l / Training (2 nodes)
 
 `CdlLinRegTrain` (`comfydl/nodes/linreg_train.py`) is the fine-grained, from-scratch
 linear-regression trainer. Unlike the coarse `Training Loop` (which builds an MLP and
@@ -2484,6 +2484,43 @@ four results so a learner can *verify* the training against the stateless `CdlLi
 > ComfyUI's cache. All outputs are finite and the loss curve is strictly decreasing on
 > a linearly-structured problem.
 
+### Regression Train
+- **Class**: `CdlRegressionTrain` (`comfydl/nodes/regression_train.py`)
+- **Purpose**: One-box production regression pipeline — optional train/val
+  split, z-score standardisation folded into the model, mini-batch Adam with
+  smoothed early stopping (rollback to the best weights), and MAE / RMSE on
+  the held-out split.
+- **Live preview**: reports through ComfyUI's official progress channel — one
+  `ProgressBar` call per optimiser step with a live loss-curve frame attached
+  (`comfy.loss_preview.LossCurvePreviewer`, rate-limited, final frame
+  guaranteed). Outside the ComfyUI host the node trains silently.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `X` | `TENSOR` | Feature matrix `[n, f]` (fallback when no `DATASET` is wired) |
+  | `y` | `TENSOR` | Target `[n]` or `[n, k]` (fallback) |
+  | `test_size` | `FLOAT` | Validation fraction; 0 = evaluate on all (default 0.2) |
+  | `standardize` | combo | `yes` / `no` — z-score using train-split statistics (default `yes`) |
+  | `hidden` | `STRING` | Comma-separated hidden widths, e.g. `16,8`; empty = linear |
+  | `activation` | combo | Between hidden layers only: relu / tanh / sigmoid / none (default `relu`) |
+  | `loss` | combo | `mse` / `mae` (default `mse`) |
+  | `steps` | `INT` | Optimiser steps (default 500, 1~100000) |
+  | `batch_size` | `INT` | Rows per step; 0 = full batch (default 0) |
+  | `lr` | `FLOAT` | Adam learning rate (default 0.1, 1e-5~1) |
+  | `seed` | `INT` | RNG seed (default 0, 0~99999) |
+  | `early_stop_patience` | `INT` | Steps without improvement before stopping; 0 = off (default 30) |
+  | `early_stop_min_delta` | `FLOAT` | Minimum smoothed-loss improvement (default 1e-4) |
+  | `save_path` | `STRING` | Destination for the `state_dict`; empty = do not save |
+  | `dataset` | `DATASET` | Labelled dataset; wins over `X` / `y` when present (optional, forceInput) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `nn_model` | `nn_model` | Trained module with standardisation baked in |
+  | `mae` | `TENSOR` | Held-out MAE, original target space |
+  | `rmse` | `TENSOR` | Held-out RMSE, original target space |
+  | `predictions` | `TENSOR` | Model output on the full input `[n, k]` |
+  | `loss_history` | `TENSOR` | Per-step training-loss curve (truncated to the best step on early stop) |
+
 ---
 
 ## Appendix
@@ -2515,7 +2552,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
 | d2l/Datasets | 25 | Dataset download, loading, preview, statistics, DATASET adapters, format readers, and writers |
-| d2l/Training | 2 | From-scratch linear-regression trainer (mini-batch SGD): w / b / loss_history / y_hat |
+| d2l/Training | 2 | Textbook linear-regression trainer (mini-batch SGD: w / b / loss_history / y_hat) + one-box production regression trainer with live loss preview |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
