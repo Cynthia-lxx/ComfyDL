@@ -1311,7 +1311,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 12. d2l / Datasets（20 个节点）
+## 12. d2l / Datasets（25 个节点）
 
 数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。下面三个 `DATASET` 适配器将通用 `DATASET` 类型与原始 `TENSOR` x/y 及 `cdlDataloader` 通道相互打通。
 
@@ -1378,6 +1378,24 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ### Read AccDB → Dataset（读取 Access → 数据集）
 - **类名**：`CdlReadAccDB` — 通过 pyodbc 读取 Microsoft Access `.accdb`/`.mdb`（需 `pip install pyodbc` 及 Access 驱动）。输入：`db_path`、`query`、`target`、`dtype`。输出 `dataset`。
+
+### Dataset → Write CSV（数据集 → 写 CSV）
+- **类名**：`CdlWriteCSV`
+- **功能**：将 `DATASET` 写入 CSV 文件并返回路径以便串联。
+- **输入**：`dataset`（`DATASET`，`forceInput`）、`file`（`STRING`，默认 `dataset_out.csv`）、`index`（`BOOLEAN`，默认 False）
+- **输出**：`file`（`STRING`）
+
+### Dataset → Write JSON（数据集 → 写 JSON）
+- **类名**：`CdlWriteJSON` — 写入 records 格式 JSON 并返回路径。输入：`dataset`、`file`（默认 `dataset_out.json`）。输出 `file`。
+
+### Dataset → Write XLSX（数据集 → 写 XLSX）
+- **类名**：`CdlWriteXLSX` — 写入 Excel 工作簿（需 openpyxl）。输入：`dataset`、`file`（默认 `dataset_out.xlsx`）、`sheet`（`STRING`，默认 `Sheet1`）。输出 `file`。
+
+### Dataset → Write DB（数据集 → 写数据库）
+- **类名**：`CdlWriteDB` — 通过 SQLAlchemy 将 `DATASET` 写入 SQLite 表，并用 `chunksize` 流式写入以支持大表。输入：`dataset`、`db_path`（默认 `dataset_out.db`）、`table`（`STRING`，默认 `data`）。输出 `db_path`。
+
+### Dataset → Preview（数据集 → 预览）
+- **类名**：`CdlDatasetPreview` — 将 `DATASET` 头部渲染为 `STRING` 便于快速查看。输入：`dataset`（`forceInput`）、`head`（`INT`，默认 5）。输出 `preview`（`STRING`）。
 
 ### Load Array → DataLoader
 - **类名**：`CdlLoadArray`
@@ -2339,7 +2357,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
-| d2l/Datasets | 20 | 数据集下载、加载、预览、统计、DATASET 适配器与格式读取节点 |
+| d2l/Datasets | 25 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |

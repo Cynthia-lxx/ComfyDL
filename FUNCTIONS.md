@@ -1313,7 +1313,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 
 ---
 
-## 12. d2l / Datasets (20 nodes)
+## 12. d2l / Datasets (25 nodes)
 
 Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics. The three `DATASET` adapters below bridge the universal `DATASET` type to the raw `TENSOR` x/y and `cdlDataloader` conduits.
 
@@ -1405,6 +1405,36 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 - **Purpose**: Reads a Microsoft Access `.accdb` / `.mdb` database via `pyodbc` into a `DATASET` (needs `pip install pyodbc` plus the Microsoft Access Database Engine driver).
 - **Inputs**: `db_path`, `query` (`STRING` multiline), `target`, `dtype`
 - **Outputs**: `dataset` (`DATASET`)
+
+### Dataset → Write CSV
+- **Class**: `CdlWriteCSV`
+- **Purpose**: Writes a `DATASET` to a CSV file and returns the path for chaining.
+- **Inputs**: `dataset` (`DATASET`, `forceInput`), `file` (`STRING`, default `dataset_out.csv`), `index` (`BOOLEAN`, default False)
+- **Outputs**: `file` (`STRING`)
+
+### Dataset → Write JSON
+- **Class**: `CdlWriteJSON`
+- **Purpose**: Writes a `DATASET` to records-oriented JSON and returns the path.
+- **Inputs**: `dataset` (`DATASET`, `forceInput`), `file` (`STRING`, default `dataset_out.json`)
+- **Outputs**: `file` (`STRING`)
+
+### Dataset → Write XLSX
+- **Class**: `CdlWriteXLSX`
+- **Purpose**: Writes a `DATASET` to an Excel workbook (needs `openpyxl`).
+- **Inputs**: `dataset` (`DATASET`, `forceInput`), `file` (`STRING`, default `dataset_out.xlsx`), `sheet` (`STRING`, default `Sheet1`)
+- **Outputs**: `file` (`STRING`)
+
+### Dataset → Write DB
+- **Class**: `CdlWriteDB`
+- **Purpose**: Writes a `DATASET` to a SQLite table via SQLAlchemy, streamed with `chunksize` for large tables.
+- **Inputs**: `dataset` (`DATASET`, `forceInput`), `db_path` (`STRING`, default `dataset_out.db`), `table` (`STRING`, default `data`)
+- **Outputs**: `db_path` (`STRING`)
+
+### Dataset → Preview
+- **Class**: `CdlDatasetPreview`
+- **Purpose**: Renders the `DATASET` head as a `STRING` for quick inspection.
+- **Inputs**: `dataset` (`DATASET`, `forceInput`), `head` (`INT`, default 5)
+- **Outputs**: `preview` (`STRING`)
 
 ### Load Array → DataLoader
 - **Class**: `CdlLoadArray`
@@ -2440,7 +2470,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
-| d2l/Datasets | 20 | Dataset download, loading, preview, statistics, DATASET adapters, and format readers |
+| d2l/Datasets | 25 | Dataset download, loading, preview, statistics, DATASET adapters, format readers, and writers |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
