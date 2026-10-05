@@ -25,7 +25,7 @@ Design notes
   small :class:`_Regressor` module keeps the train mean / std as buffers and
   applies them in ``forward`` *before* the (linear or MLP) core. The saved or
   reused model is therefore self-contained — pushing raw features through
-  ``CdlNNForward`` reproduces the in-training predictions with no external
+  ``CdlModelForward`` reproduces the in-training predictions with no external
   pre-processing.
 * ``hidden`` lets you graduate from plain linear regression (empty string) to a
   small feed-forward network (e.g. ``"16,8"``) without leaving the node,
@@ -250,7 +250,7 @@ class CdlRegressionTrain:
     with early stopping (rolled back to the best weights), and the metrics a
     production user actually wants (MAE / RMSE on the held-out set). The
     standardisation is baked into the returned module so it can be dropped
-    straight into ``CdlNNForward`` or saved for later inference.
+    straight into ``CdlModelForward`` or saved for later inference.
 
     See the module docstring for the full input / output contract.
     """
@@ -467,3 +467,92 @@ class CdlRegressionTrain:
 
 NODE_CLASS_MAPPINGS["CdlRegressionTrain"] = CdlRegressionTrain
 NODE_DISPLAY_NAME_MAPPINGS["CdlRegressionTrain"] = "Regression Train"
+
+
+class CdlRegressionModelLoad:
+    """Rebuild a regression model from a saved state_dict file — no skeleton needed.
+
+    What: the persistence counterpart of :class:`CdlRegressionTrain`. The
+          generic ``Model Load`` node needs a *live* model to load weights
+          into, which a fresh session does not have. This node instead
+          reconstructs the :class:`_Regressor` architecture straight from the
+          saved ``state_dict``: the input width comes from the first linear
+          weight, the hidden widths from the alternating linear weights, the
+          output width from the last one, and the standardisation buffers
+          (``mean`` / ``std``) are restored when present. The result is a
+          self-contained ``nn_model`` that can feed ``Model Forward`` (or be
+          saved again) exactly like a freshly trained one.
+    In:   ``path`` — the ``.pt`` file written by ``Model Save`` (or the
+          trainer's ``save_path`` widget); ``activation`` — the activation
+          used between hidden layers. The activation is *not* recoverable
+          from a state_dict (it stores no parameters), so it is a widget;
+          keep it consistent with how the model was trained.
+    Out:  ``model`` — the restored ``nn_model`` (eval mode);
+          ``info`` — a one-line summary of the restored architecture.
+    Errors: raises a readable ``ValueError`` for a missing file or a
+          state_dict that does not look like a regression model (no
+          ``core.0.weight``).
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "path": ("STRING", {"default": "output/regression_model.pt"}),
+                "activation": (["relu", "tanh", "sigmoid"], {"default": "relu"}),
+            },
+        }
+
+    RETURN_TYPES = ("nn_model", "STRING")
+    RETURN_NAMES = ("model", "info")
+    FUNCTION = "execute"
+    CATEGORY = "d2l/Training"
+
+    def execute(self, path, activation="relu"):
+        try:
+            sd = torch.load(path, map_location="cpu")
+        except FileNotFoundError as exc:
+            raise ValueError(
+                f"CdlRegressionModelLoad: file not found: {path!r}"
+            ) from exc
+        if not isinstance(sd, dict) or "core.0.weight" not in sd:
+            raise ValueError(
+                "CdlRegressionModelLoad: the file does not look like a saved "
+                "regression model (no 'core.0.weight'); use 'Model Load' with "
+                "a matching skeleton for other architectures."
+            )
+
+        with torch.inference_mode(False):
+            # Normalise the loaded tensors (a host inference-mode load would
+            # otherwise yield inference tensors) and rebuild the architecture.
+            sd = {
+                k: v.clone() if isinstance(v, torch.Tensor) else v
+                for k, v in sd.items()
+            }
+            in_features = int(sd["core.0.weight"].shape[1])
+            hidden: List[int] = []
+            idx = 0
+            while f"core.{idx + 2}.weight" in sd:
+                hidden.append(int(sd[f"core.{idx}.weight"].shape[0]))
+                idx += 2
+            out_features = int(sd[f"core.{idx}.weight"].shape[0])
+            mean = sd.get("mean")
+            std = sd.get("std")
+
+            model = _Regressor(
+                in_features, out_features, tuple(hidden), activation, mean, std
+            )
+            model.load_state_dict(sd)
+            model.eval()
+
+        info = (
+            f"restored regressor: in={in_features}, "
+            f"hidden={list(hidden) if hidden else 'linear'}, "
+            f"out={out_features}, standardized={mean is not None}, "
+            f"activation={activation}"
+        )
+        return (model, info)
+
+
+NODE_CLASS_MAPPINGS["CdlRegressionModelLoad"] = CdlRegressionModelLoad
+NODE_DISPLAY_NAME_MAPPINGS["CdlRegressionModelLoad"] = "Regression Model Load"

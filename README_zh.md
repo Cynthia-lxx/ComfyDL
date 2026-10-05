@@ -20,7 +20,7 @@
 ## 使用示例
 
 > **说明：** ComfyDL 随附的示例工作流已作为**工作流模板**在界面中提供
-> （Templates → ComfyDL Examples）：两个*语言模型*工作流与两个*回归*工作流。
+> （Templates → ComfyDL Examples）：两个*语言模型*工作流与三个*回归*工作流。
 > 早于节点重构的旧示例保留在 [`example_workflows/_archived/`](./example_workflows/_archived) 以备查阅。
 
 ### 神秘的 "?"
@@ -84,7 +84,7 @@ python main.py
 
 ## 功能概览
 
-内置节点库共 **225 个节点**，涵盖 35 个类别 —— 其中 **127 个由 ComfyDL 提供**，
+内置节点库共 **226 个节点**，涵盖 35 个类别 —— 其中 **128 个由 ComfyDL 提供**，
 另加在其之上新增的 98 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
 + `Attention` 8 个 + `Normalization` 7 个 + `Regularization` 1 个 + `Training` 23 个 + `Pooling` 2 个 + `Convolution` 5 个 + `Recurrent` 3 个 + `Text` 4 个；
 `model` → `loaders` 7 个 + `merging` 11 个 + `latent` 2 个 + `conditioning` 2 个；
@@ -103,7 +103,7 @@ python main.py
 | **语义分割** | 4 | VOC 语义分割工具 |
 | **张量基础** | 5 | 张量 I/O、卷积、转置、广播、激活函数 |
 | **张量运算** | 10 | 损失、优化、评估指标 |
-| **训练** | 2 | 从零训练的线性回归训练器（小批量 SGD） |
+| **训练** | 3 | 从零训练的线性回归训练器（小批量 SGD） |
 | **可视化** | 13 | 图表与边界框可视化 |
 | **已弃用 · 模型工具** | 1 | 已弃用（软归档）：Model Mode，纯 TENSOR 图改用核心 Training Mode |
 | **已弃用 · NLP 模型** | 7 | 已弃用（软归档）：Multi-Head Attention、Add & Norm、Transformer Encoder Block/Encoder 与 RNN/GRU 构建器，改用核心 Attention/Recurrent 节点 |

@@ -2474,7 +2474,7 @@ feeds, and it is the only 3D node the dehydrated build needs.
 
 ---
 
-## 21. d2l / Training (2 nodes)
+## 21. d2l / Training (3 nodes)
 
 `CdlLinRegTrain` (`comfydl/nodes/linreg_train.py`) is the fine-grained, from-scratch
 linear-regression trainer. Unlike the coarse `Training Loop` (which builds an MLP and
@@ -2553,6 +2553,30 @@ four results so a learner can *verify* the training against the stateless `CdlLi
   | `predictions` | `TENSOR` | Model output on the full input `[n, k]` |
   | `loss_history` | `TENSOR` | Per-step training-loss curve (truncated to the best step on early stop) |
 
+### Regression Model Load
+- **Class**: `CdlRegressionModelLoad` (`comfydl/nodes/regression_train.py`)
+- **Purpose**: Skeleton-free persistence counterpart of `Regression Train` —
+  rebuilds the `_Regressor` architecture **from a saved `state_dict` alone**:
+  input width from the first linear weight, hidden widths from the alternating
+  linear weights, output width from the last one, and the standardisation
+  `mean` / `std` buffers restored when present. The result feeds `Model
+  Forward` (or `Model Save`) exactly like a freshly trained model, so a
+  trained regressor survives session restarts. The generic `Model Load` needs
+  a live skeleton, which a fresh session does not have.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `path` | `STRING` | The `.pt` file written by `Model Save` or the trainer's `save_path` (default `output/regression_model.pt`) |
+  | `activation` | combo | Activation between hidden layers — not recoverable from a `state_dict` (it stores no parameters), so keep it consistent with training (default `relu`) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `nn_model` | Restored model in eval mode |
+  | `info` | `STRING` | One-line architecture summary (in / hidden / out / standardized / activation) |
+- **Errors**: readable `ValueError` for a missing file or a state_dict without
+  `core.0.weight` (i.e. not a regression model — use `Model Load` with a
+  skeleton for those). Works under the host's `torch.inference_mode()`.
+
 ---
 
 ## Appendix
@@ -2563,7 +2587,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**127 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
+**128 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2584,7 +2608,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
 | d2l/Datasets | 26 | Dataset download, loading, preview, statistics, DATASET adapters, format readers, and writers |
-| d2l/Training | 2 | Textbook linear-regression trainer (mini-batch SGD: w / b / loss_history / y_hat) + one-box production regression trainer with live loss preview |
+| d2l/Training | 3 | Textbook linear-regression trainer (mini-batch SGD: w / b / loss_history / y_hat) + one-box production regression trainer with live loss preview + skeleton-free regression model loader |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |

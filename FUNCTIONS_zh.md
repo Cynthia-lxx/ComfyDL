@@ -2356,7 +2356,7 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
 
 ---
 
-## 21. d2l / Training（2 个节点）
+## 21. d2l / Training（3 个节点）
 
 `CdlLinRegTrain`（`comfydl/nodes/linreg_train.py`）是从零实现的细粒度线性回归训练器。与粗粒度的
 `Training Loop`（搭建 MLP 并跑 `OPTIMIZER`/`SCHEDULER` 栈）不同，它直接落地教科书的 `d2l` 配方——
@@ -2426,6 +2426,26 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
   | `predictions` | `TENSOR` | 全量输入上的模型输出 `[n, k]` |
   | `loss_history` | `TENSOR` | 逐步训练损失曲线（早停时截断到最优步） |
 
+### Regression Model Load（回归模型加载）
+- **类名**：`CdlRegressionModelLoad`（`comfydl/nodes/regression_train.py`）
+- **功能**：`Regression Train` 的免骨架持久化对应节点——**仅凭保存的 `state_dict` 重建**
+  `_Regressor` 架构：输入宽度取自第一个线性层权重、隐层宽度取自交替排列的线性层权重、
+  输出宽度取自最后一个权重，`mean` / `std` 标准化 buffer 存在时一并恢复。产物可直接喂
+  `Model Forward`（或再次 `Model Save`），与新鲜训练出的模型完全等价，让训练好的回归模型
+  跨会话存活。通用 `Model Load` 需要活的模型骨架，新会话中并无从获得。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `path` | `STRING` | `Model Save` 或训练器 `save_path` 写出的 `.pt` 文件（默认 `output/regression_model.pt`） |
+  | `activation` | 下拉 | 隐层激活函数——state_dict 不存储激活参数故无法自动恢复，请与训练时保持一致（默认 `relu`） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `nn_model` | 恢复出的模型（eval 模式） |
+  | `info` | `STRING` | 一行架构摘要（in / hidden / out / 是否标准化 / 激活函数） |
+- **报错**：文件缺失或 state_dict 不含 `core.0.weight`（即非回归模型——那类模型请用带骨架的
+  `Model Load`）时抛出可读 `ValueError`。宿主 `torch.inference_mode()` 下可正常工作。
+
 ---
 
 ## 附录
@@ -2436,7 +2456,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **127 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **128 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2457,7 +2477,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
 | d2l/Datasets | 26 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点 |
-| d2l/Training | 2 | 教科书式线性回归训练器（小批量 SGD：w / b / loss_history / y_hat）+ 带实时 loss 预览的一盒式生产回归训练器 |
+| d2l/Training | 3 | 教科书式线性回归训练器（小批量 SGD：w / b / loss_history / y_hat）+ 带实时 loss 预览的一盒式生产回归训练器 + 免骨架回归模型加载器 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
