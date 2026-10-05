@@ -2329,7 +2329,7 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
 
 ---
 
-## 21. d2l / Training（1 个节点）
+## 21. d2l / Training（2 个节点）
 
 `CdlLinRegTrain`（`comfydl/nodes/linreg_train.py`）是从零实现的细粒度线性回归训练器。与粗粒度的
 `Training Loop`（搭建 MLP 并跑 `OPTIMIZER`/`SCHEDULER` 栈）不同，它直接落地教科书的 `d2l` 配方——
@@ -2375,7 +2375,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **125 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **126 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2396,7 +2396,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
 | d2l/Datasets | 25 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点 |
-| d2l/Training | 1 | 从零训练的线性回归训练器（小批量 SGD）：输出 w / b / loss_history / y_hat |
+| d2l/Training | 2 | 从零训练的线性回归训练器（小批量 SGD）：输出 w / b / loss_history / y_hat |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |

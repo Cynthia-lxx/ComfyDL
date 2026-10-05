@@ -109,7 +109,7 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **Segmentation** | 4 | VOC semantic segmentation tools |
 | **Tensor Basic** | 5 | Tensor I/O, conv, transpose, broadcast, activation |
 | **TorchOps** | 10 | Loss, optimization, metrics |
-| **Training** | 1 | From-scratch linear-regression trainer (mini-batch SGD) |
+| **Training** | 2 | From-scratch linear-regression trainer (mini-batch SGD) |
 | **Visualization** | 13 | Plots, charts & bounding box visualization |
 | **d2l/_Legacy/Model Utils** | 1 | Deprecated (soft-archived): Model Mode; use the core Training Mode |
 | **d2l/_Legacy/NLP Models** | 7 | Deprecated (soft-archived): Multi-Head Attention, Add & Norm, Transformer Encoder Block/Encoder; use the core Attention/Recurrent nodes |

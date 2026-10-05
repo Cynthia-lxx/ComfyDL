@@ -2494,7 +2494,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**125 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
+**126 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2515,7 +2515,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
 | d2l/Datasets | 25 | Dataset download, loading, preview, statistics, DATASET adapters, format readers, and writers |
-| d2l/Training | 1 | From-scratch linear-regression trainer (mini-batch SGD): w / b / loss_history / y_hat |
+| d2l/Training | 2 | From-scratch linear-regression trainer (mini-batch SGD): w / b / loss_history / y_hat |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
