@@ -88,7 +88,7 @@ class CdlDatasetToLoader:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, batch_size, shuffle, dataset=None):
+    def execute(self, dataset, batch_size, shuffle):
         if dataset is None:
             raise ValueError("CdlDatasetToLoader: a DATASET input is required.")
         return CdlLoadArray().execute(
