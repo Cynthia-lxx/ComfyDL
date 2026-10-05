@@ -173,7 +173,7 @@
       "outputs": [
         {
           "name": "model",
-          "type": "cdlModel",
+          "type": "nn_model",
           "links": [
             3
           ],
@@ -206,7 +206,7 @@
       "inputs": [
         {
           "name": "rnn",
-          "type": "cdlModel",
+          "type": "nn_model",
           "link": 3
         },
         {
@@ -218,7 +218,7 @@
       "outputs": [
         {
           "name": "model",
-          "type": "cdlModel",
+          "type": "nn_model",
           "links": [
             6
           ],
@@ -250,7 +250,7 @@
       "inputs": [
         {
           "name": "model",
-          "type": "cdlModel",
+          "type": "nn_model",
           "link": 6
         },
         {
@@ -299,7 +299,7 @@
       0,
       6,
       0,
-      "cdlModel"
+      "nn_model"
     ],
     [
       4,
@@ -323,7 +323,7 @@
       0,
       7,
       0,
-      "cdlModel"
+      "nn_model"
     ]
   ],
   "groups": [],

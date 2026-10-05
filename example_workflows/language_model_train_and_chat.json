@@ -299,7 +299,7 @@
       "outputs": [
         {
           "name": "model",
-          "type": "NNMODEL",
+          "type": "nn_model",
           "links": [
             7
           ],
@@ -376,7 +376,7 @@
       "inputs": [
         {
           "name": "model",
-          "type": "NNMODEL",
+          "type": "nn_model",
           "link": 7
         },
         {
@@ -398,7 +398,7 @@
       "outputs": [
         {
           "name": "model",
-          "type": "NNMODEL",
+          "type": "nn_model",
           "links": [
             11,
             14
@@ -445,7 +445,7 @@
       "inputs": [
         {
           "name": "model",
-          "type": "NNMODEL",
+          "type": "nn_model",
           "link": 11
         },
         {
@@ -540,7 +540,7 @@
       "inputs": [
         {
           "name": "model",
-          "type": "NNMODEL",
+          "type": "nn_model",
           "link": 14
         },
         {
@@ -552,7 +552,7 @@
       "outputs": [
         {
           "name": "model",
-          "type": "NNMODEL",
+          "type": "nn_model",
           "links": null,
           "slot_index": 0
         },
@@ -626,7 +626,7 @@
       0,
       9,
       0,
-      "NNMODEL"
+      "nn_model"
     ],
     [
       8,
@@ -658,7 +658,7 @@
       0,
       10,
       0,
-      "NNMODEL"
+      "nn_model"
     ],
     [
       12,
@@ -682,7 +682,7 @@
       0,
       12,
       0,
-      "NNMODEL"
+      "nn_model"
     ],
     [
       15,

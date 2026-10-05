@@ -19,10 +19,10 @@ Deprecated nodes (still registered, moved to ``d2l/_Legacy/NLP Models``):
                                ``NormalizationLayerNorm`` after ``BasicAdd``
   - TransformerEncoderBlock  : likewise composed from the core layer nodes
   - TransformerEncoder       : likewise composed from the core layer nodes
-  These build a ``cdlModel`` (module-level) rather than operating on a
+  These build a ``nn_model`` (module-level) rather than operating on a
   TENSOR, so they keep working; new tensor graphs should compose the core nodes.
 
-All builder nodes return a cdlModel (nn.Module) that can be wired into
+All builder nodes return a nn_model (nn.Module) that can be wired into
 CdlModelForward / CdlModelInfo / CdlModelSave etc. for inspection and
 inference. Attention modules expect batch-first inputs
 (batch_size, seq_len, num_hiddens); positional encoding and the transformer
@@ -55,7 +55,7 @@ class CdlDotProductAttention:
     Inputs:
         dropout (FLOAT): dropout probability applied to attention weights
     Outputs:
-        model (cdlModel): attention layer; forward(queries, keys, values,
+        model (nn_model): attention layer; forward(queries, keys, values,
             valid_lens) with all tensors of shape
             (batch_size, seq_len, num_hiddens). Returns attention-weighted
             values of shape (batch_size, no. of queries, value dim).
@@ -69,7 +69,7 @@ class CdlDotProductAttention:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Models"
@@ -91,7 +91,7 @@ class CdlAdditiveAttention:
         num_hiddens (INT): hidden units of the additive score function
         dropout (FLOAT): dropout probability applied to attention weights
     Outputs:
-        model (cdlModel): attention layer; forward(queries, keys, values,
+        model (nn_model): attention layer; forward(queries, keys, values,
             valid_lens) with queries/keys/values of shape
             (batch_size, seq_len, num_hiddens).
     """
@@ -105,7 +105,7 @@ class CdlAdditiveAttention:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Models"
@@ -126,7 +126,7 @@ class CdlMultiHeadAttention:
     ``AttentionMultihead`` (q/k/v wired separately), the ``AttentionSelf`` /
     ``AttentionCross`` conveniences and the assembled ``TransformerEncoderBlock``,
     all stateless with the projection weights wired in as tensors. This node
-    builds a ``cdlModel`` (module-level) instead of operating on a TENSOR, so it
+    builds a ``nn_model`` (module-level) instead of operating on a TENSOR, so it
     is kept registered and still works; new tensor graphs should use the core
     attention nodes.
 
@@ -139,7 +139,7 @@ class CdlMultiHeadAttention:
         dropout (FLOAT): dropout probability applied to attention weights
         use_bias (BOOLEAN): whether the Q/K/V/O projections use bias
     Outputs:
-        model (cdlModel): attention layer; forward(queries, keys, values,
+        model (nn_model): attention layer; forward(queries, keys, values,
             valid_lens) with tensors of shape
             (batch_size, seq_len, num_hiddens). Returns
             (batch_size, no. of queries, num_hiddens).
@@ -156,7 +156,7 @@ class CdlMultiHeadAttention:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/_Legacy/NLP Models"
@@ -183,7 +183,7 @@ class CdlPositionalEncoding:
         dropout (FLOAT): dropout probability applied after adding encoding
         max_len (INT): maximum supported sequence length
     Outputs:
-        model (cdlModel): encoding layer; forward(X) with X of shape
+        model (nn_model): encoding layer; forward(X) with X of shape
             (batch_size, seq_len, num_hiddens) adds positional information.
     """
 
@@ -197,7 +197,7 @@ class CdlPositionalEncoding:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Models"
@@ -219,7 +219,7 @@ class CdlPositionWiseFFN:
         ffn_num_hiddens (INT): hidden units of the inner dense layer
         ffn_num_outputs (INT): output units (usually == num_hiddens)
     Outputs:
-        model (cdlModel): FFN applied identically to each position of X of
+        model (nn_model): FFN applied identically to each position of X of
             shape (batch_size, seq_len, ffn_num_outputs).
     """
 
@@ -232,7 +232,7 @@ class CdlPositionWiseFFN:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Models"
@@ -251,7 +251,7 @@ class CdlAddNorm:
 
     Superseded on bare TENSOR graphs: ``LayerNorm(dropout(Y) + X)`` is exactly the
     core ``BasicAdd`` followed by the core ``NormalizationLayerNorm``. This node
-    builds a ``cdlModel`` (module-level) instead of operating on a TENSOR, so it
+    builds a ``nn_model`` (module-level) instead of operating on a TENSOR, so it
     is kept registered and still works; new tensor graphs should compose the core
     nodes.
 
@@ -262,7 +262,7 @@ class CdlAddNorm:
         norm_shape (INT): feature dimension for LayerNorm
         dropout (FLOAT): dropout probability applied to the residual branch
     Outputs:
-        model (cdlModel): block; forward(X, Y) returns
+        model (nn_model): block; forward(X, Y) returns
             LayerNorm(dropout(Y) + X) of the same shape as X.
     """
 
@@ -275,7 +275,7 @@ class CdlAddNorm:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/_Legacy/NLP Models"
@@ -295,7 +295,7 @@ class CdlTransformerEncoderBlock:
 
     Superseded on bare TENSOR graphs: the block is multi-head attention plus
     ``NormalizationLayerNorm`` after ``BasicAdd``, and a position-wise FFN built
-    from the core ``BasicLinear`` nodes. This node builds a ``cdlModel``
+    from the core ``BasicLinear`` nodes. This node builds a ``nn_model``
     (module-level) instead of operating on a TENSOR, so it is kept registered and
     still works; new tensor graphs should compose the core nodes.
 
@@ -310,7 +310,7 @@ class CdlTransformerEncoderBlock:
         dropout (FLOAT): dropout probability
         use_bias (BOOLEAN): whether attention projections use bias
     Outputs:
-        model (cdlModel): block; forward(X, valid_lens) with X of shape
+        model (nn_model): block; forward(X, valid_lens) with X of shape
             (batch_size, seq_len, num_hiddens), returns same shape.
     """
 
@@ -326,7 +326,7 @@ class CdlTransformerEncoderBlock:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/_Legacy/NLP Models"
@@ -350,7 +350,7 @@ class CdlTransformerEncoder:
 
     Superseded on bare TENSOR graphs: the encoder is an embedder, a positional
     encoding and a stack of blocks, all of which can be composed from the core
-    layer/normalization nodes. This node builds a ``cdlModel`` (module-level)
+    layer/normalization nodes. This node builds a ``nn_model`` (module-level)
     instead of operating on a TENSOR, so it is kept registered and still works;
     new tensor graphs should compose the core nodes.
 
@@ -367,7 +367,7 @@ class CdlTransformerEncoder:
         dropout (FLOAT): dropout probability
         use_bias (BOOLEAN): whether attention projections use bias
     Outputs:
-        model (cdlModel): encoder; forward(X, valid_lens) with X of shape
+        model (nn_model): encoder; forward(X, valid_lens) with X of shape
             (batch_size, seq_len) of token indices, returns
             (batch_size, seq_len, num_hiddens).
     """
@@ -386,7 +386,7 @@ class CdlTransformerEncoder:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/_Legacy/NLP Models"

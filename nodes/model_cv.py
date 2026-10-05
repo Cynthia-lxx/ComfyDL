@@ -63,7 +63,7 @@ class CdlLeNet:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/CV Models"
@@ -102,7 +102,7 @@ class CdlResNet18:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/CV Models"
@@ -157,7 +157,7 @@ class CdlResidual:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("block",)
     FUNCTION = "execute"
     CATEGORY = "d2l/CV Models"
@@ -212,7 +212,7 @@ class CdlResNeXtBlock:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("block",)
     FUNCTION = "execute"
     CATEGORY = "d2l/CV Models"

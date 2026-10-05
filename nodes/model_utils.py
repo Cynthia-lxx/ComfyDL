@@ -5,11 +5,11 @@ Not from d2l — these nodes help inspect, switch, run, clone and persist
 PyTorch models directly on the workflow graph. Everything is implemented
 with torch.nn / torch primitives (no d2lcore dependency).
 
-All nodes operate on the custom cdlModel type (any nn.Module instance).
+All nodes operate on the custom nn_model type (any nn.Module instance).
 
 Deprecated nodes (still registered, moved to ``d2l/_Legacy/Model Utils``):
   - Model Mode : the core ``TrainingMode`` node covers train/eval for TENSOR
-                 graphs; this cdlModel-level switch is kept for model pipelines.
+                 graphs; this nn_model-level switch is kept for model pipelines.
 """
 
 import copy
@@ -33,7 +33,7 @@ class CdlModelInfo:
     summary string, (2) the total parameter count and (3) the trainable
     parameter count.
     Inputs:
-        model (cdlModel): any nn.Module instance
+        model (nn_model): any nn.Module instance
     Outputs:
         summary (STRING): model type, module count and parameter counts
         total_params (INT): total number of parameters
@@ -44,7 +44,7 @@ class CdlModelInfo:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
             }
         }
 
@@ -79,9 +79,9 @@ class CdlModelMode:
     which publishes ``"train"`` / ``"eval"`` as a STRING that is wired into the
     ``mode`` slot of the core BatchNorm / InstanceNorm / Dropout nodes. Note that
     the two are not interchangeable payloads: this node switches a whole
-    ``cdlModel`` (``model.train()`` / ``model.eval()``) and passes the module on,
+    ``nn_model`` (``model.train()`` / ``model.eval()``) and passes the module on,
     whereas ``TrainingMode`` drives TENSOR-level nodes. It is kept registered and
-    still works for ``cdlModel`` pipelines; new tensor graphs should use
+    still works for ``nn_model`` pipelines; new tensor graphs should use
     ``TrainingMode``.
 
     Switch a model between training and evaluation mode.
@@ -90,22 +90,22 @@ class CdlModelMode:
     model and returns the same instance, so downstream nodes observe the
     new mode.
     Inputs:
-        model (cdlModel): any nn.Module instance
+        model (nn_model): any nn.Module instance
         mode (COMBO): "train" (training mode) or "eval" (inference mode)
     Outputs:
-        model (cdlModel): the same instance with the mode applied
+        model (nn_model): the same instance with the mode applied
     """
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
                 "mode": (["train", "eval"], {"default": "eval"}),
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/_Legacy/Model Utils"
@@ -130,7 +130,7 @@ class CdlModelForward:
     and returns the output tensor. The input is moved to the model's
     device if they differ; the model is switched to eval mode first.
     Inputs:
-        model (cdlModel): any nn.Module instance
+        model (nn_model): any nn.Module instance
         tensor (TENSOR): input tensor of the shape the model expects
     Outputs:
         output (TENSOR): model(tensor) — shape depends on the model
@@ -140,7 +140,7 @@ class CdlModelForward:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
                 "tensor": ("TENSOR",),
             }
         }
@@ -170,7 +170,7 @@ class CdlModelLayers:
     tree of every module with its name and class, so you can inspect the
     architecture.
     Inputs:
-        model (cdlModel): any nn.Module instance
+        model (nn_model): any nn.Module instance
     Outputs:
         layers_str (STRING): one module per line, indented by depth
     """
@@ -179,7 +179,7 @@ class CdlModelLayers:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
             }
         }
 
@@ -206,7 +206,7 @@ class CdlModelParams:
     What it does: walks model.named_parameters() and renders name, shape
     and requires_grad for each parameter, plus the total count.
     Inputs:
-        model (cdlModel): any nn.Module instance
+        model (nn_model): any nn.Module instance
     Outputs:
         params_str (STRING): one parameter per line + total count
     """
@@ -215,7 +215,7 @@ class CdlModelParams:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
             }
         }
 
@@ -244,20 +244,20 @@ class CdlModelClone:
     What it does: returns copy.deepcopy(model) — an independent instance
     with the same architecture and weights but no shared parameters.
     Inputs:
-        model (cdlModel): any nn.Module instance
+        model (nn_model): any nn.Module instance
     Outputs:
-        clone (cdlModel): a deep copy of the input model
+        clone (nn_model): a deep copy of the input model
     """
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("clone",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Model Utils"
@@ -277,7 +277,7 @@ class CdlModelSave:
     Only weights are saved (state_dict), so reloading requires a model
     with a matching architecture.
     Inputs:
-        model (cdlModel): any nn.Module instance
+        model (nn_model): any nn.Module instance
         path (STRING): target file path, e.g. "C:/models/my_model.pt"
     Outputs:
         message (STRING): confirmation text including the saved path
@@ -287,7 +287,7 @@ class CdlModelSave:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
                 "path": ("STRING", {"default": "model.pt"}),
             }
         }
@@ -313,22 +313,22 @@ class CdlModelLoad:
     to the input model via model.load_state_dict(). The model
     architecture must match the saved state_dict.
     Inputs:
-        model (cdlModel): model instance that will receive the weights
+        model (nn_model): model instance that will receive the weights
         path (STRING): path of the saved state_dict file
     Outputs:
-        model (cdlModel): the input model with loaded weights
+        model (nn_model): the input model with loaded weights
     """
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
                 "path": ("STRING", {"default": "model.pt"}),
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/Model Utils"

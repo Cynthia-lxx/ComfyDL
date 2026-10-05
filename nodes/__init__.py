@@ -48,8 +48,11 @@ cdlBbox = BBOX
 
 # No Comfy core counterpart exists for the types below, so they stay
 # ComfyDL-only and keep their original names.
-# cdlModel: d2l model instance (nn.Module subclass)
-cdlModel = "cdlModel"
+# nn_model: the unified "materialised nn.Module" type (was cdlModel), shared
+# between the ComfyDL inference nodes and the Network & Layers training system.
+nn_model = "nn_model"
+cdlModel = nn_model  # legacy alias
+NNMODEL = nn_model  # legacy alias (previous unified name)
 # cdlVocab: Vocabulary object
 cdlVocab = "cdlVocab"
 # cdlDataloader: PyTorch DataLoader

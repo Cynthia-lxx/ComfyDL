@@ -11,11 +11,14 @@ replacements = [
     # types (TENSOR/BBOX) so that ComfyDL nodes interoperate with the core
     # Activation nodes.  The renames below are already applied to nodes/*.py;
     # keeping them here makes this script a complete, re-runnable migration
-    # record (cdlModel / cdlVocab / cdlDataloader have no core counterpart and
-    # keep their names).
+    # record (cdlVocab / cdlDataloader have no core counterpart and keep their
+    # names; cdlModel was unified into the nn_model type used by the training
+    # system).
     ('"CDL_TENSOR"', '"TENSOR"'),
     ('"CDL_BBOX"', '"BBOX"'),
-    ('"CDL_MODEL"', '"cdlModel"'),
+    ('"CDL_MODEL"', '"nn_model"'),
+    ('"cdlModel"', '"nn_model"'),
+    ('"NNMODEL"', '"nn_model"'),
     ('"CDL_VOCAB"', '"cdlVocab"'),
     ('"CDL_DATALOADER"', '"cdlDataloader"'),
     ('"cdlTensor"', '"TENSOR"'),

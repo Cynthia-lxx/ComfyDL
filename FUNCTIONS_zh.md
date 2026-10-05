@@ -16,13 +16,13 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 |-----------|-------------|------|
 | `TENSOR` | `torch.Tensor` | 任意形状的 PyTorch 张量 —— **ComfyUI 核心类型**，与内置 `Network & Layers` 节点共用（原名 `cdlTensor`） |
 | `BBOX` | `torch.Tensor [N,4]` | 边界框张量，格式为 `(x1, y1, x2, y2)` —— **ComfyUI 核心类型**（原名 `cdlBbox`） |
-| `cdlModel` | `nn.Module` | PyTorch 模型实例 —— ComfyDL 专有，核心无同义类型 |
+| `nn_model` | `nn.Module` | PyTorch 模型实例 —— 已在核心声明，与训练体系共用 |
 | `cdlVocab` | `dict` | 词表字典，包含 `idx_to_token` 和 `token_to_idx` —— ComfyDL 专有 |
 | `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch 数据加载器 —— ComfyDL 专有 |
 
 `TENSOR` 与 `BBOX` 定义在 ComfyUI 核心中（`comfy/comfy_types/node_typing.py` 与
 `comfy_api/latest/_io.py`），因此 ComfyDL 节点可与核心节点（如 `Network & Layers` 系列）在同一插槽上
-直接连线。`cdlModel` / `cdlVocab` / `cdlDataloader` 在核心中没有等价类型，保持 ComfyDL 专有；
+直接连线。`nn_model` 已在 ComfyUI 核心中声明并与训练体系（Network & Layers）共用；`cdlVocab` / `cdlDataloader` 在核心中没有等价类型，保持 ComfyDL 专有；
 旧名 `cdlTensor` / `cdlBbox` 仍作为兼容别名从 `nodes/__init__.py` 导出。
 
 直接使用的 ComfyUI 标准类型：
@@ -106,7 +106,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | LeNet-5 模型实例 |
+  | `model` | `nn_model` | LeNet-5 模型实例 |
 
 ### ResNet-18
 - **类名**：`CdlResNet18`
@@ -120,7 +120,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | ResNet-18 模型实例 |
+  | `model` | `nn_model` | ResNet-18 模型实例 |
 
 ### Residual Block
 - **类名**：`CdlResidual`
@@ -135,7 +135,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `block` | `cdlModel` | 残差块模块实例 |
+  | `block` | `nn_model` | 残差块模块实例 |
 
 ### ResNeXt Block
 - **类名**：`CdlResNeXtBlock`
@@ -152,7 +152,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `block` | `cdlModel` | ResNeXt 块模块实例 |
+  | `block` | `nn_model` | ResNeXt 块模块实例 |
 
 ---
 
@@ -167,8 +167,8 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `X` | `TENSOR` | 真实数据批次（可选） |
   | `Z` | `TENSOR` | 噪声输入（可选） |
-  | `net_D` | `cdlModel` | 判别器模型（可选） |
-  | `net_G` | `cdlModel` | 生成器模型（可选） |
+  | `net_D` | `nn_model` | 判别器模型（可选） |
+  | `net_G` | `nn_model` | 生成器模型（可选） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -182,8 +182,8 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `Z` | `TENSOR` | 噪声输入（可选） |
-  | `net_D` | `cdlModel` | 判别器模型（可选） |
-  | `net_G` | `cdlModel` | 生成器模型（可选） |
+  | `net_D` | `nn_model` | 判别器模型（可选） |
+  | `net_G` | `nn_model` | 生成器模型（可选） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -328,7 +328,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 ## 6. d2l / NLP Models（9 个节点）
 
-NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer 与 Seq2Seq 构件。所有构建器都返回 `cdlModel`，可接入 `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` 等节点进行查看与推理。RNN/GRU 前向输入为时间优先 `(num_steps, batch_size, num_inputs)`；注意力模块与 Transformer 编码器为批次优先。
+NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer 与 Seq2Seq 构件。所有构建器都返回 `nn_model`，可接入 `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` 等节点进行查看与推理。RNN/GRU 前向输入为时间优先 `(num_steps, batch_size, num_inputs)`；注意力模块与 Transformer 编码器为批次优先。
 
 ### RNN（从头实现）
 - **类名**：`CdlRNNScratch`
@@ -343,7 +343,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | RNNScratch 实例 |
+  | `model` | `nn_model` | RNNScratch 实例 |
 
 ### RNN（高层封装）
 - **类名**：`CdlRNN`
@@ -357,7 +357,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | RNN 实例 |
+  | `model` | `nn_model` | RNN 实例 |
 
 ### GRU
 - **类名**：`CdlGRU`
@@ -373,37 +373,37 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | GRU 实例 |
+  | `model` | `nn_model` | GRU 实例 |
 
 ### RNN 语言模型（从头实现）
 - **类名**：`CdlRNNLMScratch`
 - **d2lcore 函数**：`RNNLMScratch(rnn, vocab_size, lr)`
-- **功能**：将 RNN/GRU `cdlModel`（要求 `num_inputs == vocab_size`）包装为从头实现的语言模型，输出投影到 `vocab_size` 个类别。前向输入索引张量 `(batch_size, num_steps)`，返回 logits `(num_steps, batch_size, vocab_size)`。
+- **功能**：将 RNN/GRU `nn_model`（要求 `num_inputs == vocab_size`）包装为从头实现的语言模型，输出投影到 `vocab_size` 个类别。前向输入索引张量 `(batch_size, num_steps)`，返回 logits `(num_steps, batch_size, vocab_size)`。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `rnn` | `cdlModel` | — | 满足 `num_inputs == vocab_size` 的 RNN/GRU cdlModel |
+  | `rnn` | `nn_model` | — | 满足 `num_inputs == vocab_size` 的 RNN/GRU nn_model |
   | `vocab_size` | `INT` | 32 | 输出投影的词表大小（2~100000） |
   | `lr` | `FLOAT` | 0.01 | 训练时使用的学习率（0.0001~1） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | RNNLMScratch 实例 |
+  | `model` | `nn_model` | RNNLMScratch 实例 |
 
 ### RNN 语言模型（高层封装）
 - **类名**：`CdlRNNLM`
 - **d2lcore 函数**：`RNNLM(rnn, vocab_size, lr)`
-- **功能**：将 RNN/GRU `cdlModel` 包装为使用高层 `LazyLinear` 头的语言模型，接口与从头版本一致。
+- **功能**：将 RNN/GRU `nn_model` 包装为使用高层 `LazyLinear` 头的语言模型，接口与从头版本一致。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `rnn` | `cdlModel` | — | 满足 `num_inputs == vocab_size` 的 RNN/GRU cdlModel |
+  | `rnn` | `nn_model` | — | 满足 `num_inputs == vocab_size` 的 RNN/GRU nn_model |
   | `vocab_size` | `INT` | 32 | 输出投影的词表大小（2~100000） |
   | `lr` | `FLOAT` | 0.01 | 训练时使用的学习率（0.0001~1） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | RNNLM 实例 |
+  | `model` | `nn_model` | RNNLM 实例 |
 
 ### RNN LM 预测
 - **类名**：`CdlRNNLMScratchPredict`
@@ -412,7 +412,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `model` | `cdlModel` | — | RNNLMScratch / RNNLM cdlModel |
+  | `model` | `nn_model` | — | RNNLMScratch / RNNLM nn_model |
   | `vocab` | `cdlVocab` | — | 来自 `CdlVocabBuild` 的词表字典 |
   | `prefix` | `STRING` | `"the "` | 起始 token，如 `"the "` |
   | `num_preds` | `INT` | 10 | 前缀之后预测的 token 数（1~1000） |
@@ -432,7 +432,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 注意力层 |
+  | `model` | `nn_model` | 注意力层 |
 
 ### 加性注意力
 - **类名**：`CdlAdditiveAttention`
@@ -446,11 +446,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 注意力层 |
+  | `model` | `nn_model` | 注意力层 |
 
 ### 多头注意力
 - **类名**：`CdlMultiHeadAttention`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/NLP Models`）
-- **替代**：在纯 `TENSOR` 图上改用核心注意力节点（`Network & Layers/Attention`）：`AttentionMultihead`（q/k/v 分开接线）、`AttentionSelf` / `AttentionCross`（常用形态封装）或组装好的 `TransformerEncoderBlock`。本节点构建的是模块级 `cdlModel`（而非 `TENSOR`），功能未变，`cdlModel` 流水线仍可继续使用。
+- **替代**：在纯 `TENSOR` 图上改用核心注意力节点（`Network & Layers/Attention`）：`AttentionMultihead`（q/k/v 分开接线）、`AttentionSelf` / `AttentionCross`（常用形态封装）或组装好的 `TransformerEncoderBlock`。本节点构建的是模块级 `nn_model`（而非 `TENSOR`），功能未变，`nn_model` 流水线仍可继续使用。
 - **d2lcore 函数**：`MultiHeadAttention(num_hiddens, num_heads, dropout, bias)`
 - **功能**：构建多头注意力层。`num_hiddens` 必须能被 `num_heads` 整除。前向 `(queries, keys, values, valid_lens)`，批次优先张量。
 - **输入**：
@@ -463,7 +463,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 多头注意力层 |
+  | `model` | `nn_model` | 多头注意力层 |
 
 ### 位置编码
 - **类名**：`CdlPositionalEncoding`
@@ -478,7 +478,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 位置编码层 |
+  | `model` | `nn_model` | 位置编码层 |
 
 ### 位置逐元素 FFN
 - **类名**：`CdlPositionWiseFFN`
@@ -492,11 +492,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | FFN 模块 |
+  | `model` | `nn_model` | FFN 模块 |
 
 ### 残差 + 层归一化（Add & Norm）
 - **类名**：`CdlAddNorm`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/NLP Models`）
-- **替代**：在纯 `TENSOR` 图上用 `NormalizationLayerNorm` 接在 `BasicAdd` 之后即可——`LayerNorm(dropout(Y) + X)` 两者完全等价。本节点操作的是模块级 `cdlModel`（而非 `TENSOR`），功能未变，`cdlModel` 流水线仍可继续使用。
+- **替代**：在纯 `TENSOR` 图上用 `NormalizationLayerNorm` 接在 `BasicAdd` 之后即可——`LayerNorm(dropout(Y) + X)` 两者完全等价。本节点操作的是模块级 `nn_model`（而非 `TENSOR`），功能未变，`nn_model` 流水线仍可继续使用。
 - **d2lcore 函数**：`AddNorm(norm_shape, dropout)`
 - **功能**：构建残差连接后接层归一化：`LayerNorm(dropout(Y) + X)`。
 - **输入**：
@@ -507,11 +507,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | Add & Norm 模块 |
+  | `model` | `nn_model` | Add & Norm 模块 |
 
 ### Transformer 编码器块
 - **类名**：`CdlTransformerEncoderBlock`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/NLP Models`）
-- **替代**：在纯 `TENSOR` 图上由核心层节点组合即可（多头注意力 + `BasicAdd` 后接 `NormalizationLayerNorm` + 由 `BasicLinear` 搭出的位置逐元素 FFN）。本节点构建的是模块级 `cdlModel`（而非 `TENSOR`），功能未变，`cdlModel` 流水线仍可继续使用。
+- **替代**：在纯 `TENSOR` 图上由核心层节点组合即可（多头注意力 + `BasicAdd` 后接 `NormalizationLayerNorm` + 由 `BasicLinear` 搭出的位置逐元素 FFN）。本节点构建的是模块级 `nn_model`（而非 `TENSOR`），功能未变，`nn_model` 流水线仍可继续使用。
 - **d2lcore 函数**：`TransformerEncoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias)`
 - **功能**：构建单个 Transformer 编码器块（多头注意力 + FFN，含残差与层归一化）。前向 `(X, valid_lens)`。
 - **输入**：
@@ -525,11 +525,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | Transformer 编码器块 |
+  | `model` | `nn_model` | Transformer 编码器块 |
 
 ### Transformer 编码器
 - **类名**：`CdlTransformerEncoder`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/NLP Models`）
-- **替代**：在纯 `TENSOR` 图上由核心层节点组合即可（嵌入 + 位置编码 + 堆叠编码器块）。本节点构建的是模块级 `cdlModel`（而非 `TENSOR`），功能未变，`cdlModel` 流水线仍可继续使用。
+- **替代**：在纯 `TENSOR` 图上由核心层节点组合即可（嵌入 + 位置编码 + 堆叠编码器块）。本节点构建的是模块级 `nn_model`（而非 `TENSOR`），功能未变，`nn_model` 流水线仍可继续使用。
 - **d2lcore 函数**：`TransformerEncoder(vocab_size, num_hiddens, ffn_num_hiddens, num_heads, num_blks, dropout, use_bias)`
 - **功能**：构建完整 Transformer 编码器（嵌入 + 位置编码 + `num_blks` 个堆叠块）。前向 `(X, valid_lens)`，`X` 为 token 索引 `(batch, seq)`。
 - **输入**：
@@ -545,7 +545,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | Transformer 编码器 |
+  | `model` | `nn_model` | Transformer 编码器 |
 
 ### Seq2Seq 编码器
 - **类名**：`CdlSeq2SeqEncoder`
@@ -562,7 +562,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | Seq2Seq 编码器 |
+  | `model` | `nn_model` | Seq2Seq 编码器 |
 
 ### 初始化 Seq2Seq 权重
 - **类名**：`CdlInitSeq2Seq`
@@ -571,11 +571,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 任意待初始化的 `nn.Module` |
+  | `model` | `nn_model` | 任意待初始化的 `nn.Module` |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 原地初始化后的同一模型 |
+  | `model` | `nn_model` | 原地初始化后的同一模型 |
 
 ---
 
@@ -831,7 +831,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
   | `theta` | `FLOAT` | 1.0 | 梯度裁剪阈值（0.1~100.0） |
-  | `model` | `cdlModel` | — | 待裁剪梯度的模型（可选） |
+  | `model` | `nn_model` | — | 待裁剪梯度的模型（可选） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -846,11 +846,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|---------|------|
   | `lr` | `FLOAT` | 0.03 | 学习率（1e-8 ~ 10.0） |
   | `batch_size` | `INT` | 32 | 批量大小（1~65536） |
-  | `model` | `cdlModel` | — | 待更新的模型（可选） |
+  | `model` | `nn_model` | — | 待更新的模型（可选） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 更新后的模型；若无模型则返回 None |
+  | `model` | `nn_model` | 更新后的模型；若无模型则返回 None |
 
 ---
 
@@ -1464,7 +1464,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ## 13. d2l / Model Utils（7 个节点）
 
-自主开发的模型实用工具节点（非 d2l 内容）。用于在工作流中直接检查、切换、运行、克隆与持久化 PyTorch 模型。所有节点操作 `cdlModel` 类型（任意 `nn.Module` 实例）。
+自主开发的模型实用工具节点（非 d2l 内容）。用于在工作流中直接检查、切换、运行、克隆与持久化 PyTorch 模型。所有节点操作 `nn_model` 类型（任意 `nn.Module` 实例）。
 
 ### Model Info（模型信息）
 - **类名**：`CdlModelInfo`
@@ -1472,7 +1472,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+  | `model` | `nn_model` | 任意 `nn.Module` 实例 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -1482,17 +1482,17 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ### Model Mode（模型模式）
 - **类名**：`CdlModelMode`（⚠️ **已弃用**，软归档至 `d2l/_Legacy/Model Utils`）
-- **替代**：纯 `TENSOR` 图请改用核心节点 `Training Mode`（`Network & Layers/Training`）。注意两者**载荷不同、不可互换**：本节点切换的是整个 `cdlModel`（`model.train()` / `model.eval()`）并把模块继续传递，`Training Mode` 发布的则是驱动 `TENSOR` 级节点的 STRING。本节点功能未变，`cdlModel` 流水线仍可继续使用。
+- **替代**：纯 `TENSOR` 图请改用核心节点 `Training Mode`（`Network & Layers/Training`）。注意两者**载荷不同、不可互换**：本节点切换的是整个 `nn_model`（`model.train()` / `model.eval()`）并把模块继续传递，`Training Mode` 发布的则是驱动 `TENSOR` 级节点的 STRING。本节点功能未变，`nn_model` 流水线仍可继续使用。
 - **功能**：通过 `model.train()` / `model.eval()` 在训练与评估模式间切换，返回同一实例，使下游节点感知新模式。
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `model` | `cdlModel` | — | 任意 `nn.Module` 实例 |
+  | `model` | `nn_model` | — | 任意 `nn.Module` 实例 |
   | `mode` | `COMBO` | `eval` | `train`（训练模式）/ `eval`（推理模式） |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 已应用模式的同一实例 |
+  | `model` | `nn_model` | 已应用模式的同一实例 |
 
 ### Model Forward（模型前向）
 - **类名**：`CdlModelForward`
@@ -1500,7 +1500,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+  | `model` | `nn_model` | 任意 `nn.Module` 实例 |
   | `tensor` | `TENSOR` | 模型期望形状的输入张量 |
 - **输出**：
   | 名称 | 类型 | 说明 |
@@ -1513,7 +1513,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+  | `model` | `nn_model` | 任意 `nn.Module` 实例 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -1525,7 +1525,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+  | `model` | `nn_model` | 任意 `nn.Module` 实例 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
@@ -1537,11 +1537,11 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 任意 `nn.Module` 实例 |
+  | `model` | `nn_model` | 任意 `nn.Module` 实例 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `clone` | `cdlModel` | 输入模型的深拷贝 |
+  | `clone` | `nn_model` | 输入模型的深拷贝 |
 
 ### Model Save（模型保存）
 - **类名**：`CdlModelSave`
@@ -1549,7 +1549,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `model` | `cdlModel` | — | 任意 `nn.Module` 实例 |
+  | `model` | `nn_model` | — | 任意 `nn.Module` 实例 |
   | `path` | `STRING` | `"model.pt"` | 目标文件路径，如 `"C:/models/my_model.pt"` |
 - **输出**：
   | 名称 | 类型 | 说明 |
@@ -1562,12 +1562,12 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输入**：
   | 名称 | 类型 | 默认值 | 说明 |
   |------|------|---------|------|
-  | `model` | `cdlModel` | — | 将接收权重的模型实例 |
+  | `model` | `nn_model` | — | 将接收权重的模型实例 |
   | `path` | `STRING` | `"model.pt"` | 已保存 state_dict 文件的路径 |
 - **输出**：
   | 名称 | 类型 | 说明 |
   |------|------|------|
-  | `model` | `cdlModel` | 已加载权重的输入模型 |
+  | `model` | `nn_model` | 已加载权重的输入模型 |
 
 ---
 
@@ -1670,7 +1670,7 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 节点内部不做初始化，因此每个节点都是纯函数，可直接与上述 ComfyDL 张量节点互连。`Training`
 组另外引入 `PARAMS`、`OPTIMIZER` 与 `SCHEDULER` 三个一等图数据类型，让同一套无状态约定也能
 表达**可训练**参数、优化循环与学习率调度；`Training` 与 `Text` 两组合起来又为语言模型流水线
-新增 `VOCAB`、`MODELSPEC` 与 `NNMODEL` 三个数据类型。
+新增 `VOCAB`、`MODELSPEC` 与 `nn_model` 三个数据类型。
 
 ### 17.1 Activation（14 个节点）
 
@@ -1753,7 +1753,7 @@ dtype/device 不变，并且都是无状态的：`weight`、`bias` 等可学习�
 三个图数据类型，提供一个在**节点内部**完成真实优化循环的训练节点，并在 reform step 9 中补上
 调度器、损失、指标与评估四个节点，凑齐整个闭环。第三、四族（`comfy_extras/nodes_lm.py`，
 reform step 8）是语言模型流水线——在 `MODELSPEC` 槽上以 spec 链声明 Transformer 的结构，由 Build 节点
-物化为真正的 `nn.Module` 走 `NNMODEL` 槽，再加上 Train / Forward / Generate 三件套与 Save / Load
+物化为真正的 `nn.Module` 走 `nn_model` 槽，再加上 Train / Forward / Generate 三件套与 Save / Load
 持久化对：spec 链与词表随权重一并封进 `.safetensors` 的 metadata，重载后无需重跑词表即可继续对话。
 
 **训练/推理状态（2 个节点）**
@@ -1814,7 +1814,7 @@ prompt 包在 `torch.inference_mode()` 里执行，因此 autograd 图无法跨�
 |------|-------|--------|---------------|---------|
 | Loss | `TrainingLoss` | `prediction`、`target`（`TENSOR`） | `loss` COMBO mse/l1/smooth_l1/cross_entropy/bce_with_logits/kl_div（默认 `mse`） | 计算一对预测 / 目标的标量损失——与 `Training Loop` 最小化的是同一个函数。回归损失取同形状数值目标，`cross_entropy` 取类别索引 / one-hot，`bce_with_logits` 取 0/1 目标，`kl_div` 取概率（目标分布相对预测 softmax 的 KL） |
 | Metrics | `TrainingMetrics` | `prediction`、`target`（`TENSOR`） | `metric` COMBO mae/rmse/accuracy/top_3/top_5/perplexity（默认 `mae`） | 计算一对预测 / 目标的标量指标：`mae` / `rmse` 面向数值目标，top-k 准确率（k 钳制到类别数）与 `perplexity`（交叉熵的 `exp`——语言模型最自然的质量数字）面向类别 / token 目标 |
-| Evaluate | `TrainingEvaluate` | `model`（可选 `NNMODEL`，两者都连时优先）、`params`（可选 `PARAMS`）、`x`、`y`（`TENSOR`） | `activation` COMBO relu/gelu/tanh/sigmoid/none（默认 `relu`；仅参数路径）、`loss` COMBO auto + 六种损失（默认 `auto`）、`metric` COMBO auto + 六种指标 + none（默认 `auto`） | 只评估不训练——训练器的只读孪生：把模型（或按参数集 `layer*.*` 形状重建、按控件激活的 MLP）在 `x` 上跑一遍，输出 `loss`、`metric` 与原始 `prediction`。`auto` 对类别索引目标选交叉熵 / 准确率，对数值目标选 mse / mae；`metric=none` 跳过指标（`nan`）。任何输入都不被改写，节点可放在任何缓存图中 |
+| Evaluate | `TrainingEvaluate` | `model`（可选 `nn_model`，两者都连时优先）、`params`（可选 `PARAMS`）、`x`、`y`（`TENSOR`） | `activation` COMBO relu/gelu/tanh/sigmoid/none（默认 `relu`；仅参数路径）、`loss` COMBO auto + 六种损失（默认 `auto`）、`metric` COMBO auto + 六种指标 + none（默认 `auto`） | 只评估不训练——训练器的只读孪生：把模型（或按参数集 `layer*.*` 形状重建、按控件激活的 MLP）在 `x` 上跑一遍，输出 `loss`、`metric` 与原始 `prediction`。`auto` 对类别索引目标选交叉熵 / 准确率，对数值目标选 mse / mae；`metric=none` 跳过指标（`nan`）。任何输入都不被改写，节点可放在任何缓存图中 |
 
 > `Evaluate` 的参数路径按 `Training Loop` 的 `layer<i>.weight` 命名约定重建网络（宽度读自权重形状），
 > 而训练器的 `SCHEDULER` 连线携带的是冻结的 `SchedulerConfig` 而非活的调度器——训练器用它自己的
@@ -1825,7 +1825,7 @@ prompt 包在 `torch.inference_mode()` 里执行，因此 autograd 图无法跨�
 
 语言模型流水线（`comfy_extras/nodes_lm.py`，reform step 8）。由于梯度无法跨越节点边界（见上文），
 Transformer 的**结构**以冻结蓝图链的形式声明在新 `MODELSPEC` 槽上——嵌入链接点在前，每个 Transformer
-块一个链接点——`Language Model Build` 把链条物化为 `NNMODEL` 槽上的真实 `nn.Module`。
+块一个链接点——`Language Model Build` 把链条物化为 `nn_model` 槽上的真实 `nn.Module`。
 `Language Model Train` 随后在**深拷贝**上自己完成前向 + 反向 + `optimizer.step()` 闭环，返回**新的**
 训练后模型，缓存的输入不被污染。数据来自 `Text` 组（17.9）：`Vocab Build → Text Encode →
 Sliding Window` 产出（上下文，下一 token）样本对；损失是对**每个位置**的交叉熵（每个 token 预测它的
@@ -1836,10 +1836,10 @@ Sliding Window` 产出（上下文，下一 token）样本对；损失是对**�
 | Language Model Embedding | `LanguageModelEmbedding` | `spec`（可选 `MODELSPEC`，替换既有链的嵌入链接点）、`vocab`（可选 `VOCAB`，覆盖控件） | `vocab_size` INT 16、`d_model` INT 32、`include_position` BOOLEAN true | 首个 spec 链接点：词嵌入宽度 + 词表大小 + 可选的固定正弦位置编码（无参数）；输出单链接点的 `spec` 链与 `d_model` |
 | Language Model Transformer Block | `LanguageModelTransformerBlock` | `spec`（`MODELSPEC`） | `num_heads` INT 4 (1~64)、`d_ffn` INT 128、`activation` COMBO relu/gelu、`dropout` FLOAT 0.0 (0~0.9) | 向链追加一个 pre-LN 块（`x + attn(LN(x))`，再 `x + ffn(LN(x))`）；宽度**从链上读取**，宽度错配根本接不进来；想堆多深堆多深 |
 | Language Model Build | `LanguageModelBuild` | `spec`（`MODELSPEC`） | `seed` INT 0 | 把链物化为带种子的 `nn.Module`（线性层 Xavier 均匀、bias 置零、嵌入 N(0, 0.01)；RNG 用完还原）；输出 `model` 与 `params` 参数量 |
-| Language Model Train | `LanguageModelTrain` | `model`（`NNMODEL`）、`x` / `y`（`TENSOR`，来自 Sliding Window）、`optimizer`（`OPTIMIZER`）、`scheduler`（可选 `SCHEDULER`） | `steps` INT 300 (1~100000)、`batch_size` INT 0（0 = 全批）、`seed` INT 0、`early_stop_patience` INT 0（0 = 关）、`early_stop_min_delta` FLOAT 1e-4 | 训练器：在 `torch.inference_mode(False)` 内对深拷贝执行 `steps` 次「前向 + 反向 + `optimizer.step()`」（并按优化器配置做梯度裁剪）；连入的调度器每步推进一次（plateau 用平滑 loss），早停把副本回滚到最佳点并把 `loss_history` 截断到那里。输出训练后的 `model`（eval 态）、末步 `loss`（FLOAT）与 `loss_history`（1 维）；同 seed 完全复现。上报实时进度（每步一次进度条更新），并可通过同一中断检查取消。step 11 起同时驱动实时**预览**通道：节点下方实时刷新交叉熵曲线图（限频，最后一步必渲染，见 `comfy/loss_preview.py`） |
-| Language Model Forward | `LanguageModelForward` | `model`（`NNMODEL`）、`ids`（`TENSOR`，1 维流或 2 维批） | — | 纯推理前向（eval 态）；输出 `logits` `(batch, seq_len, vocab_size)` —— `[..., t, :]` 是位置 `t` **之后**那个 token 的分布 |
-| Language Model Generate | `LanguageModelGenerate` | `model`（`NNMODEL`）、`vocab`（可选 `VOCAB`）、`prefix_ids`（可选 `TENSOR`，覆盖文本前缀） | `prefix` STRING `"the "`、`num_tokens` INT 16、`temperature` FLOAT 1.0（0 = 贪心）、`seed` INT 0 | 自回归续写：在本地 `torch.Generator` 上贪心或按温度采样下一 token；输出 `ids`（前缀 + 生成）与解码后的 `text`（未接 `vocab` 时为空串）。通过 `comfy.lm_protocol.generate_tokens` 的 `on_token` 回调上报实时进度（每生成一个 token 更新一次）。step 11 起同时驱动实时**预览**通道：节点下方实时刷新已生成文本卡片（限频，最后一个 token 必渲染；未接 `vocab` 时显示原始 token 下标，见 `comfy/loss_preview.py`） |
-| Language Model Save | `LanguageModelSave` | `model`（`NNMODEL`）、`vocab`（`VOCAB`） | `filename_prefix` STRING `comfydl/language_models` | 把模型写入 `output/<前缀>_00001_.safetensors`——权重之外，spec 链与词表一并封进文件 metadata（格式标签 `comfydl-lm-1`）；`model` 原样透传（保存不打断图），并输出绝对 `path` |
+| Language Model Train | `LanguageModelTrain` | `model`（`nn_model`）、`x` / `y`（`TENSOR`，来自 Sliding Window）、`optimizer`（`OPTIMIZER`）、`scheduler`（可选 `SCHEDULER`） | `steps` INT 300 (1~100000)、`batch_size` INT 0（0 = 全批）、`seed` INT 0、`early_stop_patience` INT 0（0 = 关）、`early_stop_min_delta` FLOAT 1e-4 | 训练器：在 `torch.inference_mode(False)` 内对深拷贝执行 `steps` 次「前向 + 反向 + `optimizer.step()`」（并按优化器配置做梯度裁剪）；连入的调度器每步推进一次（plateau 用平滑 loss），早停把副本回滚到最佳点并把 `loss_history` 截断到那里。输出训练后的 `model`（eval 态）、末步 `loss`（FLOAT）与 `loss_history`（1 维）；同 seed 完全复现。上报实时进度（每步一次进度条更新），并可通过同一中断检查取消。step 11 起同时驱动实时**预览**通道：节点下方实时刷新交叉熵曲线图（限频，最后一步必渲染，见 `comfy/loss_preview.py`） |
+| Language Model Forward | `LanguageModelForward` | `model`（`nn_model`）、`ids`（`TENSOR`，1 维流或 2 维批） | — | 纯推理前向（eval 态）；输出 `logits` `(batch, seq_len, vocab_size)` —— `[..., t, :]` 是位置 `t` **之后**那个 token 的分布 |
+| Language Model Generate | `LanguageModelGenerate` | `model`（`nn_model`）、`vocab`（可选 `VOCAB`）、`prefix_ids`（可选 `TENSOR`，覆盖文本前缀） | `prefix` STRING `"the "`、`num_tokens` INT 16、`temperature` FLOAT 1.0（0 = 贪心）、`seed` INT 0 | 自回归续写：在本地 `torch.Generator` 上贪心或按温度采样下一 token；输出 `ids`（前缀 + 生成）与解码后的 `text`（未接 `vocab` 时为空串）。通过 `comfy.lm_protocol.generate_tokens` 的 `on_token` 回调上报实时进度（每生成一个 token 更新一次）。step 11 起同时驱动实时**预览**通道：节点下方实时刷新已生成文本卡片（限频，最后一个 token 必渲染；未接 `vocab` 时显示原始 token 下标，见 `comfy/loss_preview.py`） |
+| Language Model Save | `LanguageModelSave` | `model`（`nn_model`）、`vocab`（`VOCAB`） | `filename_prefix` STRING `comfydl/language_models` | 把模型写入 `output/<前缀>_00001_.safetensors`——权重之外，spec 链与词表一并封进文件 metadata（格式标签 `comfydl-lm-1`）；`model` 原样透传（保存不打断图），并输出绝对 `path` |
 | Language Model Load | `LanguageModelLoad` | — | `path` STRING `comfydl/language_models_00001_.safetensors` | 读回这类文件（相对路径从 `output/` 起算）：按 metadata 中的蓝图重建模型，以严格 `load_state_dict` 还原权重，输出 `model`（eval 态）、`vocab` 与 `params` 计数；非 Save Language Model 写出的文件会被可读报错拒绝 |
 
 > spec 链是冻结 dataclass 组成的元组——纯值、不含张量——因此交给 ComfyUI 缓存是安全的，链上每个节点

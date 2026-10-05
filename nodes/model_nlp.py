@@ -8,15 +8,15 @@ d2lcore classes:
   - RNNLMScratch(rnn, vocab_size, lr)          : RNN language model from scratch
   - RNNLM(rnn, vocab_size, lr)                 : RNN language model via nn.LazyLinear
 
-All model builders return a cdlModel (d2l Module) that can be wired into
+All model builders return a nn_model (d2l Module) that can be wired into
 CdlModelForward / CdlModelInfo / CdlModelSave etc. for inspection and
-inference. The RNNLM* builders take an existing RNN/GRU cdlModel as input
+inference. The RNNLM* builders take an existing RNN/GRU nn_model as input
 and wrap it with an output projection to vocab_size classes.
 
 Deprecated nodes (still registered, moved to ``d2l/_Legacy/NLP Models``):
   - CdlRNNScratch / CdlRNN / CdlGRU  - superseded by the core stateless
     ``Network & Layers/Recurrent`` nodes (RNN / LSTM / GRU) that operate on
-    the ``TENSOR`` slot type with weights wired in. These cdlModel builders
+    the ``TENSOR`` slot type with weights wired in. These nn_model builders
     keep working for existing workflows; new tensor graphs should use the
     core recurrent nodes.
 """
@@ -72,7 +72,7 @@ class CdlRNNScratch:
     Superseded on bare TENSOR graphs: the core recurrent family (reform step 10)
     now offers ``RNN`` / ``LSTM`` / ``GRU`` as stateless nodes whose weights,
     biases and initial states are wired in as tensors, so one node runs any
-    checkpoint. This builder constructs a ``cdlModel`` (module-level) instead of
+    checkpoint. This builder constructs a ``nn_model`` (module-level) instead of
     operating on a TENSOR, so it is kept registered and still works; new tensor
     graphs should use the core recurrent nodes.
 
@@ -84,7 +84,7 @@ class CdlRNNScratch:
         num_hiddens (INT): number of hidden units
         sigma (FLOAT): std of the random parameter initialization
     Outputs:
-        model (cdlModel): RNNScratch instance (forward expects
+        model (nn_model): RNNScratch instance (forward expects
             (num_steps, batch_size, num_inputs))
     """
 
@@ -98,7 +98,7 @@ class CdlRNNScratch:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/_Legacy/NLP Models"
@@ -118,7 +118,7 @@ class CdlRNN:
 
     Superseded on bare TENSOR graphs by the stateless core ``RNN`` node whose
     weights, biases and initial state are wired in as tensors (reform step 10).
-    This builder constructs a ``cdlModel`` (module-level) instead of operating
+    This builder constructs a ``nn_model`` (module-level) instead of operating
     on a TENSOR, so it is kept registered and still works; new tensor graphs
     should use the core recurrent nodes.
 
@@ -129,7 +129,7 @@ class CdlRNN:
         num_inputs (INT): input feature size
         num_hiddens (INT): number of hidden units
     Outputs:
-        model (cdlModel): RNN instance (forward expects
+        model (nn_model): RNN instance (forward expects
             (num_steps, batch_size, num_inputs), returns (output, h_n))
     """
 
@@ -142,7 +142,7 @@ class CdlRNN:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/_Legacy/NLP Models"
@@ -162,7 +162,7 @@ class CdlGRU:
 
     Superseded on bare TENSOR graphs by the stateless core ``GRU`` node whose
     weights, biases and initial state are wired in as tensors (reform step 10).
-    This builder constructs a ``cdlModel`` (module-level) instead of operating
+    This builder constructs a ``nn_model`` (module-level) instead of operating
     on a TENSOR, so it is kept registered and still works; new tensor graphs
     should use the core recurrent nodes.
 
@@ -175,7 +175,7 @@ class CdlGRU:
         num_layers (INT): number of stacked GRU layers
         dropout (FLOAT): dropout probability between layers (0 = disabled)
     Outputs:
-        model (cdlModel): GRU instance (forward expects
+        model (nn_model): GRU instance (forward expects
             (num_steps, batch_size, num_inputs), returns (output, h_n))
     """
 
@@ -190,7 +190,7 @@ class CdlGRU:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/_Legacy/NLP Models"
@@ -210,11 +210,11 @@ class CdlRNNLMScratch:
 
     d2lcore: RNNLMScratch(rnn, vocab_size, lr)
     Inputs:
-        rnn (cdlModel): an RNN/GRU cdlModel with num_inputs == vocab_size
+        rnn (nn_model): an RNN/GRU nn_model with num_inputs == vocab_size
         vocab_size (INT): vocabulary size of the output projection
         lr (FLOAT): learning rate used when training the model
     Outputs:
-        model (cdlModel): RNNLMScratch instance (forward expects an index
+        model (nn_model): RNNLMScratch instance (forward expects an index
             tensor of shape (batch_size, num_steps); returns logits of
             shape (num_steps, batch_size, vocab_size))
     """
@@ -223,13 +223,13 @@ class CdlRNNLMScratch:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "rnn": ("cdlModel",),
+                "rnn": ("nn_model",),
                 "vocab_size": ("INT", {"default": 32, "min": 2, "max": 100000, "step": 1}),
                 "lr": ("FLOAT", {"default": 0.01, "min": 0.0001, "max": 1.0, "step": 0.001}),
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Models"
@@ -248,11 +248,11 @@ class CdlRNNLM:
 
     d2lcore: RNNLM(rnn, vocab_size, lr)
     Inputs:
-        rnn (cdlModel): an RNN/GRU cdlModel with num_inputs == vocab_size
+        rnn (nn_model): an RNN/GRU nn_model with num_inputs == vocab_size
         vocab_size (INT): vocabulary size of the output projection
         lr (FLOAT): learning rate used when training the model
     Outputs:
-        model (cdlModel): RNNLM instance (forward expects an index tensor
+        model (nn_model): RNNLM instance (forward expects an index tensor
             of shape (batch_size, num_steps); returns logits of shape
             (num_steps, batch_size, vocab_size))
     """
@@ -261,13 +261,13 @@ class CdlRNNLM:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "rnn": ("cdlModel",),
+                "rnn": ("nn_model",),
                 "vocab_size": ("INT", {"default": 32, "min": 2, "max": 100000, "step": 1}),
                 "lr": ("FLOAT", {"default": 0.01, "min": 0.0001, "max": 1.0, "step": 0.001}),
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Models"
@@ -286,7 +286,7 @@ class CdlRNNLMScratchPredict:
 
     d2lcore: RNNLMScratch.predict(prefix, num_preds, vocab, device)
     Inputs:
-        model (cdlModel): an RNNLMScratch / RNNLM cdlModel
+        model (nn_model): an RNNLMScratch / RNNLM nn_model
         vocab (cdlVocab): vocabulary dict from CdlVocabBuild
         prefix (STRING): starting token(s), e.g. "the "
         num_preds (INT): number of characters/words to predict after prefix
@@ -298,7 +298,7 @@ class CdlRNNLMScratchPredict:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
                 "vocab": ("cdlVocab",),
                 "prefix": ("STRING", {"default": "the ", "placeholder": "prefix tokens, e.g. 'the '" }),
                 "num_preds": ("INT", {"default": 10, "min": 1, "max": 1000, "step": 1}),

@@ -26,8 +26,8 @@ class CdlUpdateD:
             "optional": {
                 "X": ("TENSOR",),
                 "Z": ("TENSOR",),
-                "net_D": ("cdlModel",),
-                "net_G": ("cdlModel",),
+                "net_D": ("nn_model",),
+                "net_G": ("nn_model",),
             },
             "hidden": {
                 "prompt": "PROMPT",
@@ -79,8 +79,8 @@ class CdlUpdateG:
             "required": {},
             "optional": {
                 "Z": ("TENSOR",),
-                "net_D": ("cdlModel",),
-                "net_G": ("cdlModel",),
+                "net_D": ("nn_model",),
+                "net_G": ("nn_model",),
             },
             "hidden": {
                 "prompt": "PROMPT",

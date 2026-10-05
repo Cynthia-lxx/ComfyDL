@@ -521,7 +521,7 @@
       "outputs": [
         {
           "name": "model",
-          "type": "cdlModel",
+          "type": "nn_model",
           "links": [
             16,
             17,
@@ -557,7 +557,7 @@
       "outputs": [
         {
           "name": "model",
-          "type": "cdlModel",
+          "type": "nn_model",
           "links": [
             21,
             24
@@ -591,7 +591,7 @@
       "outputs": [
         {
           "name": "block",
-          "type": "cdlModel",
+          "type": "nn_model",
           "links": null,
           "slot_index": 0
         }
@@ -623,7 +623,7 @@
       "outputs": [
         {
           "name": "block",
-          "type": "cdlModel",
+          "type": "nn_model",
           "links": null,
           "slot_index": 0
         }
@@ -761,7 +761,7 @@
       "inputs": [
         {
           "name": "model",
-          "type": "cdlModel",
+          "type": "nn_model",
           "link": 16
         }
       ],
@@ -797,14 +797,14 @@
       "inputs": [
         {
           "name": "model",
-          "type": "cdlModel",
+          "type": "nn_model",
           "link": 17
         }
       ],
       "outputs": [
         {
           "name": "model",
-          "type": "cdlModel",
+          "type": "nn_model",
           "links": null,
           "slot_index": 0
         }
@@ -911,12 +911,12 @@
         },
         {
           "name": "net_D",
-          "type": "cdlModel",
+          "type": "nn_model",
           "link": 20
         },
         {
           "name": "net_G",
-          "type": "cdlModel",
+          "type": "nn_model",
           "link": 21
         }
       ],
@@ -955,12 +955,12 @@
         },
         {
           "name": "net_D",
-          "type": "cdlModel",
+          "type": "nn_model",
           "link": 23
         },
         {
           "name": "net_G",
-          "type": "cdlModel",
+          "type": "nn_model",
           "link": 24
         }
       ],
@@ -2502,7 +2502,7 @@
       0,
       21,
       0,
-      "cdlModel"
+      "nn_model"
     ],
     [
       17,
@@ -2510,7 +2510,7 @@
       0,
       22,
       0,
-      "cdlModel"
+      "nn_model"
     ],
     [
       18,
@@ -2534,7 +2534,7 @@
       0,
       25,
       2,
-      "cdlModel"
+      "nn_model"
     ],
     [
       21,
@@ -2542,7 +2542,7 @@
       0,
       25,
       3,
-      "cdlModel"
+      "nn_model"
     ],
     [
       22,
@@ -2558,7 +2558,7 @@
       0,
       26,
       1,
-      "cdlModel"
+      "nn_model"
     ],
     [
       24,
@@ -2566,7 +2566,7 @@
       0,
       26,
       2,
-      "cdlModel"
+      "nn_model"
     ],
     [
       25,

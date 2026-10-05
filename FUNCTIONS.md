@@ -16,14 +16,15 @@ ComfyDL nodes exchange structured data through the following ComfyUI slot types:
 |-----------|-------------|-------------|
 | `TENSOR` | `torch.Tensor` | PyTorch tensor of arbitrary shape — **ComfyUI core type**, shared with the built-in `Network & Layers` nodes (formerly `cdlTensor`) |
 | `BBOX` | `torch.Tensor [N,4]` | Bounding box tensor in `(x1, y1, x2, y2)` format — **ComfyUI core type** (formerly `cdlBbox`) |
-| `cdlModel` | `nn.Module` | PyTorch model instance — ComfyDL-only, no core counterpart |
+| `nn_model` | `nn.Module` | PyTorch model instance — declared in core, shared with the training system |
 | `cdlVocab` | `dict` | Vocabulary dictionary containing `idx_to_token` and `token_to_idx` — ComfyDL-only |
 | `cdlDataloader` | `torch.utils.data.DataLoader` | PyTorch data loader — ComfyDL-only |
 
 `TENSOR` and `BBOX` are declared in the ComfyUI core (`comfy/comfy_types/node_typing.py`
 and `comfy_api/latest/_io.py`), so ComfyDL nodes and core nodes (such as the `Network &
-Layers` family) can be wired together directly on the same slots. `cdlModel` / `cdlVocab` /
-`cdlDataloader` have no core equivalent and stay ComfyDL-specific; the previous names
+Layers` family) can be wired together directly on the same slots. `nn_model` is declared in the ComfyUI core and shared with the training
+system; `cdlVocab` / `cdlDataloader` have no core equivalent and stay
+ComfyDL-specific; the previous names
 `cdlTensor` / `cdlBbox` are still exported as legacy aliases from `nodes/__init__.py`.
 
 ComfyUI standard types (used directly):
@@ -107,7 +108,7 @@ ComfyUI standard types (used directly):
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | LeNet-5 model instance |
+  | `model` | `nn_model` | LeNet-5 model instance |
 
 ### ResNet-18
 - **Class**: `CdlResNet18`
@@ -121,7 +122,7 @@ ComfyUI standard types (used directly):
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | ResNet-18 model instance |
+  | `model` | `nn_model` | ResNet-18 model instance |
 
 ### Residual Block
 - **Class**: `CdlResidual`
@@ -136,7 +137,7 @@ ComfyUI standard types (used directly):
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `block` | `cdlModel` | Residual block module instance |
+  | `block` | `nn_model` | Residual block module instance |
 
 ### ResNeXt Block
 - **Class**: `CdlResNeXtBlock`
@@ -153,7 +154,7 @@ ComfyUI standard types (used directly):
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `block` | `cdlModel` | ResNeXt block module instance |
+  | `block` | `nn_model` | ResNeXt block module instance |
 
 ---
 
@@ -168,8 +169,8 @@ ComfyUI standard types (used directly):
   |------|------|-------------|
   | `X` | `TENSOR` | Real data batch (optional) |
   | `Z` | `TENSOR` | Noise input (optional) |
-  | `net_D` | `cdlModel` | Discriminator model (optional) |
-  | `net_G` | `cdlModel` | Generator model (optional) |
+  | `net_D` | `nn_model` | Discriminator model (optional) |
+  | `net_G` | `nn_model` | Generator model (optional) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -183,8 +184,8 @@ ComfyUI standard types (used directly):
   | Name | Type | Description |
   |------|------|-------------|
   | `Z` | `TENSOR` | Noise input (optional) |
-  | `net_D` | `cdlModel` | Discriminator model (optional) |
-  | `net_G` | `cdlModel` | Generator model (optional) |
+  | `net_D` | `nn_model` | Discriminator model (optional) |
+  | `net_G` | `nn_model` | Generator model (optional) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -329,7 +330,7 @@ Merged into the ComfyUI core category `utilities` (frontend group: 实用工具)
 
 ## 6. d2l / NLP Models (9 nodes)
 
-NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer and Seq2Seq building blocks. All builders return a `cdlModel` that can be wired into `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` etc. for inspection and inference. RNN/GRU forwards expect time-major inputs `(num_steps, batch_size, num_inputs)`; attention modules and the Transformer encoder expect batch-first inputs.
+NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer and Seq2Seq building blocks. All builders return a `nn_model` that can be wired into `CdlModelForward` / `CdlModelInfo` / `CdlModelSave` etc. for inspection and inference. RNN/GRU forwards expect time-major inputs `(num_steps, batch_size, num_inputs)`; attention modules and the Transformer encoder expect batch-first inputs.
 
 ### RNN (from scratch)
 - **Class**: `CdlRNNScratch`
@@ -344,7 +345,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | RNNScratch instance |
+  | `model` | `nn_model` | RNNScratch instance |
 
 ### RNN (high-level)
 - **Class**: `CdlRNN`
@@ -358,7 +359,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | RNN instance |
+  | `model` | `nn_model` | RNN instance |
 
 ### GRU
 - **Class**: `CdlGRU`
@@ -374,37 +375,37 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | GRU instance |
+  | `model` | `nn_model` | GRU instance |
 
 ### RNN Language Model (from scratch)
 - **Class**: `CdlRNNLMScratch`
 - **d2lcore function**: `RNNLMScratch(rnn, vocab_size, lr)`
-- **Purpose**: Wraps an RNN/GRU `cdlModel` (with `num_inputs == vocab_size`) into a from-scratch language model with an output projection to `vocab_size` classes. Forward takes an index tensor `(batch_size, num_steps)` and returns logits `(num_steps, batch_size, vocab_size)`.
+- **Purpose**: Wraps an RNN/GRU `nn_model` (with `num_inputs == vocab_size`) into a from-scratch language model with an output projection to `vocab_size` classes. Forward takes an index tensor `(batch_size, num_steps)` and returns logits `(num_steps, batch_size, vocab_size)`.
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `rnn` | `cdlModel` | — | RNN/GRU cdlModel with `num_inputs == vocab_size` |
+  | `rnn` | `nn_model` | — | RNN/GRU nn_model with `num_inputs == vocab_size` |
   | `vocab_size` | `INT` | 32 | Vocabulary size of the output projection (2~100000) |
   | `lr` | `FLOAT` | 0.01 | Learning rate used when training (0.0001~1) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | RNNLMScratch instance |
+  | `model` | `nn_model` | RNNLMScratch instance |
 
 ### RNN Language Model (high-level)
 - **Class**: `CdlRNNLM`
 - **d2lcore function**: `RNNLM(rnn, vocab_size, lr)`
-- **Purpose**: Wraps an RNN/GRU `cdlModel` into a language model with a high-level `LazyLinear` head. Same interface as the from-scratch version.
+- **Purpose**: Wraps an RNN/GRU `nn_model` into a language model with a high-level `LazyLinear` head. Same interface as the from-scratch version.
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `rnn` | `cdlModel` | — | RNN/GRU cdlModel with `num_inputs == vocab_size` |
+  | `rnn` | `nn_model` | — | RNN/GRU nn_model with `num_inputs == vocab_size` |
   | `vocab_size` | `INT` | 32 | Vocabulary size of the output projection (2~100000) |
   | `lr` | `FLOAT` | 0.01 | Learning rate used when training (0.0001~1) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | RNNLM instance |
+  | `model` | `nn_model` | RNNLM instance |
 
 ### RNN LM Predict
 - **Class**: `CdlRNNLMScratchPredict`
@@ -413,7 +414,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `model` | `cdlModel` | — | An RNNLMScratch / RNNLM cdlModel |
+  | `model` | `nn_model` | — | An RNNLMScratch / RNNLM nn_model |
   | `vocab` | `cdlVocab` | — | Vocabulary dict from `CdlVocabBuild` |
   | `prefix` | `STRING` | `"the "` | Starting token(s), e.g. `"the "` |
   | `num_preds` | `INT` | 10 | Number of tokens to predict after prefix (1~1000) |
@@ -433,7 +434,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Attention layer |
+  | `model` | `nn_model` | Attention layer |
 
 ### Additive Attention
 - **Class**: `CdlAdditiveAttention`
@@ -447,11 +448,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Attention layer |
+  | `model` | `nn_model` | Attention layer |
 
 ### Multi-Head Attention
 - **Class**: `CdlMultiHeadAttention` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/NLP Models`)
-- **Replacement**: on a bare `TENSOR` graph use the core attention nodes (`Network & Layers/Attention`): `AttentionMultihead` with the q/k/v wired separately, or the `AttentionSelf` / `AttentionCross` conveniences, or the assembled `TransformerEncoderBlock`. This node builds a module-level `cdlModel` rather than a `TENSOR`, so it is unchanged and still usable in `cdlModel` pipelines.
+- **Replacement**: on a bare `TENSOR` graph use the core attention nodes (`Network & Layers/Attention`): `AttentionMultihead` with the q/k/v wired separately, or the `AttentionSelf` / `AttentionCross` conveniences, or the assembled `TransformerEncoderBlock`. This node builds a module-level `nn_model` rather than a `TENSOR`, so it is unchanged and still usable in `nn_model` pipelines.
 - **d2lcore function**: `MultiHeadAttention(num_hiddens, num_heads, dropout, bias)`
 - **Purpose**: Builds a multi-head attention layer. `num_hiddens` must be divisible by `num_heads`. Forward `(queries, keys, values, valid_lens)` with batch-first tensors.
 - **Inputs**:
@@ -464,7 +465,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Multi-head attention layer |
+  | `model` | `nn_model` | Multi-head attention layer |
 
 ### Positional Encoding
 - **Class**: `CdlPositionalEncoding`
@@ -479,7 +480,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Positional encoding layer |
+  | `model` | `nn_model` | Positional encoding layer |
 
 ### Position-Wise FFN
 - **Class**: `CdlPositionWiseFFN`
@@ -493,11 +494,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | FFN module |
+  | `model` | `nn_model` | FFN module |
 
 ### Add & Norm
 - **Class**: `CdlAddNorm` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/NLP Models`)
-- **Replacement**: on a bare `TENSOR` graph, compose `NormalizationLayerNorm` after `BasicAdd` — `LayerNorm(dropout(Y) + X)` is exactly the same math. This node operates on a module-level `cdlModel` rather than a `TENSOR`, so it is unchanged and still usable in `cdlModel` pipelines.
+- **Replacement**: on a bare `TENSOR` graph, compose `NormalizationLayerNorm` after `BasicAdd` — `LayerNorm(dropout(Y) + X)` is exactly the same math. This node operates on a module-level `nn_model` rather than a `TENSOR`, so it is unchanged and still usable in `nn_model` pipelines.
 - **d2lcore function**: `AddNorm(norm_shape, dropout)`
 - **Purpose**: Builds a residual connection followed by layer normalization: `LayerNorm(dropout(Y) + X)`.
 - **Inputs**:
@@ -508,11 +509,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Add & Norm block |
+  | `model` | `nn_model` | Add & Norm block |
 
 ### Transformer Encoder Block
 - **Class**: `CdlTransformerEncoderBlock` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/NLP Models`)
-- **Replacement**: on a bare `TENSOR` graph, compose the core layer nodes (multi-head attention + `BasicAdd` before `NormalizationLayerNorm` + a position-wise FFN built from `BasicLinear`). This node builds a module-level `cdlModel` rather than a `TENSOR`, so it is unchanged and still usable in `cdlModel` pipelines.
+- **Replacement**: on a bare `TENSOR` graph, compose the core layer nodes (multi-head attention + `BasicAdd` before `NormalizationLayerNorm` + a position-wise FFN built from `BasicLinear`). This node builds a module-level `nn_model` rather than a `TENSOR`, so it is unchanged and still usable in `nn_model` pipelines.
 - **d2lcore function**: `TransformerEncoderBlock(num_hiddens, ffn_num_hiddens, num_heads, dropout, use_bias)`
 - **Purpose**: Builds a single Transformer encoder block (multi-head attention + FFN with add & norm). Forward `(X, valid_lens)`.
 - **Inputs**:
@@ -526,11 +527,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Transformer encoder block |
+  | `model` | `nn_model` | Transformer encoder block |
 
 ### Transformer Encoder
 - **Class**: `CdlTransformerEncoder` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/NLP Models`)
-- **Replacement**: on a bare `TENSOR` graph, compose the core layer nodes (embedding + positional encoding + stacked encoder blocks). This node builds a module-level `cdlModel` rather than a `TENSOR`, so it is unchanged and still usable in `cdlModel` pipelines.
+- **Replacement**: on a bare `TENSOR` graph, compose the core layer nodes (embedding + positional encoding + stacked encoder blocks). This node builds a module-level `nn_model` rather than a `TENSOR`, so it is unchanged and still usable in `nn_model` pipelines.
 - **d2lcore function**: `TransformerEncoder(vocab_size, num_hiddens, ffn_num_hiddens, num_heads, num_blks, dropout, use_bias)`
 - **Purpose**: Builds a full Transformer encoder (embedding + positional encoding + `num_blks` stacked blocks). Forward `(X, valid_lens)` with `X` of token indices `(batch, seq)`.
 - **Inputs**:
@@ -546,7 +547,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Transformer encoder |
+  | `model` | `nn_model` | Transformer encoder |
 
 ### Seq2Seq Encoder
 - **Class**: `CdlSeq2SeqEncoder`
@@ -563,7 +564,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Seq2Seq encoder |
+  | `model` | `nn_model` | Seq2Seq encoder |
 
 ### Init Seq2Seq Weights
 - **Class**: `CdlInitSeq2Seq`
@@ -572,11 +573,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Any `nn.Module` to initialize |
+  | `model` | `nn_model` | Any `nn.Module` to initialize |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | The same model after in-place initialization |
+  | `model` | `nn_model` | The same model after in-place initialization |
 
 ---
 
@@ -832,7 +833,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
   | `theta` | `FLOAT` | 1.0 | Gradient clipping threshold (0.1~100.0) |
-  | `model` | `cdlModel` | — | Model whose gradients to clip (optional) |
+  | `model` | `nn_model` | — | Model whose gradients to clip (optional) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -847,11 +848,11 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   |------|------|---------|-------------|
   | `lr` | `FLOAT` | 0.03 | Learning rate (1e-8 ~ 10.0) |
   | `batch_size` | `INT` | 32 | Batch size (1~65536) |
-  | `model` | `cdlModel` | — | Model to update (optional) |
+  | `model` | `nn_model` | — | Model to update (optional) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Updated model; None if no model provided |
+  | `model` | `nn_model` | Updated model; None if no model provided |
 
 ---
 
@@ -1465,7 +1466,7 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 
 ## 13. d2l / Model Utils (7 nodes)
 
-Self-developed model utility nodes (not from d2l). They help inspect, switch, run, clone and persist PyTorch models directly on the workflow graph. All nodes operate on the `cdlModel` type (any `nn.Module` instance).
+Self-developed model utility nodes (not from d2l). They help inspect, switch, run, clone and persist PyTorch models directly on the workflow graph. All nodes operate on the `nn_model` type (any `nn.Module` instance).
 
 ### Model Info
 - **Class**: `CdlModelInfo`
@@ -1473,7 +1474,7 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Any `nn.Module` instance |
+  | `model` | `nn_model` | Any `nn.Module` instance |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -1483,17 +1484,17 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 
 ### Model Mode
 - **Class**: `CdlModelMode` (⚠️ **deprecated**, soft-archived to `d2l/_Legacy/Model Utils`)
-- **Replacement**: on a bare `TENSOR` graph use the core `Training Mode` node (`Network & Layers/Training`). The two payloads are **not** interchangeable: this node switches a whole `cdlModel` (`model.train()` / `model.eval()`) and passes the module on, whereas `Training Mode` publishes the STRING that drives `TENSOR`-level nodes. This node is unchanged and still usable in `cdlModel` pipelines.
+- **Replacement**: on a bare `TENSOR` graph use the core `Training Mode` node (`Network & Layers/Training`). The two payloads are **not** interchangeable: this node switches a whole `nn_model` (`model.train()` / `model.eval()`) and passes the module on, whereas `Training Mode` publishes the STRING that drives `TENSOR`-level nodes. This node is unchanged and still usable in `nn_model` pipelines.
 - **Purpose**: Switches a model between training and evaluation mode via `model.train()` / `model.eval()`. Returns the same instance so downstream nodes observe the new mode.
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `model` | `cdlModel` | — | Any `nn.Module` instance |
+  | `model` | `nn_model` | — | Any `nn.Module` instance |
   | `mode` | `COMBO` | `eval` | `train` (training mode) / `eval` (inference mode) |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | The same instance with the mode applied |
+  | `model` | `nn_model` | The same instance with the mode applied |
 
 ### Model Forward
 - **Class**: `CdlModelForward`
@@ -1501,7 +1502,7 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Any `nn.Module` instance |
+  | `model` | `nn_model` | Any `nn.Module` instance |
   | `tensor` | `TENSOR` | Input tensor of the shape the model expects |
 - **Outputs**:
   | Name | Type | Description |
@@ -1514,7 +1515,7 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Any `nn.Module` instance |
+  | `model` | `nn_model` | Any `nn.Module` instance |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -1526,7 +1527,7 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Any `nn.Module` instance |
+  | `model` | `nn_model` | Any `nn.Module` instance |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
@@ -1538,11 +1539,11 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 - **Inputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | Any `nn.Module` instance |
+  | `model` | `nn_model` | Any `nn.Module` instance |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `clone` | `cdlModel` | A deep copy of the input model |
+  | `clone` | `nn_model` | A deep copy of the input model |
 
 ### Model Save
 - **Class**: `CdlModelSave`
@@ -1550,7 +1551,7 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `model` | `cdlModel` | — | Any `nn.Module` instance |
+  | `model` | `nn_model` | — | Any `nn.Module` instance |
   | `path` | `STRING` | `"model.pt"` | Target file path, e.g. `"C:/models/my_model.pt"` |
 - **Outputs**:
   | Name | Type | Description |
@@ -1563,12 +1564,12 @@ Self-developed model utility nodes (not from d2l). They help inspect, switch, ru
 - **Inputs**:
   | Name | Type | Default | Description |
   |------|------|---------|-------------|
-  | `model` | `cdlModel` | — | Model instance that will receive the weights |
+  | `model` | `nn_model` | — | Model instance that will receive the weights |
   | `path` | `STRING` | `"model.pt"` | Path of the saved state_dict file |
 - **Outputs**:
   | Name | Type | Description |
   |------|------|-------------|
-  | `model` | `cdlModel` | The input model with loaded weights |
+  | `model` | `nn_model` | The input model with loaded weights |
 
 ---
 
@@ -1674,7 +1675,7 @@ can be wired straight to the ComfyDL tensor nodes listed above. The `Training` g
 introduces three first-class graph value types, `PARAMS`, `OPTIMIZER` and `SCHEDULER`, which let the
 same stateless convention express *trainable* parameters, an optimisation loop and a learning-rate
 schedule; the `Training` and
-`Text` groups together add `VOCAB`, `MODELSPEC` and `NNMODEL` for the language-model pipeline.
+`Text` groups together add `VOCAB`, `MODELSPEC` and `nn_model` for the language-model pipeline.
 
 ### 17.1 Activation (14 nodes)
 
@@ -1767,7 +1768,7 @@ persistent running statistics into the normalization nodes. The second is the tr
 scheduler, loss, metrics and evaluation nodes that complete the loop. The third and fourth
 (`comfy_extras/nodes_lm.py`, reform step 8) add the language-model pipeline — a spec chain that
 declares a transformer's structure on the `MODELSPEC` slot, a build node that materialises it into a
-real `nn.Module` on the `NNMODEL` slot, the train / forward / generate trio that operates on it, and
+real `nn.Module` on the `nn_model` slot, the train / forward / generate trio that operates on it, and
 the save / load pair that persists the trained model to disk (spec chain + vocabulary ride along in
 the file's metadata, so a loaded model talks text again in a fresh session).
 
@@ -1837,7 +1838,7 @@ nodes and `Evaluate` all minimise / report the exact same numbers. Everything he
 |------|-------|--------|---------------|---------|
 | Loss | `TrainingLoss` | `prediction`, `target` (`TENSOR`) | `loss` COMBO mse/l1/smooth_l1/cross_entropy/bce_with_logits/kl_div (default `mse`) | Computes one scalar loss of the pair — the same function the `Training Loop` minimises. The regression losses take same-shaped values, `cross_entropy` class indices / one-hot, `bce_with_logits` 0/1 targets, `kl_div` probabilities (KL of the target from the prediction's softmax) |
 | Metrics | `TrainingMetrics` | `prediction`, `target` (`TENSOR`) | `metric` COMBO mae/rmse/accuracy/top_3/top_5/perplexity (default `mae`) | Computes one scalar metric of the pair: `mae` / `rmse` for value targets, top-k accuracy (k clamped to the class count) and `perplexity` (`exp` of the cross entropy — the natural LM quality number) for class / token targets |
-| Evaluate | `TrainingEvaluate` | `model` (optional `NNMODEL`, wins when both are wired), `params` (optional `PARAMS`), `x`, `y` (`TENSOR`) | `activation` COMBO relu/gelu/tanh/sigmoid/none (default `relu`; parameters path only), `loss` COMBO auto + the six losses (default `auto`), `metric` COMBO auto + the six metrics + none (default `auto`) | Forward-only evaluation, the read-only twin of a trainer: runs the model (or the MLP rebuilt from the `layer*.*` shapes of the parameter set, activation from the widget) on `x` and reports `loss`, `metric` and the raw `prediction`. `auto` picks cross entropy / accuracy for class-index targets and mse / mae for value targets; `metric=none` skips the metric (`nan`). Neither input is mutated, so the node can sit anywhere in a cached graph |
+| Evaluate | `TrainingEvaluate` | `model` (optional `nn_model`, wins when both are wired), `params` (optional `PARAMS`), `x`, `y` (`TENSOR`) | `activation` COMBO relu/gelu/tanh/sigmoid/none (default `relu`; parameters path only), `loss` COMBO auto + the six losses (default `auto`), `metric` COMBO auto + the six metrics + none (default `auto`) | Forward-only evaluation, the read-only twin of a trainer: runs the model (or the MLP rebuilt from the `layer*.*` shapes of the parameter set, activation from the widget) on `x` and reports `loss`, `metric` and the raw `prediction`. `auto` picks cross entropy / accuracy for class-index targets and mse / mae for value targets; `metric=none` skips the metric (`nan`). Neither input is mutated, so the node can sit anywhere in a cached graph |
 
 > `Evaluate`'s parameters path rebuilds the network with exactly the `layer<i>.weight` naming
 > convention the `Training Loop` produces (widths read off the weight shapes), and the `SCHEDULER`
@@ -1850,7 +1851,7 @@ nodes and `Evaluate` all minimise / report the exact same numbers. Everything he
 The language-model pipeline (`comfy_extras/nodes_lm.py`, reform step 8). Because a gradient cannot
 cross a node boundary (see above), the *structure* of a transformer is declared as a chain of frozen
 blueprints on the new `MODELSPEC` slot — the embedding link first, one link per transformer block —
-and `Language Model Build` materialises the chain into a real `nn.Module` on the `NNMODEL` slot.
+and `Language Model Build` materialises the chain into a real `nn.Module` on the `nn_model` slot.
 `Language Model Train` then runs the full forward + backward + `optimizer.step()` closure itself, on
 a **deep copy**, returning a *new* trained model so the cached input stays untouched. The dataset
 comes from the `Text` group (17.9): `Vocab Build → Text Encode → Sliding Window` produces the
@@ -1863,10 +1864,10 @@ teaching run already converges.
 | Language Model Embedding | `LanguageModelEmbedding` | `spec` (optional `MODELSPEC`, replaces an existing chain's embedding link), `vocab` (optional `VOCAB`, overrides the widget) | `vocab_size` INT 16, `d_model` INT 32, `include_position` BOOLEAN true | The first spec link: token embedding width + vocabulary size + the optional fixed sinusoidal position encoding (no parameters); outputs the one-link `spec` chain and `d_model` |
 | Language Model Transformer Block | `LanguageModelTransformerBlock` | `spec` (`MODELSPEC`) | `num_heads` INT 4 (1~64), `d_ffn` INT 128, `activation` COMBO relu/gelu, `dropout` FLOAT 0.0 (0~0.9) | Appends one pre-LN block (`x + attn(LN(x))` then `x + ffn(LN(x))`) to the chain; the width is **read from the chain**, so a mismatched block is impossible to wire; chain as many as wanted |
 | Language Model Build | `LanguageModelBuild` | `spec` (`MODELSPEC`) | `seed` INT 0 | Materialises the chain into a seeded `nn.Module` (Xavier-uniform linears, zero biases, N(0, 0.01) embeddings; RNG saved/restored); outputs `model` and the `params` count |
-| Language Model Train | `LanguageModelTrain` | `model` (`NNMODEL`), `x` / `y` (`TENSOR`, from Sliding Window), `optimizer` (`OPTIMIZER`), `scheduler` (optional `SCHEDULER`) | `steps` INT 300 (1~100000), `batch_size` INT 0 (0 = whole dataset), `seed` INT 0, `early_stop_patience` INT 0 (0 = off), `early_stop_min_delta` FLOAT 1e-4 | The trainer: `steps` × (forward + backward + `optimizer.step()`, with gradient clipping from the optimizer config) on a deep copy inside `torch.inference_mode(False)`; a linked scheduler steps after every step (plateau on the smoothed loss), and early stopping rolls the copy back to the best point and truncates `loss_history` there. Outputs the trained `model` (eval mode), the last `loss` (FLOAT) and `loss_history` (1-D); the same seed reproduces the same run. Reports live progress (one bar update per step) and is cancellable through the same interrupt check. Since step 11 it also drives the live **preview** channel: the cross-entropy curve so far is rendered under the node (rate-limited, final step always renders; `comfy/loss_preview.py`) |
-| Language Model Forward | `LanguageModelForward` | `model` (`NNMODEL`), `ids` (`TENSOR`, 1-D stream or 2-D batch) | — | Pure inference pass in eval mode; outputs `logits` `(batch, seq_len, vocab_size)` — `[..., t, :]` is the distribution of the token *after* position `t` |
-| Language Model Generate | `LanguageModelGenerate` | `model` (`NNMODEL`), `vocab` (optional `VOCAB`), `prefix_ids` (optional `TENSOR`, overrides the text) | `prefix` STRING `"the "`, `num_tokens` INT 16, `temperature` FLOAT 1.0 (0 = greedy), `seed` INT 0 | Autoregressive continuation: greedy or temperature-sampled next tokens on a local `torch.Generator`; outputs `ids` (prefix + generated) and the decoded `text` (empty when no `vocab` is linked). Reports live progress (one bar update per generated token) through the `on_token` callback of `comfy.lm_protocol.generate_tokens`. Since step 11 it also drives the live **preview** channel: the text generated so far is rendered onto a small card under the node (rate-limited, the last token always renders; raw token indices when no `vocab` is linked, `comfy/loss_preview.py`) |
-| Language Model Save | `LanguageModelSave` | `model` (`NNMODEL`), `vocab` (`VOCAB`) | `filename_prefix` STRING `comfydl/language_models` | Writes the model to `output/<prefix>_00001_.safetensors` — the weights plus the spec chain and the vocabulary in the file's metadata (format tag `comfydl-lm-1`); passes `model` through unchanged (saving does not end the graph) and reports the absolute `path` |
+| Language Model Train | `LanguageModelTrain` | `model` (`nn_model`), `x` / `y` (`TENSOR`, from Sliding Window), `optimizer` (`OPTIMIZER`), `scheduler` (optional `SCHEDULER`) | `steps` INT 300 (1~100000), `batch_size` INT 0 (0 = whole dataset), `seed` INT 0, `early_stop_patience` INT 0 (0 = off), `early_stop_min_delta` FLOAT 1e-4 | The trainer: `steps` × (forward + backward + `optimizer.step()`, with gradient clipping from the optimizer config) on a deep copy inside `torch.inference_mode(False)`; a linked scheduler steps after every step (plateau on the smoothed loss), and early stopping rolls the copy back to the best point and truncates `loss_history` there. Outputs the trained `model` (eval mode), the last `loss` (FLOAT) and `loss_history` (1-D); the same seed reproduces the same run. Reports live progress (one bar update per step) and is cancellable through the same interrupt check. Since step 11 it also drives the live **preview** channel: the cross-entropy curve so far is rendered under the node (rate-limited, final step always renders; `comfy/loss_preview.py`) |
+| Language Model Forward | `LanguageModelForward` | `model` (`nn_model`), `ids` (`TENSOR`, 1-D stream or 2-D batch) | — | Pure inference pass in eval mode; outputs `logits` `(batch, seq_len, vocab_size)` — `[..., t, :]` is the distribution of the token *after* position `t` |
+| Language Model Generate | `LanguageModelGenerate` | `model` (`nn_model`), `vocab` (optional `VOCAB`), `prefix_ids` (optional `TENSOR`, overrides the text) | `prefix` STRING `"the "`, `num_tokens` INT 16, `temperature` FLOAT 1.0 (0 = greedy), `seed` INT 0 | Autoregressive continuation: greedy or temperature-sampled next tokens on a local `torch.Generator`; outputs `ids` (prefix + generated) and the decoded `text` (empty when no `vocab` is linked). Reports live progress (one bar update per generated token) through the `on_token` callback of `comfy.lm_protocol.generate_tokens`. Since step 11 it also drives the live **preview** channel: the text generated so far is rendered onto a small card under the node (rate-limited, the last token always renders; raw token indices when no `vocab` is linked, `comfy/loss_preview.py`) |
+| Language Model Save | `LanguageModelSave` | `model` (`nn_model`), `vocab` (`VOCAB`) | `filename_prefix` STRING `comfydl/language_models` | Writes the model to `output/<prefix>_00001_.safetensors` — the weights plus the spec chain and the vocabulary in the file's metadata (format tag `comfydl-lm-1`); passes `model` through unchanged (saving does not end the graph) and reports the absolute `path` |
 | Language Model Load | `LanguageModelLoad` | — | `path` STRING `comfydl/language_models_00001_.safetensors` | Reads such a file back (relative paths start at `output/`): rebuilds the model from the metadata blueprint, restores the weights with a strict `load_state_dict` and returns `model` (eval mode), `vocab` and the `params` count; files not written by `Save Language Model` are rejected with a readable error |
 
 > The spec chain is a tuple of frozen dataclasses — plain values, no tensors — so it is safe for

@@ -334,7 +334,7 @@ class CdlGradClipping:
                 "theta": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 100.0, "step": 0.1}),
             },
             "optional": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
             }
         }
 
@@ -381,11 +381,11 @@ class CdlSgdStep:
                 "batch_size": ("INT", {"default": 32, "min": 1, "max": 65536, "step": 1}),
             },
             "optional": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/TorchOps"

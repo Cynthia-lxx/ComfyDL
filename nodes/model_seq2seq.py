@@ -34,7 +34,7 @@ class CdlSeq2SeqEncoder:
         num_layers (INT): number of stacked GRU layers
         dropout (FLOAT): dropout probability between GRU layers
     Outputs:
-        model (cdlModel): encoder; forward(X) with X of shape
+        model (nn_model): encoder; forward(X) with X of shape
             (batch_size, num_steps) of token indices, returns
             (outputs, state) with shapes
             (num_steps, batch_size, num_hiddens) and
@@ -53,7 +53,7 @@ class CdlSeq2SeqEncoder:
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Models"
@@ -73,21 +73,21 @@ class CdlInitSeq2Seq:
 
     d2lcore: init_seq2seq(module)
     Inputs:
-        model (cdlModel): any nn.Module; nn.Linear and nn.GRU layers get
+        model (nn_model): any nn.Module; nn.Linear and nn.GRU layers get
             Xavier-uniform initialized weights (other layers untouched)
     Outputs:
-        model (cdlModel): the same model after in-place weight initialization
+        model (nn_model): the same model after in-place weight initialization
     """
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("cdlModel",),
+                "model": ("nn_model",),
             }
         }
 
-    RETURN_TYPES = ("cdlModel",)
+    RETURN_TYPES = ("nn_model",)
     RETURN_NAMES = ("model",)
     FUNCTION = "execute"
     CATEGORY = "d2l/NLP Models"
