@@ -66,6 +66,7 @@ problems and should stop the graph loudly, not degrade silently.
 from __future__ import annotations
 
 import ast
+import builtins
 import math
 import re
 from typing import List, Tuple
@@ -232,7 +233,12 @@ def _compile_formula(formula: str) -> Tuple[int, List[int]]:
 
 def _eval_formula(formula: str, X: torch.Tensor) -> torch.Tensor:
     """Evaluate the (already validated) formula on the feature matrix."""
-    namespace: dict = {"__builtins__": {}}
+    # ``__builtins__`` carries ONLY ``__import__``: a fully empty builtins dict
+    # breaks ``3 * fake_tensor`` (the tensor's ``__rmul__`` path lazily imports
+    # torch overrides through the eval frame's globals -> KeyError).  The AST
+    # whitelist already rejects calls/attributes/imports in the formula, so the
+    # exposed name is unreachable from user input.
+    namespace: dict = {"__builtins__": {"__import__": builtins.__import__}}
     namespace.update(_FORMULA_FUNCS)
     namespace.update(_FORMULA_CONSTS)
     for index in range(X.shape[1]):
