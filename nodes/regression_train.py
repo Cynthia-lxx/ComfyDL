@@ -51,6 +51,18 @@ tensors *inside* the disabled scope — the clone is created in normal mode.
 This node therefore materialises ``X`` / ``y``, builds the model and runs the
 whole fit inside its ``inference_mode(False)`` scope.
 
+Breakpoint continuation (crash site M3)
+---------------------------------------
+When the user interrupts the run, the interrupt exception tears through this
+node's training loop; the node catches it, saves the COMPLETE training state
+(model, optimizer, loss history, early-stop tracker, RNG states) atomically
+to ``user/comfydl/checkpoints/`` and re-raises.  A crash-site RESUME
+re-queues the same prompt_id, and the re-executed node recognizes its own
+checkpoint (same run_key + same prompt_id) and continues from the breakpoint
+step.  A fresh Run carries a new prompt_id, so the stale checkpoint is
+discarded and training starts over.  Outside the host (unit tests, headless
+scripts) there is no executing context and checkpointing is disabled.
+
 Inputs
 ------
 * ``dataset`` (DATASET, optional, forceInput): the preferred conduit. Wins over
@@ -83,6 +95,13 @@ import torch.nn.functional as F
 from typing import List, Optional, Tuple
 
 from .data_types import CdlDataset
+from comfy.train_checkpoint import (
+    current_node_id as _ckpt_node_id,
+    discard as _ckpt_discard,
+    load as _ckpt_load,
+    run_key as _ckpt_run_key,
+    save as _ckpt_save,
+)
 
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
@@ -398,6 +417,38 @@ class CdlRegressionTrain:
             best_len = 0
             stopped_at: Optional[int] = None
 
+            # ---------------------------------------------------------- #
+            # 4b. Breakpoint continuation (crash site M3): a resumed run  #
+            # (same prompt_id) restores the interrupted training state;   #
+            # a fresh Run has a new prompt_id and discards the stale file.#
+            # ---------------------------------------------------------- #
+            ckpt_run = _ckpt_run_key({
+                "node": "CdlRegressionTrain",
+                "node_id": _ckpt_node_id(),
+                "widgets": [test_size, standardize, hidden, activation,
+                            loss, steps, batch_size, lr, seed,
+                            early_stop_patience, early_stop_min_delta],
+                "x": X, "y": y,
+            })
+            start_step = 0
+            saved = _ckpt_load(ckpt_run)
+            if saved is not None:
+                try:
+                    model.load_state_dict(saved["model"])
+                    optimizer.load_state_dict(saved["optimizer"])
+                    history = list(saved["history"])
+                    stopper.best = saved["stopper_best"]
+                    stopper.counter = int(saved["stopper_counter"])
+                    stopper._window = list(saved["stopper_window"])
+                    best_state = saved["best_state"]
+                    best_len = int(saved["best_len"])
+                    stopped_at = saved["stopped_at"]
+                    shuffle_gen.set_state(saved["shuffle_gen"])
+                    torch.set_rng_state(saved["torch_rng"])
+                    start_step = int(saved["step"]) + 1
+                except Exception:  # noqa: BLE001 - corrupt: train fresh
+                    start_step = 0
+
             pbar, previewer = _make_progress(int(steps))
             total_steps = int(steps)
             last_step = total_steps - 1
@@ -405,37 +456,60 @@ class CdlRegressionTrain:
             # ---------------------------------------------------------- #
             # 5. Optimiser loop (with live loss-curve preview).          #
             # ---------------------------------------------------------- #
-            for step in range(total_steps):
-                if bs < train_X.shape[0]:
-                    order = torch.randperm(train_X.shape[0], generator=shuffle_gen)[:bs]
-                    xb, yb = train_X[order], train_y[order]
-                else:
-                    xb, yb = train_X, train_y
-                pred = model(xb)
-                step_loss = loss_fn(pred, yb)
-                optimizer.zero_grad(set_to_none=True)
-                step_loss.backward()
-                optimizer.step()
-                history.append(step_loss.detach().reshape(()))
+            # The interrupt exception is raised from inside _report_step (the
+            # host's progress hook) - caught here so the exact breakpoint
+            # state can be saved before it propagates (crash site M3).
+            from comfy.model_management import InterruptProcessingException
 
-                with torch.no_grad():
-                    vloss = float(loss_fn(model(val_X), val_y).detach())
-                if stopper.update(step, vloss):
-                    stopped_at = step
-                    # Early stop ends the run on this step: force-render so the
-                    # last pushed frame is the complete curve.
+            step = start_step - 1
+            try:
+                for step in range(start_step, total_steps):
+                    if bs < train_X.shape[0]:
+                        order = torch.randperm(train_X.shape[0], generator=shuffle_gen)[:bs]
+                        xb, yb = train_X[order], train_y[order]
+                    else:
+                        xb, yb = train_X, train_y
+                    pred = model(xb)
+                    step_loss = loss_fn(pred, yb)
+                    optimizer.zero_grad(set_to_none=True)
+                    step_loss.backward()
+                    optimizer.step()
+                    history.append(step_loss.detach().reshape(()))
+
+                    with torch.no_grad():
+                        vloss = float(loss_fn(model(val_X), val_y).detach())
+                    if stopper.update(step, vloss):
+                        stopped_at = step
+                        # Early stop ends the run on this step: force-render so the
+                        # last pushed frame is the complete curve.
+                        _report_step(
+                            pbar, previewer, float(step_loss.detach()),
+                            step + 1, total_steps, force=True,
+                        )
+                        break
+                    if stopper.improved:
+                        best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
+                        best_len = len(history)
                     _report_step(
                         pbar, previewer, float(step_loss.detach()),
-                        step + 1, total_steps, force=True,
+                        step + 1, total_steps, force=(step == last_step),
                     )
-                    break
-                if stopper.improved:
-                    best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
-                    best_len = len(history)
-                _report_step(
-                    pbar, previewer, float(step_loss.detach()),
-                    step + 1, total_steps, force=(step == last_step),
-                )
+            except InterruptProcessingException:
+                _ckpt_save(ckpt_run, {
+                    "step": step,
+                    "model": model.state_dict(),
+                    "optimizer": optimizer.state_dict(),
+                    "history": history,
+                    "stopper_best": stopper.best,
+                    "stopper_counter": stopper.counter,
+                    "stopper_window": list(stopper._window),
+                    "best_state": best_state,
+                    "best_len": best_len,
+                    "stopped_at": stopped_at,
+                    "shuffle_gen": shuffle_gen.get_state(),
+                    "torch_rng": torch.get_rng_state(),
+                })
+                raise
 
             if stopped_at is not None and best_state is not None:
                 model.load_state_dict(best_state)
@@ -449,6 +523,10 @@ class CdlRegressionTrain:
                 rmse = diff.pow(2).mean().sqrt()
 
         loss_history = torch.stack(history).detach()
+
+        # The run finished (naturally or via early stop) - no continuation
+        # is wanted anymore, so the breakpoint file goes away (M3).
+        _ckpt_discard(ckpt_run)
 
         # ------------------------------------------------------------------ #
         # 6. Optionally persist (state_dict: weights + standardization bufs).#
