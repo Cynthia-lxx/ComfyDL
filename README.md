@@ -33,7 +33,8 @@ A tiny node with a toggle that does... something. Try it and see.
 A small language model trained end to end inside the graph — Vocab Build → Text Encode →
 Sliding Window → the Language Model pipeline → Generate → Save. Since the live-preview update,
 the `Language Model Train` node streams its cross-entropy curve **under itself while it trains**
-(the preview card below the node).
+(the preview card below the node). If the run is interrupted, the trainer saves its full state
+and a crash-site **Resume** continues from the breakpoint step instead of starting over.
 
 ![Language Model training workflow](./assets/languange_model_train_workflow.png)
 
