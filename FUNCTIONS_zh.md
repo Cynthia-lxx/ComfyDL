@@ -42,7 +42,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 ## 1. d2l / Device Utils（3 个节点）
 
-### Device Info
+### Device Info（Device Info（设备信息））
 - **类名**：`CdlDeviceInfo`
 - **d2lcore 函数**：`num_gpus()`
 - **功能**：查询当前环境的 GPU 数量和 CUDA 可用性。
@@ -53,7 +53,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   | `num_gpus` | `INT` | 可用 GPU 数量 |
   | `has_cuda` | `INT` | CUDA 是否可用（1=是，0=否） |
 
-### Try GPU
+### Try GPU（Try GPU（尝试 GPU））
 - **类名**：`CdlTryGpu`
 - **d2lcore 函数**：`try_gpu(i)`
 - **功能**：尝试获取索引为 `gpu_index` 的 GPU 设备名。若该 GPU 不可用则回退到 CPU。
@@ -66,7 +66,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `device_str` | `STRING` | 设备字符串，如 `"cuda:0"` 或 `"cpu"` |
 
-### Try All GPUs
+### Try All GPUs（Try All GPUs（尝试所有 GPU））
 - **类名**：`CdlTryAllGpus`
 - **d2lcore 函数**：`try_all_gpus()`
 - **功能**：返回所有可用 GPU 设备名的逗号分隔字符串。若无 GPU 可用则返回 `"cpu"`。
@@ -80,7 +80,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 ## 2. d2l / CV Models（5 个节点）
 
-### Corr2D
+### Corr2D（Corr2D（二维互相关））
 - **类名**：`CdlCorr2d`
 - **d2lcore 函数**：`corr2d(X, K)`
 - **功能**：对输入张量执行二维互相关运算——这是卷积操作的基础。
@@ -94,7 +94,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `output` | `TENSOR` | 互相关结果 |
 
-### LeNet
+### LeNet（LeNet（LeNet 网络））
 - **类名**：`CdlLeNet`
 - **d2lcore 函数**：`LeNet(lr, num_classes)`
 - **功能**：构建经典的 LeNet-5 卷积神经网络。使用 `LazyConv2d` 和 `LazyLinear`——输入形状在首次前向传播时自动推断。
@@ -109,7 +109,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `model` | `nn_model` | LeNet-5 模型实例 |
 
-### ResNet-18
+### ResNet-18（ResNet-18（ResNet-18 网络））
 - **类名**：`CdlResNet18`
 - **d2lcore 函数**：`resnet18(num_classes, in_channels)`
 - **功能**：构建修改版 ResNet-18 模型（使用更小的卷积核/步幅/填充，不含最大池化）。包含 4 个残差块组（每组 2 个残差块），通道数分别为 64、128、256、512，后接全局平均池化和全连接层。
@@ -123,7 +123,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `model` | `nn_model` | ResNet-18 模型实例 |
 
-### Residual Block
+### Residual Block（Residual（残差连接））
 - **类名**：`CdlResidual`
 - **d2lcore 函数**：`Residual(num_channels, use_1x1conv, strides)`
 - **功能**：创建单个 ResNet 残差块。包含两个卷积层（Conv2d + BatchNorm + ReLU）和一个可选的 1×1 快捷卷积。
@@ -138,7 +138,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `block` | `nn_model` | 残差块模块实例 |
 
-### ResNeXt Block
+### ResNeXt Block（ResNeXt Block（ResNeXt 块））
 - **类名**：`CdlResNeXtBlock`
 - **d2lcore 函数**：`ResNeXtBlock(num_channels, groups, bot_mul, use_1x1conv, strides)`
 - **功能**：创建单个 ResNeXt 块，使用分组卷积实现多分支结构。包含瓶颈结构（1×1 降维 → 3×3 分组卷积 → 1×1 升维）+ 可选快捷连接。
@@ -159,7 +159,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 ## 3. d2l / GAN（2 个节点）
 
-### Update Discriminator
+### Update Discriminator（Update D（判别器更新））
 - **类名**：`CdlUpdateD`
 - **d2lcore 函数**：`update_D(X, Z, net_D, net_G, loss, trainer_D)`
 - **功能**：执行一次 GAN 判别器的训练更新。使用真实数据 `X` 和生成器 `net_G` 从噪声 `Z` 生成的假数据，计算 BCE 损失并反向传播以更新判别器参数。使用 SGD 优化器（lr=0.01）。
@@ -175,7 +175,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `loss_D` | `FLOAT` | 判别器损失；若任一输入缺失则返回 0.0 |
 
-### Update Generator
+### Update Generator（Update G（生成器更新））
 - **类名**：`CdlUpdateG`
 - **d2lcore 函数**：`update_G(Z, net_D, net_G, loss, trainer_G)`
 - **功能**：执行一次 GAN 生成器的训练更新。从噪声 `Z` 生成假数据，尝试欺骗判别器，计算 BCE 损失并反向传播以更新生成器参数。使用 SGD 优化器（lr=0.01）。
@@ -197,7 +197,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 已并入 ComfyUI 核心分类 `utilities`（前端分组：实用工具）。类名保留 `Cdl` 前缀。
 
-### MessageBox
+### MessageBox（MessageBox（消息框））
 - **类名**：`CdlMessageBox`
 - **功能**：通过 ctypes 调用 `user32.dll` 中的 `MessageBoxW` 弹出原生 Windows 消息对话框。支持阻塞和非阻塞两种模式。
 - **输入**：
@@ -214,7 +214,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `result` | `STRING` | 用户点击的按钮名称（如 `"2 (IDCANCEL)"`）；在非 Windows 系统上返回占位字符串 |
 
-### NoOp
+### NoOp（NoOp（空操作））
 - **类名**：`CdlNoOp`
 - **功能**：空操作节点——接受任意输入但不执行任何计算。等同于 Python 的 ``pass`` 或汇编的 ``NOP``。可作为任意数据类型的空接收器、工作流构建时的占位节点，或调试时的旁路工具。
 - **输入**：
@@ -238,7 +238,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   | `report` | `STRING` | 人类可读的计时报告 |
   | `avg_seconds` | `FLOAT` | 平均每次迭代秒数 |
 
-### ?
+### ?（What?（这是什么））
 - **类名**：`CdlWhat`
 - **功能**：试一试就知道了~
 - **输入**：
@@ -252,7 +252,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
 
 ## 5. d2l / NLP Utils（5 个节点）
 
-### Tokenize
+### Tokenize（Tokenize（分词））
 - **类名**：`CdlTokenize`
 - **d2lcore 函数**：`tokenize(lines, token)`
 - **功能**：将输入文本按行分词。支持词级别（按空白符分割）和字符级别两种分词模式。每行视为一个句子；行内 token 以逗号分隔输出，行间以换行符分隔。
@@ -266,7 +266,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `tokens_str` | `STRING` | 分词结果字符串；每行 token 以逗号分隔，行间以换行符分隔 |
 
-### Get Tokens & Segments
+### Get Tokens & Segments（Get Tokens & Segments（取 token 与分段））
 - **类名**：`CdlGetTokensAndSegments`
 - **d2lcore 函数**：`get_tokens_and_segments(tokens_a, tokens_b)`
 - **功能**：为 BERT 模型准备输入。将 A 段和 B 段的 token 与 `[CLS]` 和 `[SEP]` 标记拼接，并生成段 ID（A 段为 0，B 段为 1）。
@@ -281,7 +281,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   | `tokens` | `STRING` | 拼接后的 token 序列（含 `[CLS]` 和 `[SEP]`），逗号分隔 |
   | `segments` | `STRING` | 段 ID 序列，逗号分隔（0=A，1=B） |
 
-### Vocab Build
+### Vocab Build（Vocab Build（词表构建））
 - **类名**：`CdlVocabBuild`
 - **d2lcore 函数**：`Vocab(tokens, min_freq, reserved_tokens)`
 - **功能**：从 token 文本构建词表。统计 token 频率，保留出现次数 ≥ `min_freq` 的 token，并添加保留 token（如 `<pad>`、`<bos>`、`<eos>`）。`<unk>` token 自动包含在内。
@@ -297,7 +297,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   | `vocab` | `cdlVocab` | 词表字典 `{"idx_to_token": [...], "token_to_idx": {...}}` |
   | `vocab_size` | `INT` | 词表大小 |
 
-### Vocab Encode
+### Vocab Encode（Vocab Encode（词表编码））
 - **类名**：`CdlVocabEncode`
 - **d2lcore 函数**：`Vocab.__getitem__(tokens)`
 - **功能**：使用词表将 token 字符串转换为索引张量。词表中不存在的 token 映射为 `<unk>` 索引。
@@ -311,7 +311,7 @@ ComfyDL 节点通过以下 ComfyUI 类型槽传递结构化数据：
   |------|------|------|
   | `indices` | `TENSOR` | 编码后的索引张量（`torch.int64`） |
 
-### Vocab Decode
+### Vocab Decode（Vocab Decode（词表解码））
 - **类名**：`CdlVocabDecode`
 - **d2lcore 函数**：`Vocab.to_tokens(indices)`
 - **功能**：使用词表将索引张量转换回 token 字符串。超出范围的索引映射为 `<unk>`。
@@ -360,7 +360,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `model` | `nn_model` | RNN 实例 |
 
-### GRU
+### GRU（GRU（门控循环单元）（已弃用））
 - **类名**：`CdlGRU`
 - **d2lcore 函数**：`GRU(num_inputs, num_hiddens, num_layers, dropout)`
 - **功能**：使用 PyTorch 高层 `nn.GRU` 构建多层 GRU。前向输入 `(num_steps, batch_size, num_inputs)`，返回 `(output, h_n)`。
@@ -582,7 +582,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ## 7. d2l / Tensor Basic（5 个节点）
 
-### Tensor → String
+### Tensor → String（Tensor → Str（张量转字符串））
 - **类名**：`CdlTensorToStr`
 - **功能**：将张量格式化为人类可读的字符串。显示张量的形状、数据类型、设备信息和数值内容。超过 `max_elems` 的大张量会被截断（显示前半部分 + 后半部分）。
 - **输入**：
@@ -596,7 +596,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `text` | `STRING` | 格式化字符串（形状、数据类型、设备、数值） |
 
-### String → Tensor
+### String → Tensor（Str → Tensor（字符串转张量））
 - **类名**：`CdlStrToTensor`
 - **功能**：将字符串解析为 PyTorch 张量。支持标准的 Python 列表字面量格式，如 `"[[1,2],[3,4]]"`、`"[1,2,3,4,5]"`。自动处理空白符和尾随逗号。
 - **输入**：
@@ -609,7 +609,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `tensor` | `TENSOR` | 解析后的张量（`torch.float32`） |
 
-### Conv2D
+### Conv2D（Conv2D（二维卷积））
 - **类名**：`CdlConv2d`
 - **功能**：对输入张量执行二维卷积，使用指定的卷积核。封装 ``torch.nn.functional.conv2d``，支持 stride 和 padding 参数。自动将 2-D/3-D 输入扩展为 4-D ``(N, C, H, W)``，结果去掉 batch 维度返回。
 - **输入**：
@@ -624,7 +624,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `output` | `TENSOR` | 卷积结果 |
 
-### Transpose
+### Transpose（Transpose（转置））
 - **类名**：`CdlTranspose`
 - **功能**：交换张量的两个维度。封装 ``torch.transpose``。
 - **输入**：
@@ -704,7 +704,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ## 8. d2l / TorchOps（10 个节点）
 
-### Linear Regression
+### Linear Regression（Linear Regression（线性回归））
 - **类名**：`CdlLinReg`
 - **d2lcore 函数**：`linreg(X, w, b)`
 - **功能**：线性回归前向计算：\( \hat{y} = X w + b \)
@@ -719,7 +719,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `y_hat` | `TENSOR` | 预测值 |
 
-### Squared Loss
+### Squared Loss（Squared Loss（平方损失））
 - **类名**：`CdlSquaredLoss`
 - **d2lcore 函数**：`squared_loss(y_hat, y)`
 - **功能**：计算平方损失：\( \frac{1}{2}(\hat{y} - y)^2 \)（注意：不做平均）。
@@ -733,7 +733,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `loss` | `TENSOR` | 逐元素损失 |
 
-### Masked Softmax
+### Masked Softmax（Masked Softmax（掩码 softmax））
 - **类名**：`CdlMaskedSoftmax`
 - **d2lcore 函数**：`masked_softmax(X, valid_lens)`
 - **功能**：在最后一个维度上执行带掩码的 softmax。使用 `valid_lens` 指定每条序列的有效长度；超出有效长度的位置在 softmax 前被设为一个极大的负值（使概率趋近于 0）。
@@ -747,7 +747,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `output` | `TENSOR` | 掩码 softmax 结果 |
 
-### Sequence Mask
+### Sequence Mask（Sequence Mask（序列掩码））
 - **类名**：`CdlSequenceMask`
 - **d2lcore 函数**：`sequence_mask(X, valid_len, value)`
 - **功能**：将序列中超出有效长度的位置替换为指定值。常用于将填充位置置零。
@@ -762,7 +762,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `masked` | `TENSOR` | 掩码后的张量 |
 
-### Accuracy
+### Accuracy（Accuracy（准确率））
 - **类名**：`CdlAccuracy`
 - **d2lcore 函数**：`accuracy(y_hat, y)`
 - **功能**：计算分类任务的正确预测数量。若预测为多类别 logits，先取 argmax，再与标签比较。
@@ -777,7 +777,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `accuracy` | `FLOAT` | 正确预测数量（浮点） |
   | `count` | `INT` | 正确预测数量（整数） |
 
-### Synthetic Data
+### Synthetic Data（Synthetic Data（合成数据））
 - **类名**：`CdlSyntheticData`
 - **d2lcore 函数**：`synthetic_data(w, b, num_examples)`
 - **功能**：生成合成的线性回归数据集。随机生成权重和特征，通过 \( y = Xw + b + \text{噪声} \) 生成标签。
@@ -794,7 +794,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `X` | `TENSOR` | 特征矩阵 `[num_examples, num_features]` |
   | `y` | `TENSOR` | 标签向量 `[num_examples, 1]` |
 
-### Truncate/Pad
+### Truncate/Pad（Truncate / Pad（截断与填充））
 - **类名**：`CdlTruncatePad`
 - **d2lcore 函数**：`truncate_pad(line, num_steps, padding_token)`
 - **功能**：将序列截断或填充到固定长度。超长的序列被截断；不足的序列用 `padding_token` 填充。
@@ -809,7 +809,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `padded` | `TENSOR` | 截断/填充后的序列（`torch.int64`） |
 
-### BLEU Score
+### BLEU Score（BLEU（BLEU 得分））
 - **类名**：`CdlBleu`
 - **d2lcore 函数**：`bleu(pred_seq, label_seq, k)`
 - **功能**：计算预测序列与参考序列之间的 BLEU 分数。支持 BLEU-1 到 BLEU-4（由 `max_n` 控制）。按空白符分词后计算 n-gram 精度和简洁惩罚。
@@ -824,7 +824,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `bleu_score` | `FLOAT` | BLEU 分数（0~1） |
 
-### Gradient Clip
+### Gradient Clip（Gradient Clip（梯度裁剪））
 - **类名**：`CdlGradClipping`
 - **d2lcore 函数**：`grad_clipping(net, theta)`
 - **功能**：对模型参数执行梯度裁剪。**前提条件**：必须先通过 `loss.backward()` 计算梯度。计算所有参数梯度的 L2 范数；若超过阈值 `theta`，则按比例缩放。
@@ -838,7 +838,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `norm` | `FLOAT` | 裁剪前的梯度总范数；若无模型则返回 0.0 |
 
-### SGD Step
+### SGD Step（SGD Step（SGD 单步））
 - **类名**：`CdlSgdStep`
 - **d2lcore 函数**：`sgd(params, lr, batch_size)`
 - **功能**：执行一步小批量随机梯度下降：\( \theta \leftarrow \theta - \eta \cdot g / \text{batch\_size} \)。**前提条件**：必须先通过 `loss.backward()` 计算梯度。梯度在更新后被清零。
@@ -857,7 +857,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ## 9. d2l / ObjectDetection（10 个节点）
 
-### Box Corner→Center
+### Box Corner→Center（Box Corner→Center（角点→中心））
 - **类名**：`CdlBoxCornerToCenter`
 - **d2lcore 函数**：`box_corner_to_center(boxes)`
 - **功能**：将边界框从角点格式 `(x1, y1, x2, y2)` 转换为中心格式 `(cx, cy, w, h)`。
@@ -870,7 +870,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `boxes_ccwh` | `TENSOR` | 中心格式边界框 `[N,4]`（中心 + 宽 + 高） |
 
-### Box Center→Corner
+### Box Center→Corner（Box Center→Corner（中心→角点））
 - **类名**：`CdlBoxCenterToCorner`
 - **d2lcore 函数**：`box_center_to_corner(boxes)`
 - **功能**：将边界框从中心格式 `(cx, cy, w, h)` 转回角点格式 `(x1, y1, x2, y2)`。
@@ -883,7 +883,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `boxes_xyxy` | `TENSOR` | 角点格式边界框 `[N,4]`（左上角 + 右下角） |
 
-### Box IoU
+### Box IoU（Box IoU（交并比））
 - **类名**：`CdlBoxIou`
 - **d2lcore 函数**：`box_iou(boxes1, boxes2)`
 - **功能**：计算两组边界框之间的逐对 IoU（交并比）。返回矩阵 `[N1, N2]`，其中元素 `(i,j)` 为 `boxes1[i]` 与 `boxes2[j]` 的 IoU。
@@ -897,7 +897,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `iou` | `TENSOR` | IoU 矩阵 `[N1, N2]` |
 
-### NMS
+### NMS（NMS（非极大值抑制））
 - **类名**：`CdlNms`
 - **d2lcore 函数**：`nms(boxes, scores, iou_threshold)`
 - **功能**：对边界框执行非极大值抑制（Non-Maximum Suppression）。按分数降序排列，保留与任何更高分框的 IoU 不超过阈值的框。
@@ -912,7 +912,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `keep_indices` | `TENSOR` | 被保留框的索引（`torch.int64`） |
 
-### Multibox Prior
+### Multibox Prior（Multibox Prior（多框先验））
 - **类名**：`CdlMultiboxPrior`
 - **d2lcore 函数**：`multibox_prior(data, sizes, ratios)`
 - **功能**：在每个像素点生成不同形状的锚框。每个像素的锚框数 = `len(sizes) + len(ratios) - 1`。
@@ -927,7 +927,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `anchors` | `TENSOR` | 锚框 `[1, H*W*bpp, 4]`，归一化坐标（左上角 + 右下角） |
 
-### Offset Boxes
+### Offset Boxes（Offset Boxes（偏移框））
 - **类名**：`CdlOffsetBoxes`
 - **d2lcore 函数**：`offset_boxes(anchors, assigned_bb, eps)`
 - **功能**：计算从锚框到分配的真实框的偏移量。中心坐标差缩放 10 倍；宽高比取对数后缩放 5 倍。
@@ -942,7 +942,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `offsets` | `TENSOR` | 偏移量 `[N,4]`（dx, dy, dw, dh） |
 
-### Offset Inverse
+### Offset Inverse（Offset Inverse（逆偏移））
 - **类名**：`CdlOffsetInverse`
 - **d2lcore 函数**：`offset_inverse(anchors, offset_preds)`
 - **功能**：通过逆变换根据锚框和预测偏移量重建角点格式的边界框坐标。
@@ -956,7 +956,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `predicted_bbox` | `TENSOR` | 预测框 `[N,4]`（左上角 + 右下角） |
 
-### Assign Anchor→BBox
+### Assign Anchor→BBox（Assign Anchor→BBox（锚框指派））
 - **类名**：`CdlAssignAnchorToBbox`
 - **d2lcore 函数**：`assign_anchor_to_bbox(ground_truth, anchors, device, iou_threshold)`
 - **功能**：基于 IoU 将真实边界框分配给锚框。每个锚框被分配给一个 IoU ≥ 阈值的真实框，且每个真实框至少保证有一个锚框与之匹配（取 IoU 最大者）。
@@ -971,7 +971,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `anchors_bbox_map` | `TENSOR` | 锚框→真实框映射 `[N,]`，-1 表示无匹配（`torch.int64`） |
 
-### Multibox Target
+### Multibox Target（Multibox Target（多框目标））
 - **类名**：`CdlMultiboxTarget`
 - **d2lcore 函数**：`multibox_target(anchors, labels)`
 - **功能**：为锚框生成多框目标训练标签。对批次中每张图像，将真实框分配给锚框并计算偏移目标、掩码和类别标签。
@@ -987,7 +987,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `bbox_mask` | `TENSOR` | 边界框偏移掩码 `[B, N*4]`（匹配锚框为 1.0） |
   | `class_labels` | `TENSOR` | 锚框类别标签 `[B, N]`（背景=0，类别从 1 开始） |
 
-### Multibox Detection
+### Multibox Detection（Multibox Detection（多框检测））
 - **类名**：`CdlMultiboxDetection`
 - **d2lcore 函数**：`multibox_detection(cls_probs, offset_preds, anchors, nms_threshold, pos_threshold)`
 - **功能**：使用 NMS 从模型输出中预测边界框。结合类别预测和偏移量，通过逆偏移变换重建框，并通过 NMS 和置信度阈值过滤。
@@ -1008,7 +1008,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ## 10. d2l / Segmentation（4 个节点）
 
-### VOC Classes
+### VOC Classes（VOC Classes（VOC 类别表））
 - **类名**：`CdlVocClasses`
 - **d2lcore 函数**：`VOC_CLASSES` 常量
 - **功能**：获取 PASCAL VOC 21 个类别名称。单个索引查询返回该类名；索引 `-1` 返回所有 21 个类别的逗号分隔列表。
@@ -1023,7 +1023,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 21 个类别：`background, aeroplane, bicycle, bird, boat, bottle, bus, car, cat, chair, cow, diningtable, dog, horse, motorbike, person, potted plant, sheep, sofa, train, tv/monitor`
 
-### VOC Colormap→Label
+### VOC Colormap→Label（VOC Colormap→Label（调色板转标签））
 - **类名**：`CdlVocColormap2Label`
 - **d2lcore 函数**：`voc_colormap2label()`
 - **功能**：构建 VOC RGB 颜色 → 类别索引查找表。输出为 \( 256^3 \) 大小的张量；通过颜色编码（R×65536 + G×256 + B）查找类别索引。
@@ -1033,7 +1033,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `colormap2label` | `TENSOR` | 颜色→类别索引查找表 `[16777216]`（`torch.int64`） |
 
-### VOC Label Indices
+### VOC Label Indices（VOC Label Indices（VOC 标签索引））
 - **类名**：`CdlVocLabelIndices`
 - **d2lcore 函数**：`voc_label_indices(colormap, colormap2label)`
 - **功能**：将 VOC 标签彩色图像映射为类别索引图。将 RGB 像素编码为单一颜色值，再通过查找表转换为类别索引。
@@ -1047,7 +1047,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `label_mask` | `MASK` | 类别索引图 `[H, W]`（浮点类型） |
 
-### VOC Random Crop
+### VOC Random Crop（VOC Random Crop（VOC 随机裁剪））
 - **类名**：`CdlVocRandCrop`
 - **d2lcore 函数**：`voc_rand_crop(feature, label, height, width)`
 - **功能**：对特征图像和标签图像执行同步随机裁剪。使用相同的随机裁剪参数以保持特征与标签对齐。若请求尺寸超过图像尺寸则回退为中心裁剪。
@@ -1071,7 +1071,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 可视化节点采用"双变体"设计模式：带 `(Output)` 后缀的版本是 ComfyUI 输出节点（直接在界面中显示交互式图表），不带后缀的版本将图表渲染为 `IMAGE` 张量，供下游节点使用。
 
-### Show Images
+### Show Images（Show Images（显示图像））
 - **类名**：`CdlShowImages`
 - **d2lcore 函数**：同上
 - **功能**：与 `Show Images (Output)` 相同，但将图表渲染为 IMAGE 张量，可传递给下游节点。
@@ -1081,7 +1081,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 渲染后的网格图像 `[1, H, W, C]` |
 
-### Show Heatmaps (Output)
+### Show Heatmaps (Output)（Show Heatmaps (Output)（显示热图·输出））
 - **类名**：`CdlShowHeatmapsOutput`
 - **d2lcore 函数**：`show_heatmaps(matrices, xlabel, ylabel, titles, figsize, cmap)`
 - **功能**：显示单张热力图并附颜色条。先把张量抽样到元素预算以内，再保留 `dims` 指定的轴（或由 `auto_select` 自动挑选）、其余轴按 `axis_reduce` 归约；最终保留的 1/2/3 个轴决定画什么：条码状色带（1D）、常规平面（2D）或半透明立方体（3D）。输出节点变体。
@@ -1104,7 +1104,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 - **输出**：无（输出节点）
 - **行为变更**：旧的"多子图阵列"布局已取消 —— 一张图只画一张热力图。2D 输入在 `max_samples=0` + `dims=auto` 下仍与旧版逐像素一致。
 
-### Show Heatmaps
+### Show Heatmaps（Show Heatmaps（显示热图））
 - **类名**：`CdlShowHeatmaps`
 - **d2lcore 函数**：同上
 - **功能**：与 `Show Heatmaps (Output)` 相同，但将图表渲染为 IMAGE 张量。
@@ -1114,7 +1114,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 渲染后的热力图 `[1, H, W, C]` |
 
-### Heatmaps to 3D
+### Heatmaps to 3D（Heatmaps to 3D（热图转 3D））
 - **类名**：`CdlHeatmapsTo3D`
 - **d2lcore 函数**：`show_heatmaps(matrices, ...)`（复用同一前端），但把结果画成几何体而非像素
 - **功能**：把抽样/降维后的热力数据导出为真正的 3D 模型。1D → 有厚度的平放条码色带；2D → 同样厚度的彩色平板；3D → 半透明立方体（六个外表面 + 三个正交中截面，内部仍然可读）。颜色量化为 64 个 OBJ 材质，透明度写在 MTL 里，因此立方体保持半透明。把 `model_3d` 连到内置 **Preview3D** 节点即可查看。
@@ -1137,7 +1137,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `model_3d` | `FILE_3D_OBJ` | OBJ 网格 + 同名 MTL；连到 `Preview3D` 查看 |
 
-### Plot
+### Plot（Plot（曲线图））
 - **类名**：`CdlPlot`
 - **d2lcore 函数**：`plot(X, Y, xlabel, ylabel, legend, xlim, ylim, xscale, yscale, fmts, figsize, axes)`
 - **功能**：通用 MATLAB 风格折线图。支持多条曲线、自定义轴标签、对数/线性刻度、图例和轴范围。
@@ -1162,7 +1162,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 渲染后的图表 `[1, H, W, C]` |
 
-### Show Trace 2D
+### Show Trace 2D（Show Trace 2D（2D 轨迹图））
 - **类名**：`CdlShowTrace2D`
 - **d2lcore 函数**：`show_trace_2d(f, results)`
 - **功能**：可视化二维优化轨迹。绘制一系列点，展示参数 (x1, x2) 在优化过程中的变化。
@@ -1175,7 +1175,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 渲染后的轨迹图 `[1, H, W, C]` |
 
-### Show BBoxes
+### Show BBoxes（Show BBoxes（画边界框））
 - **类名**：`CdlShowBboxes`
 - **d2lcore 函数**：`show_bboxes(axes, bboxes, labels, colors)`
 - **功能**：在图像上绘制边界框。支持自定义标签和颜色；最多渲染 200 个框。坐标必须归一化到 [0,1] 范围。
@@ -1191,7 +1191,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 绘制了边界框的图像 `[1, H, W, C]` |
 
-### Histogram
+### Histogram（Histogram（直方图））
 - **类名**：`CdlHistogram`
 - **功能**：绘制张量值分布的直方图，支持可调的 bins 数量、密度归一化和颜色。封装 ``matplotlib.pyplot.hist``。
 - **输入**：
@@ -1210,7 +1210,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 直方图 `[1, H, W, C]` |
 
-### Bar Chart
+### Bar Chart（Bar Chart（柱状图））
 - **类名**：`CdlBarChart`
 - **功能**：绘制垂直或水平柱状图，可选数值标注。封装 ``matplotlib.pyplot.bar`` / ``barh``。
 - **输入**：
@@ -1230,7 +1230,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 柱状图 `[1, H, W, C]` |
 
-### Scatter
+### Scatter（Scatter（散点图））
 - **类名**：`CdlScatter`
 - **功能**：绘制二维散点图，可选点颜色和尺寸编码第三维。封装 ``matplotlib.pyplot.scatter``。
 - **输入**：
@@ -1251,7 +1251,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 散点图 `[1, H, W, C]` |
 
-### Confusion Matrix
+### Confusion Matrix（Confusion Matrix（混淆矩阵））
 - **类名**：`CdlConfusionMatrix`
 - **功能**：将混淆矩阵渲染为热力图，并在每个格子中标注数值。支持行归一化和自定义数字格式。
 - **输入**：
@@ -1269,7 +1269,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 混淆矩阵热力图 `[1, H, W, C]` |
 
-### Pie Chart
+### Pie Chart（Pie Chart（饼图））
 - **类名**：`CdlPieChart`
 - **功能**：绘制饼图（普通或甜甜圈样式）并标注百分比。封装 ``matplotlib.pyplot.pie``。
 - **输入**：
@@ -1288,7 +1288,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 饼图（或甜甜圈图）`[1, H, W, C]` |
 
-### Area Chart
+### Area Chart（Area Chart（面积图））
 - **类名**：`CdlAreaChart`
 - **功能**：绘制填充面积图 —— 单序列使用 ``fill_between``，多序列堆叠使用 ``stackplot``。
 - **输入**：
@@ -1424,7 +1424,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `dataset` | `DATASET` | 特征名 `x0..x{k-1}`、目标 `y`、来源元数据 |
 - **报错**：公式为空/非法/越白名单、采样窗口倒置、标签出现非有限值时抛出可读 `ValueError`。
 
-### Load Array → DataLoader
+### Load Array → DataLoader（Load Array → DataLoader（数组转加载器））
 - **类名**：`CdlLoadArray`
 - **d2lcore 函数**：`load_array(data_arrays, batch_size, is_train)`
 - **功能**：将一个或多个张量封装为 PyTorch DataLoader。将 `TENSOR` 特征和/或标签连接到可选输入槽；节点输出 `cdlDataloader`。
@@ -1440,7 +1440,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `dataloader` | `cdlDataloader` | 包装了张量的 PyTorch DataLoader |
 
-### DataLoader Info
+### DataLoader Info（DataLoader Info（加载器信息））
 - **类名**：`CdlDataLoaderInfo`
 - **功能**：查看 `cdlDataloader` 的属性：批次数、批大小和数据集总大小。
 - **输入**：
@@ -1454,7 +1454,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `batch_size` | `INT` | 每批样本数 |
   | `dataset_size` | `INT` | 样本总数 |
 
-### Download
+### Download（Download（数据集下载））
 - **类名**：`CdlDownload`
 - **d2lcore 函数**：`download(url, folder, sha1_hash)`
 - **功能**：从 URL 下载文件，支持基于 SHA1 的缓存检查。若本地文件存在且 SHA1 匹配，则跳过下载。
@@ -1469,7 +1469,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `file_path` | `STRING` | 下载/缓存文件的本地路径 |
 
-### Download + Extract
+### Download + Extract（Download + Extract（下载并解压））
 - **类名**：`CdlDownloadExtract`
 - **d2lcore 函数**：`download_extract(name, folder)`
 - **功能**：下载并解压 d2l DATA_HUB 中注册的数据集。从下拉菜单中选择预注册的数据集（banana-detection、voc2012、cifar10_tiny 等）。
@@ -1483,7 +1483,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `extract_dir` | `STRING` | 解压后的数据集目录路径 |
 
-### Fashion-MNIST
+### Fashion-MNIST（Fashion-MNIST（时装数据集））
 - **类名**：`CdlFashionMNIST`
 - **d2lcore 函数**：`load_data_fashion_mnist(batch_size, resize)`
 - **功能**：加载 Fashion-MNIST 图像分类数据集（训练集 6 万张 / 测试集 1 万张，10 个类别）。首次使用时自动下载（约 30 MB）。
@@ -1501,7 +1501,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 10 个类别：t-shirt, trouser, pullover, dress, coat, sandal, shirt, sneaker, bag, ankle boot
 
-### Bananas Detection
+### Bananas Detection（Bananas Detection（香蕉检测数据集））
 - **类名**：`CdlBananasDetection`
 - **d2lcore 函数**：`load_data_bananas(batch_size)`
 - **功能**：加载用于目标检测的香蕉检测数据集。包含带边界框标注的香蕉图像。首次使用时自动下载。
@@ -1515,7 +1515,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `train_loader` | `cdlDataloader` | 训练 DataLoader |
   | `val_loader` | `cdlDataloader` | 验证 DataLoader |
 
-### VOC Segmentation
+### VOC Segmentation（VOC Segmentation（VOC 分割数据集））
 - **类名**：`CdlVOCSegmentation`
 - **d2lcore 函数**：`load_data_voc(batch_size, crop_size)`
 - **功能**：加载 PASCAL VOC2012 语义分割数据集（21 个类别）。首次使用时自动下载和解压（约 2 GB）。
@@ -1531,7 +1531,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | `train_loader` | `cdlDataloader` | 训练 DataLoader |
   | `test_loader` | `cdlDataloader` | 测试 DataLoader |
 
-### DataLoader Preview
+### DataLoader Preview（DataLoader Preview（加载器预览））
 - **类名**：`CdlDataLoaderPreview`
 - **功能**：从 `cdlDataloader` 中取一批样本，渲染为图像网格（IMAGE 输出）。自动适配不同数据格式：图像分类显示带标签的图像；目标检测显示带边界框的图像。
 - **输入**：
@@ -1546,7 +1546,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 渲染后的网格图像 `[1, H, W, C]` |
 
-### DataLoader Preview (Output)
+### DataLoader Preview (Output)（DataLoader Preview (Output)（加载器预览·输出））
 - **类名**：`CdlDataLoaderPreviewOutput`
 - **功能**：与 `CdlDataLoaderPreview` 相同，但注册为 OUTPUT_NODE，渲染后的图像网格直接在 UI 中显示。
 - **输入**：与 `CdlDataLoaderPreview` 相同
@@ -1555,7 +1555,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `image` | `IMAGE` | 渲染后的网格图像 `[1, H, W, C]` |
 
-### Dataset Stats
+### Dataset Stats（Dataset Stats（数据集统计））
 - **类名**：`CdlDataLoaderStats`
 - **功能**：遍历 `cdlDataloader`，统计标签分布。自动识别标签类型：整数且落在 `[0, num_classes)` 内的离散类别标签渲染为分类柱状图；连续数值标签（如回归目标，含 `(n,1)` 二维标签）自动按 `num_classes` 个区间分桶为直方图。
 - **输入**：
@@ -2125,7 +2125,7 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
 检查——而 `MatchType` 槽在后端完全拿不到校验。无法塞进裸张量的元数据（`noise_mask`、`batch_index`、
 `type`、`sampler_rate`）走平行插槽传递。
 
-### Value → Tensor
+### Value → Tensor（Value → Tensor（数值转张量））
 - **类名**：`CdlValueToTensor`
 - **功能**：把任意受支持的 Comfy 值拆包成通用 `TENSOR`。IMAGE / MASK / SIGMAS 原样透传；LATENT 取 `samples`；AUDIO 取 `waveform`。无法放进裸张量的元数据从平行插槽输出。
 - **输入**：
@@ -2142,7 +2142,7 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
   | `latent_type` | `STRING` | LATENT 的 `type`（`"audio"` / `"hunyuan3dv2"`）；空串表示非特殊类型 |
   | `sampler_rate` | `INT` | AUDIO 采样率；非音频值为 `0` |
 
-### Tensor → Value
+### Tensor → Value（Tensor → Value（张量转数值））
 - **类名**：`CdlTensorToValue`
 - **功能**：把通用 `TENSOR` 暴露到每种类型一个的具体输出槽上。连你需要的那根线即可；未使用的槽返回 `None` 且不产生开销。从 `Value → Tensor` 接回的元数据会被折回重建的 LATENT / AUDIO 字典。
 - **输入**：
@@ -2171,7 +2171,7 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
 元数据输出；每个解包节点据此切回。同一次打包中的所有张量必须 dtype 一致：混合 dtype 会抛出可读的
 `ValueError`，而不是静默提升类型（那会让往返变得有损）。
 
-### LoRA Model → Tensor
+### LoRA Model → Tensor（LoRA Model → Tensor（LoRA 转张量））
 - **类名**：`CdlLoraModelToTensor`
 - **功能**：把 `LORA_MODEL`（`dict[str, torch.Tensor]`）打包成一个 1 维 `TENSOR` 加 key/shape/dtype 元数据。
 - **输入**：
@@ -2186,7 +2186,7 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
   | `shapes` | `ARRAY` | 每个张量一个 `"3,4"` 风格形状字符串；`""` 表示 0 维标量 |
   | `dtypes` | `ARRAY` | 每个张量一个 `"torch.float32"` 风格 dtype 字符串 |
 
-### Tensor → LoRA Model
+### Tensor → LoRA Model（Tensor → LoRA Model（张量转 LoRA））
 - **类名**：`CdlTensorToLoraModel`
 - **功能**：`LoRA Model → Tensor` 的精确逆操作；按 `shapes` 切分扁平张量，把每段转回记录的 dtype 并重建字典。
 - **输入**：
@@ -2201,7 +2201,7 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
   |------|------|------|
   | `LORA_MODEL` | `LORA_MODEL` | 还原后的映射 |
 
-### Loss Map → Tensor
+### Loss Map → Tensor（Loss Map → Tensor（损失图转张量））
 - **类名**：`CdlLossMapToTensor`
 - **功能**：把 `LOSS_MAP`（`{"loss": [Tensor, ...]}`）打包成一个 1 维 `TENSOR` 加 shape/dtype 元数据。
 - **输入**：
@@ -2215,7 +2215,7 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
   | `shapes` | `ARRAY` | 每个张量一个 `"3,4"` 风格形状字符串 |
   | `dtypes` | `ARRAY` | 每个张量一个 `"torch.float32"` 风格 dtype 字符串 |
 
-### Tensor → Loss Map
+### Tensor → Loss Map（Tensor → Loss Map（张量转损失图））
 - **类名**：`CdlTensorToLossMap`
 - **功能**：`Loss Map → Tensor` 的精确逆操作；重建 `{"loss": [Tensor, ...]}`。
 - **输入**：
