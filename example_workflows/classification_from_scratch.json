@@ -1,0 +1,494 @@
+{
+  "version": 0.4,
+  "last_node_id": 9,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        1680,
+        150
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# Softmax Regression, From Scratch\n\nThe classification counterpart of *Linear Regression, From Scratch*: zero-initialised `W` / `b`, a **hand-written softmax cross-entropy** (shift by the row max, exponentiate, normalise, negative-log the true class) and plain full-batch gradient descent. The problem is convex and the recipe is deterministic — the loss curve collapses from `ln(k)` toward zero. Predictions flow into the **Confusion Matrix (Eval)** node, and the rendered matrix below shows exactly which classes get confused. All data is generated in-graph: press **Queue** and watch."
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CdlClassificationDataGen",
+      "pos": [
+        40,
+        280
+      ],
+      "size": [
+        340,
+        320
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "links": [
+            2,
+            4
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "dataset",
+          "type": "DATASET",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlClassificationDataGen"
+      },
+      "widgets_values": [
+        "blobs",
+        200,
+        3,
+        0.2,
+        0,
+        "fixed"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CdlSoftmaxTrain",
+      "pos": [
+        520,
+        280
+      ],
+      "size": [
+        420,
+        340
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "link": 1
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "W",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "b",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "logits",
+          "type": "TENSOR",
+          "links": [
+            3
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "probabilities",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 3
+        },
+        {
+          "name": "loss_history",
+          "type": "TENSOR",
+          "links": [
+            5
+          ],
+          "slot_index": 4
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlSoftmaxTrain"
+      },
+      "widgets_values": [
+        300,
+        0.1
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CdlConfusionMatrixEval",
+      "pos": [
+        1080,
+        280
+      ],
+      "size": [
+        360,
+        240
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "y_true",
+          "type": "TENSOR",
+          "link": 4
+        },
+        {
+          "name": "y_pred",
+          "type": "TENSOR",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "matrix",
+          "type": "TENSOR",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "normalized",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "accuracy",
+          "type": "FLOAT",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlConfusionMatrixEval"
+      },
+      "widgets_values": [
+        0
+      ]
+    },
+    {
+      "id": 5,
+      "type": "CdlConfusionMatrix",
+      "pos": [
+        1080,
+        580
+      ],
+      "size": [
+        360,
+        300
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "matrix",
+          "type": "TENSOR",
+          "link": 6
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            7
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlConfusionMatrix"
+      },
+      "widgets_values": [
+        "class 0,class 1,class 2",
+        "Blues",
+        false,
+        ".0f",
+        6.0,
+        5.0
+      ]
+    },
+    {
+      "id": 6,
+      "type": "CdlPlot",
+      "pos": [
+        520,
+        760
+      ],
+      "size": [
+        440,
+        400
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "link": 5
+        },
+        {
+          "name": "Y",
+          "type": "TENSOR",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            8
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlPlot"
+      },
+      "widgets_values": [
+        "step",
+        "training loss",
+        "linear",
+        "linear",
+        6.0,
+        4.0,
+        "",
+        -1.0,
+        -1.0,
+        -1.0,
+        -1.0
+      ]
+    },
+    {
+      "id": 7,
+      "type": "PreviewImage",
+      "pos": [
+        40,
+        760
+      ],
+      "size": [
+        420,
+        360
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 8
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 8,
+      "type": "PreviewImage",
+      "pos": [
+        1480,
+        580
+      ],
+      "size": [
+        380,
+        320
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 7
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "MarkdownNote",
+      "pos": [
+        1480,
+        280
+      ],
+      "size": [
+        380,
+        260
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## Read the matrix\n\nRows are the **true** class, columns the **predicted** one — the diagonal holds the per-class correct counts, and every precision / recall / F1 can be read straight off it. The `Confusion Matrix (Eval)` node auto-`argmax`es the logits, so it also accepts the `probabilities` output.\n\n### Try harder shapes\n\nSwitch the generator to `moons` or `circles`: softmax regression is a **linear** model and plateaus — the visual proof of why hidden layers exist. `CdlClassificationTrain` (the one-box MLP trainer) handles those."
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      3,
+      0,
+      "TENSOR"
+    ],
+    [
+      2,
+      2,
+      1,
+      3,
+      1,
+      "TENSOR"
+    ],
+    [
+      3,
+      3,
+      2,
+      4,
+      1,
+      "TENSOR"
+    ],
+    [
+      4,
+      2,
+      1,
+      4,
+      0,
+      "TENSOR"
+    ],
+    [
+      5,
+      3,
+      4,
+      6,
+      0,
+      "TENSOR"
+    ],
+    [
+      6,
+      4,
+      0,
+      5,
+      0,
+      "TENSOR"
+    ],
+    [
+      7,
+      5,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      8,
+      6,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "1 · Generate data (in-graph)",
+      "bounding": [
+        20,
+        210,
+        400,
+        440
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "2 · Softmax regression (full-batch GD)",
+      "bounding": [
+        500,
+        210,
+        480,
+        460
+      ],
+      "color": "#b58b2a",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "3 · Evaluate (confusion matrix)",
+      "bounding": [
+        1060,
+        210,
+        820,
+        700
+      ],
+      "color": "#2a363b",
+      "font_size": 24,
+      "locked": false
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "0.3.1"
+    }
+  }
+}

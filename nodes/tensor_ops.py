@@ -196,6 +196,98 @@ NODE_CLASS_MAPPINGS["CdlAccuracy"] = CdlAccuracy
 NODE_DISPLAY_NAME_MAPPINGS["CdlAccuracy"] = "Accuracy"
 
 
+class CdlConfusionMatrixEval:
+    """Build the confusion matrix of a classifier — rows are truth, columns are predictions.
+
+    What: the classification counterpart of :class:`CdlAccuracy`. ``matrix[i, j]``
+          counts the samples whose true class is ``i`` and predicted class is
+          ``j`` — the diagonal holds the per-class correct counts and every
+          metric (precision / recall / F1) can be read straight off the matrix
+          without extra ports. Also returns the row-normalised matrix (each row
+          sums to 1: the per-class recall breakdown) and the overall accuracy.
+
+    In:
+      ``y_true`` (TENSOR, required): true class indices ``0..k-1`` (``[n]`` or
+      ``[n, 1]``; float labels are rounded).
+      ``y_pred`` (TENSOR, required): predictions — either class indices or a
+      ``[n, k]`` score / probability matrix (auto-``argmax``-ed, the same
+      convention as :class:`CdlAccuracy` — connects straight to
+      ``CdlClassificationTrain``'s ``predictions`` or ``probabilities``).
+      ``num_classes`` (INT widget): the class count; ``0`` = infer as
+      ``max(true, pred) + 1``.
+
+    Out:
+      ``matrix`` ``(k, k)`` float32 raw counts;
+      ``normalized`` ``(k, k)`` float32 row-normalised (rows with no samples
+      stay all-zero);
+      ``accuracy`` overall accuracy (trace / total).
+
+    Errors: raises ``ValueError`` for mismatched sample counts or any index
+    outside ``[0, num_classes)``.
+
+    Visualisation: pair this node with the renderer ``CdlConfusionMatrix``
+    (``d2l/Visualization``) — wire ``matrix`` into its ``matrix`` slot and
+    type your class names (comma-separated, index order) into its
+    ``class_labels`` widget to get an annotated IMAGE.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "y_true": ("TENSOR",),
+                "y_pred": ("TENSOR",),
+                "num_classes": ("INT", {"default": 0, "min": 0, "max": 1024, "step": 1}),
+            }
+        }
+
+    RETURN_TYPES = ("TENSOR", "TENSOR", "FLOAT")
+    RETURN_NAMES = ("matrix", "normalized", "accuracy")
+    FUNCTION = "execute"
+    CATEGORY = "d2l/TorchOps"
+
+    def execute(self, y_true, y_pred, num_classes=0):
+        t = torch.as_tensor(y_true).clone().reshape(-1)
+        if t.is_floating_point():
+            t = torch.round(t)
+        t = t.to(torch.long)
+
+        p = torch.as_tensor(y_pred)
+        if p.dim() > 1 and p.shape[1] > 1:
+            p = p.argmax(dim=1)
+        p = p.clone().reshape(-1)
+        if p.is_floating_point():
+            p = torch.round(p)
+        p = p.to(torch.long)
+
+        if t.shape[0] != p.shape[0]:
+            raise ValueError(
+                f"CdlConfusionMatrixEval: y_true has {t.shape[0]} entries but "
+                f"y_pred has {p.shape[0]}; the counts must match."
+            )
+        if t.numel() == 0:
+            raise ValueError("CdlConfusionMatrixEval: the label vectors are empty.")
+
+        k = int(num_classes) if int(num_classes) > 0 else max(int(t.max()), int(p.max())) + 1
+        if int(t.min()) < 0 or int(p.min()) < 0 or int(t.max()) >= k or int(p.max()) >= k:
+            raise ValueError(
+                f"CdlConfusionMatrixEval: found a class index outside [0, {k}); "
+                "check the labels or raise num_classes."
+            )
+
+        matrix = torch.bincount(t * k + p, minlength=k * k).reshape(k, k).to(torch.float32)
+        row_sums = matrix.sum(dim=1, keepdim=True)
+        normalized = torch.where(
+            row_sums > 0, matrix / row_sums.clamp(min=1.0), torch.zeros_like(matrix)
+        )
+        accuracy = float(matrix.trace() / matrix.sum())
+        return (matrix, normalized, accuracy)
+
+
+NODE_CLASS_MAPPINGS["CdlConfusionMatrixEval"] = CdlConfusionMatrixEval
+NODE_DISPLAY_NAME_MAPPINGS["CdlConfusionMatrixEval"] = "Confusion Matrix (Eval)"
+
+
 class CdlSyntheticData:
     """Generate synthetic linear data: y = Xw + b + noise.
 

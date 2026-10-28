@@ -90,7 +90,7 @@ Its README covers the details: <https://github.com/Cynthia-lxx/ComfyDL_UI#readme
 
 ## Function Overview
 
-The built-in node library ships **226 nodes** across 35 categories — **128 provided by ComfyDL**
+The built-in node library ships **231 nodes** across 35 categories — **133 provided by ComfyDL**
 plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 + `Attention` 8
 + `Normalization` 7
 + `Regularization` 1 + `Training` 23 + `Pooling` 2 + `Convolution` 5 + `Recurrent` 3 + `Text` 4; `model` → `loaders` 7
@@ -99,7 +99,7 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | Category | Count | Description |
 |---|---|---|
 | **CV Models** | 5 | CNN fundamentals & model construction |
-| **Datasets** | 26 | Dataset download, load, preview & stats |
+| **Datasets** | 27 | Dataset download, load, preview & stats, synthetic regression / classification data generators |
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
 | **Model Utils** | 7 | Model info, mode, forward, layers, params, clone & persistence |
@@ -108,8 +108,8 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
 | **Segmentation** | 4 | VOC semantic segmentation tools |
 | **Tensor Basic** | 5 | Tensor I/O, conv, transpose, broadcast, activation |
-| **TorchOps** | 10 | Loss, optimization, metrics |
-| **Training** | 3 | From-scratch linear-regression trainer (mini-batch SGD) |
+| **TorchOps** | 11 | Loss, optimization, metrics & the confusion matrix |
+| **Training** | 6 | From-scratch linear-regression & softmax-regression trainers + one-box production regression / classification trainers |
 | **Visualization** | 13 | Plots, charts & bounding box visualization |
 | **d2l/_Legacy/Model Utils** | 1 | Deprecated (soft-archived): Model Mode; use the core Training Mode |
 | **d2l/_Legacy/NLP Models** | 7 | Deprecated (soft-archived): Multi-Head Attention, Add & Norm, Transformer Encoder Block/Encoder; use the core Attention/Recurrent nodes |

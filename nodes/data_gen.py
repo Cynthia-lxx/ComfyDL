@@ -389,3 +389,139 @@ class CdlFormulaDataGen:
 
 NODE_CLASS_MAPPINGS["CdlFormulaDataGen"] = CdlFormulaDataGen
 NODE_DISPLAY_NAME_MAPPINGS["CdlFormulaDataGen"] = "Formula Data Generator"
+
+
+# ---------------------------------------------------------------------- #
+# Classification data generator (blobs / moons / circles)
+# ---------------------------------------------------------------------- #
+
+def _gen_blobs(n_classes: int, n_per_class: int, noise: float, generator: torch.Generator):
+    """``k`` well-separated gaussian clusters on a circle of radius 3."""
+    angles = torch.arange(n_classes, dtype=torch.float64) * (2.0 * math.pi / n_classes)
+    centers = torch.stack([3.0 * torch.cos(angles), 3.0 * torch.sin(angles)], dim=1)
+    parts_X, parts_y = [], []
+    for k in range(n_classes):
+        pts = centers[k] + noise * torch.randn((n_per_class, 2), generator=generator, dtype=torch.float64)
+        parts_X.append(pts)
+        parts_y.append(torch.full((n_per_class,), k, dtype=torch.long))
+    return torch.cat(parts_X), torch.cat(parts_y)
+
+
+def _gen_moons(n_per_class: int, noise: float, generator: torch.Generator):
+    """Two interleaving half-circles (the classic ``make_moons`` shape)."""
+    t = torch.rand((n_per_class, 1), generator=generator, dtype=torch.float64) * math.pi
+    outer = torch.cat([torch.cos(t), torch.sin(t)], dim=1)
+    inner = torch.cat([1.0 - torch.cos(t), 0.5 - torch.sin(t)], dim=1)
+    X = torch.cat([outer, inner]) + noise * torch.randn((2 * n_per_class, 2), generator=generator, dtype=torch.float64)
+    y = torch.cat([torch.zeros(n_per_class, dtype=torch.long),
+                   torch.ones(n_per_class, dtype=torch.long)])
+    return X, y
+
+
+def _gen_circles(n_classes: int, n_per_class: int, noise: float, generator: torch.Generator):
+    """``k`` concentric rings with evenly spaced radii (0.5, 1.0, ...)."""
+    parts_X, parts_y = [], []
+    for k in range(n_classes):
+        radius = 0.5 + 0.5 * k
+        angle = torch.rand((n_per_class, 1), generator=generator, dtype=torch.float64) * 2.0 * math.pi
+        ring = radius * torch.cat([torch.cos(angle), torch.sin(angle)], dim=1)
+        ring = ring + noise * torch.randn((n_per_class, 2), generator=generator, dtype=torch.float64)
+        parts_X.append(ring)
+        parts_y.append(torch.full((n_per_class,), k, dtype=torch.long))
+    return torch.cat(parts_X), torch.cat(parts_y)
+
+
+class CdlClassificationDataGen:
+    """Generate a synthetic 2-D classification dataset — no files, just widgets.
+
+    What: the classification counterpart of :class:`CdlFormulaDataGen`. Three
+          built-in shapes, all 2-D (so they plot straight into the heatmap /
+          scatter nodes) and all generated with a local ``torch.Generator`` so
+          the result is fully deterministic per seed:
+
+          * ``blobs``   — ``n_classes`` well-separated gaussian clusters on a
+            circle of radius 3 (linearly separable when ``noise`` is small);
+          * ``moons``   — two interleaving half-circles (always 2 classes,
+            ``n_classes`` is ignored; NOT linearly separable);
+          * ``circles`` — ``n_classes`` concentric rings with evenly spaced
+            radii 0.5, 1.0, ... (NOT linearly separable for k >= 2).
+
+    In:
+      Widgets: ``mode`` (blobs/moons/circles), ``n_per_class`` (samples per
+      class), ``n_classes`` (2 ~ 8, ignored by ``moons``), ``noise`` (gaussian
+      perturbation scale added to the point coordinates), ``seed``.
+
+    Out:
+      ``X`` ``(n, 2)`` float32 features (``n = n_per_class * n_classes``);
+      ``y`` ``(n,)`` long class indices (0..k-1); ``dataset`` DATASET whose
+      labels are the same indices stored as float (the universal DATASET
+      contract) — plugs straight into ``CdlClassificationTrain`` /
+      ``CdlSoftmaxTrain`` / ``CdlDatasetPreview``.
+
+    Errors: raises ``ValueError`` for ``n_classes < 2`` (blobs/circles),
+    ``n_per_class < 1`` or a negative ``noise``.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "mode": (["blobs", "moons", "circles"], {"default": "blobs"}),
+                "n_per_class": ("INT", {"default": 200, "min": 1, "max": 100000, "step": 10}),
+                "n_classes": ("INT", {"default": 3, "min": 2, "max": 8, "step": 1}),
+                "noise": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 10.0, "step": 0.01}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 99999, "step": 1}),
+            },
+        }
+
+    RETURN_TYPES = ("TENSOR", "TENSOR", "DATASET")
+    RETURN_NAMES = ("X", "y", "dataset")
+    FUNCTION = "execute"
+    CATEGORY = "d2l/Datasets"
+
+    def execute(self, mode="blobs", n_per_class=200, n_classes=3, noise=0.1, seed=0):
+        k = int(n_classes)
+        npc = int(n_per_class)
+        noise = float(noise)
+        if noise < 0.0:
+            raise ValueError(
+                f"CdlClassificationDataGen: noise ({noise}) must be >= 0."
+            )
+        if npc < 1:
+            raise ValueError(
+                f"CdlClassificationDataGen: n_per_class ({npc}) must be >= 1."
+            )
+        if mode != "moons" and k < 2:
+            raise ValueError(
+                f"CdlClassificationDataGen: n_classes ({k}) must be >= 2 "
+                "for blobs/circles (use 'moons' for the fixed 2-class shape)."
+            )
+
+        generator = torch.Generator().manual_seed(int(seed))
+        if mode == "moons":
+            X64, y = _gen_moons(npc, noise, generator)
+        elif mode == "circles":
+            X64, y = _gen_circles(k, npc, noise, generator)
+        else:
+            X64, y = _gen_blobs(k, npc, noise, generator)
+
+        X = X64.to(torch.float32)
+        n = int(X.shape[0])
+        dataset = CdlDataset.from_tensors(
+            X,
+            y.to(torch.float32),
+            feature_names=["x0", "x1"],
+            target_name="label",
+            meta={
+                "source": "classification",
+                "mode": mode,
+                "n_classes": int(y.max().item()) + 1 if mode == "moons" else k,
+                "noise": noise,
+                "seed": int(seed),
+            },
+        )
+        return (X, y, dataset)
+
+
+NODE_CLASS_MAPPINGS["CdlClassificationDataGen"] = CdlClassificationDataGen
+NODE_DISPLAY_NAME_MAPPINGS["CdlClassificationDataGen"] = "Classification Data Generator"

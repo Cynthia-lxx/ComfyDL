@@ -72,7 +72,7 @@ _CAT_EN = {
 # 分类说明（英文 / 中文，与 FUNCTIONS 附录描述一致）
 _CAT_DESC_EN = {
     'd2l/CV Models': 'CNN fundamentals & model construction',
-    'd2l/Datasets': 'Dataset download, load, preview & stats',
+    'd2l/Datasets': 'Dataset download, load, preview & stats, synthetic regression / classification data generators',
     'd2l/Device Utils': 'GPU/CPU device utilities',
     'd2l/GAN': 'GAN training updates',
     'd2l/Model Utils': 'Model info, mode, forward, layers, params, clone & persistence',
@@ -81,8 +81,8 @@ _CAT_DESC_EN = {
     'd2l/ObjectDetection': 'Anchor boxes, IoU, NMS',
     'd2l/Segmentation': 'VOC semantic segmentation tools',
     'd2l/Tensor Basic': 'Tensor I/O, conv, transpose, broadcast, activation',
-    'd2l/TorchOps': 'Loss, optimization, metrics',
-    'd2l/Training': 'From-scratch linear-regression trainer (mini-batch SGD)',
+    'd2l/TorchOps': 'Loss, optimization, metrics & the confusion matrix',
+    'd2l/Training': 'From-scratch linear-regression & softmax-regression trainers + one-box production regression / classification trainers',
     'd2l/Visualization': 'Plots, charts & bounding box visualization',
     'd2l/_Legacy/Model Utils': 'Deprecated (soft-archived): Model Mode; use the core Training Mode',
     'd2l/_Legacy/NLP Models': 'Deprecated (soft-archived): Multi-Head Attention, Add & Norm, Transformer Encoder Block/Encoder; use the core Attention/Recurrent nodes',
@@ -94,7 +94,7 @@ _CAT_DESC_EN = {
 }
 _CAT_DESC_ZH = {
     'd2l/CV Models': 'CNN 基础与模型构建',
-    'd2l/Datasets': '数据集下载、加载、预览与统计',
+    'd2l/Datasets': '数据集下载、加载、预览与统计，回归/分类合成数据生成器',
     'd2l/Device Utils': 'GPU/CPU 设备查询',
     'd2l/GAN': 'GAN 训练更新',
     'd2l/Model Utils': '模型信息、模式、前向、层结构、参数、克隆与存取',
@@ -103,8 +103,8 @@ _CAT_DESC_ZH = {
     'd2l/ObjectDetection': '锚框、IoU、NMS',
     'd2l/Segmentation': 'VOC 语义分割工具',
     'd2l/Tensor Basic': '张量 I/O、卷积、转置、广播、激活函数',
-    'd2l/TorchOps': '损失、优化、评估指标',
-    'd2l/Training': '从零训练的线性回归训练器（小批量 SGD）',
+    'd2l/TorchOps': '损失、优化、评估指标与混淆矩阵',
+    'd2l/Training': '从零实现的线性回归 / softmax 回归教科书训练器 + 一盒式生产回归/分类训练器',
     'd2l/Visualization': '图表与边界框可视化',
     'd2l/_Legacy/Model Utils': '已弃用（软归档）：Model Mode，纯 TENSOR 图改用核心 Training Mode',
     'd2l/_Legacy/NLP Models': '已弃用（软归档）：Multi-Head Attention、Add & Norm、Transformer Encoder Block/Encoder 与 RNN/GRU 构建器，改用核心 Attention/Recurrent 节点',
