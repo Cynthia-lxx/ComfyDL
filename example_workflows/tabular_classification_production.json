@@ -1,0 +1,508 @@
+{
+  "version": 0.4,
+  "last_node_id": 9,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        1620,
+        150
+      ]
+    ,
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# Tabular Classification: Production\n\nThe one-box classification pipeline: a labelled dataset goes in, a trained classifier, its held-out **accuracy**, class-index **predictions** and a rendered **confusion matrix** come out. The trainer does the whole production dance — stratified train/validation split, feature standardisation folded into the model, mini-batch Adam with early stopping and rollback — and streams a live loss curve under itself while it runs.\n\n### Your own data\n\nThe in-graph generator exists so the template runs out of the box: delete it, wire **Read CSV / Read XLSX / Read DB → DATASET** into the trainer's `dataset` slot (connect its `X` / `y` too), and the rest of the graph is unchanged. Class indices must be `0..k-1`."
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CdlClassificationDataGen",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        340,
+        320
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "links": [
+            7
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "links": [
+            8,
+            9
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "dataset",
+          "type": "DATASET",
+          "links": [
+            1,
+            3
+          ],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlClassificationDataGen"
+      },
+      "widgets_values": [
+        "blobs",
+        250,
+        3,
+        0.3,
+        42,
+        "fixed"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "CdlDatasetPreview",
+      "pos": [
+        580,
+        240
+      ],
+      "size": [
+        340,
+        160
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "dataset",
+          "type": "DATASET",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "preview",
+          "type": "STRING",
+          "links": [
+            2
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlDatasetPreview"
+      },
+      "widgets_values": [
+        5
+      ]
+    },
+    {
+      "id": 4,
+      "type": "SaveText",
+      "pos": [
+        980,
+        240
+      ],
+      "size": [
+        340,
+        140
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 2
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveText"
+      },
+      "widgets_values": [
+        "classification_dataset_preview",
+        "txt"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "CdlClassificationTrain",
+      "pos": [
+        580,
+        470
+      ],
+      "size": [
+        420,
+        580
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "X",
+          "type": "TENSOR",
+          "link": 7
+        },
+        {
+          "name": "y",
+          "type": "TENSOR",
+          "link": 8
+        },
+        {
+          "name": "dataset",
+          "type": "DATASET",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "nn_model",
+          "type": "nn_model",
+          "links": null,
+          "slot_index": 0
+        },
+        {
+          "name": "accuracy",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "predictions",
+          "type": "TENSOR",
+          "links": [
+            4
+          ],
+          "slot_index": 2
+        },
+        {
+          "name": "probabilities",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 3
+        },
+        {
+          "name": "loss_history",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 4
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlClassificationTrain"
+      },
+      "widgets_values": [
+        0.2,
+        "yes",
+        "32",
+        "relu",
+        500,
+        0,
+        0.03,
+        0,
+        "fixed",
+        "loss",
+        30,
+        0.0001,
+        ""
+      ]
+    },
+    {
+      "id": 6,
+      "type": "CdlConfusionMatrixEval",
+      "pos": [
+        1140,
+        470
+      ],
+      "size": [
+        360,
+        240
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "y_true",
+          "type": "TENSOR",
+          "link": 9
+        },
+        {
+          "name": "y_pred",
+          "type": "TENSOR",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "matrix",
+          "type": "TENSOR",
+          "links": [
+            5
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "normalized",
+          "type": "TENSOR",
+          "links": null,
+          "slot_index": 1
+        },
+        {
+          "name": "accuracy",
+          "type": "FLOAT",
+          "links": null,
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlConfusionMatrixEval"
+      },
+      "widgets_values": [
+        0
+      ]
+    },
+    {
+      "id": 7,
+      "type": "CdlConfusionMatrix",
+      "pos": [
+        1140,
+        780
+      ],
+      "size": [
+        380,
+        300
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "matrix",
+          "type": "TENSOR",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlConfusionMatrix"
+      },
+      "widgets_values": [
+        "class 0,class 1,class 2",
+        "Blues",
+        false,
+        ".0f",
+        6.0,
+        5.0
+      ]
+    },
+    {
+      "id": 8,
+      "type": "PreviewImage",
+      "pos": [
+        1560,
+        780
+      ],
+      "size": [
+        380,
+        320
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "MarkdownNote",
+      "pos": [
+        1560,
+        470
+      ],
+      "size": [
+        380,
+        260
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## What to look at\n\n- The trainer's held-out **accuracy** and the confusion-matrix **accuracy** must agree (both are computed on the same predictions).\n- The matrix diagonal = per-class correct counts; off-diagonal cells are the confusions. Switch the renderer's `normalize` on to get per-class recall percentages.\n- Early stopping tracks the smoothed validation **loss** (`early_stop_metric` widget); flip it to `accuracy` if you prefer the metric view.\n- Interrupt a long run and hit **Resume** in the Crash Site panel — training continues from the breakpoint step."
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      2,
+      3,
+      0,
+      "DATASET"
+    ],
+    [
+      2,
+      3,
+      0,
+      4,
+      0,
+      "STRING"
+    ],
+    [
+      3,
+      2,
+      2,
+      5,
+      2,
+      "DATASET"
+    ],
+    [
+      4,
+      5,
+      2,
+      6,
+      1,
+      "TENSOR"
+    ],
+    [
+      5,
+      6,
+      0,
+      7,
+      0,
+      "TENSOR"
+    ],
+    [
+      6,
+      7,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      2,
+      0,
+      5,
+      0,
+      "TENSOR"
+    ],
+    [
+      8,
+      2,
+      1,
+      5,
+      1,
+      "TENSOR"
+    ],
+    [
+      9,
+      2,
+      1,
+      6,
+      0,
+      "TENSOR"
+    ]
+  ],
+  "groups": [
+    {
+      "title": "1 · Data (in-graph; swap for Read CSV)",
+      "bounding": [
+        20,
+        230,
+        400,
+        440
+      ],
+      "color": "#3f789e",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "2 · Train (one-box, early stop)",
+      "bounding": [
+        560,
+        220,
+        460,
+        880
+      ],
+      "color": "#b58b2a",
+      "font_size": 24,
+      "locked": false
+    },
+    {
+      "title": "3 · Evaluate & inspect",
+      "bounding": [
+        1120,
+        220,
+        840,
+        920
+      ],
+      "color": "#2a363b",
+      "font_size": 24,
+      "locked": false
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5,
+      "offset": [
+        0,
+        0
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "0.3.1"
+    }
+  }
+}

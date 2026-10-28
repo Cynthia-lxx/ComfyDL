@@ -702,7 +702,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 8. d2l / TorchOps（10 个节点）
+## 8. d2l / TorchOps（11 个节点）
 
 ### Linear Regression
 - **类名**：`CdlLinReg`
@@ -852,6 +852,28 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `model` | `nn_model` | 更新后的模型；若无模型则返回 None |
+
+### Confusion Matrix (Eval)（混淆矩阵·计算）
+- **类名**：`CdlConfusionMatrixEval`（`comfydl/nodes/tensor_ops.py`）
+- **功能**：构建分类器的混淆矩阵——行是真实类别、列是预测类别，对角线是各类别的正确计数，
+  精确率/召回率/F1 都能直接从矩阵读出，无需额外端口。`[n, k]` 的分数矩阵会自动 argmax
+  （与 `Accuracy` 同款约定），因此可以直接接 `Classification Train` 的 `predictions` 或
+  `probabilities` 输出。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `y_true` | `TENSOR` | — | 真实类别索引 `[n]` 或 `[n, 1]`（float 标签会取整） |
+  | `y_pred` | `TENSOR` | — | 预测——类别索引或 `[n, k]` 分数/概率矩阵 |
+  | `num_classes` | `INT` | 0 | 类别数；0 = 按 `max(真实, 预测) + 1` 推断（0~1024） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `matrix` | `TENSOR` | 原始计数 `[k, k]` float32（行 = 真实，列 = 预测） |
+  | `normalized` | `TENSOR` | 行归一化矩阵（各类召回率；空行保持全零） |
+  | `accuracy` | `FLOAT` | 总体准确率（对角线 / 总数） |
+- **报错**：样本数不匹配、标签为空或索引越出 `[0, num_classes)` 时抛出可读 `ValueError`。
+- **可视化**：与渲染节点 `Confusion Matrix`（`d2l/Visualization`）配对——把 `matrix` 接入，
+  类别名填进它的 `class_labels` 控件。
 
 ---
 
@@ -1311,7 +1333,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 12. d2l / Datasets（26 个节点）
+## 12. d2l / Datasets（27 个节点）
 
 数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。下面三个 `DATASET` 适配器将通用 `DATASET` 类型与原始 `TENSOR` x/y 及 `cdlDataloader` 通道相互打通。
 
@@ -1569,6 +1591,29 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   |------|------|------|
   | `stats_text` | `STRING` | 格式化统计文本摘要（分类模式为各类别计数，直方图模式为各区间范围与计数） |
   | `stats_image` | `IMAGE` | 标签分布图（分类柱状图或数值直方图）`[1, H, W, C]` |
+
+### Classification Data Generator（分类数据生成器）
+- **类名**：`CdlClassificationDataGen`（`comfydl/nodes/data_gen.py`）
+- **功能**：`Formula Data Generator` 的分类对应物——三种内置二维形状（全部用局部
+  `torch.Generator` 生成、同种子完全确定）：`blobs`（圆周上良好分离的高斯簇——线性可分）、
+  `moons`（两个交错的半圆，恒 2 类，线性不可分）与 `circles`（半径均匀间隔的同心环）。
+  分类训练器与模板的开箱即用数据源。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `mode` | 下拉 | `blobs` | 形状配方：blobs / moons / circles |
+  | `n_per_class` | `INT` | 200 | 每类样本数（1~100000） |
+  | `n_classes` | `INT` | 3 | 类别数（2~8；`moons` 忽略此项） |
+  | `noise` | `FLOAT` | 0.1 | 坐标的高斯扰动幅度（0~10） |
+  | `seed` | `INT` | 0 | 随机种子（0~99999） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `X` | `TENSOR` | 特征矩阵 `[n, 2]` float32（`n = n_per_class * n_classes`） |
+  | `y` | `TENSOR` | 类别索引 `[n]` long（0..k-1） |
+  | `dataset` | `DATASET` | 两者打包，标签以 float 索引存储（目标列名 `label`） |
+- **报错**：`noise` 为负、`n_per_class < 1` 或 blobs/circles 下 `n_classes < 2` 时抛出可读
+  `ValueError`。
 
 ---
 
@@ -2356,7 +2401,7 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
 
 ---
 
-## 21. d2l / Training（3 个节点）
+## 21. d2l / Training（6 个节点）
 
 `CdlLinRegTrain`（`comfydl/nodes/linreg_train.py`）是从零实现的细粒度线性回归训练器。与粗粒度的
 `Training Loop`（搭建 MLP 并跑 `OPTIMIZER`/`SCHEDULER` 栈）不同，它直接落地教科书的 `d2l` 配方——
@@ -2448,6 +2493,86 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
 - **报错**：文件缺失或 state_dict 不含 `core.0.weight`（即非回归模型——那类模型请用带骨架的
   `Model Load`）时抛出可读 `ValueError`。宿主 `torch.inference_mode()` 下可正常工作。
 
+### Softmax Regression Train（softmax 回归训练·教科书版）
+- **类名**：`CdlSoftmaxTrain`（`comfydl/nodes/classification_train.py`）
+- **功能**：`线性回归训练` 的分类对应物——教科书级 softmax 回归配方：零初始化的
+  `W [k, f]` / `b [k]`、手写 softmax 交叉熵（减行最大值保证数值稳定 → 取指数 → 归一化 →
+  取真实类概率的负对数）、朴素全批量梯度下降。问题是凸的、配方是确定的，因此**刻意不设
+  seed 控件**——整个训练过程天然可复现，且损失曲线从 `ln(k)` 精确起步。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `X` | `TENSOR` | 特征矩阵 `[n, f]`（必填） |
+  | `y` | `TENSOR` | 类别索引 `0..k-1`——`[n]` 或 `[n, 1]`，float 标签取整（必填） |
+  | `num_steps` | `INT` | 全批量 GD 步数（默认 300，1~100000） |
+  | `lr` | `FLOAT` | 学习率（默认 0.1，1e-5~1） |
+  | `dataset` | `DATASET` | 带标签的数据集；存在时覆盖 `X` / `y`（可选，forceInput） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `W` | `TENSOR` | 学到的权重矩阵 `[k, f]` |
+  | `b` | `TENSOR` | 学到的偏置向量 `[k]` |
+  | `logits` | `TENSOR` | 训练集得分 `X @ W.T + b` `[n, k]` |
+  | `probabilities` | `TENSOR` | logits 的 softmax——每行和为 1 `[n, k]` |
+  | `loss_history` | `TENSOR` | 逐步交叉熵曲线 `[num_steps]`（1-D） |
+- **报错**：样本数不匹配、标签为空或负类别索引时抛出可读 `ValueError`。
+
+### Classification Train（分类训练）
+- **类名**：`CdlClassificationTrain`（`comfydl/nodes/classification_train.py`）
+- **功能**：一盒式生产级分类管线——机制与 `Regression Train` 完全一致（交叉熵头 + 类别索引
+  标签），外加两处分类特有的改动：**分层切分**（按类比例切训练/验证集，小验证集也保证每类
+  有样本）与 `early_stop_metric` 控件（默认跟踪平滑验证 `loss`，可切 `accuracy`——以
+  `1 - acc` 监控，沿用「越小越好」的早停器）。模型头输出 `k` 维 logits；标准化折入返回的
+  模块，`nn_model` 自包含。
+- **实时预览 / 断点续训**：与 `Regression Train` 契约一致——每步恰好一次 `ProgressBar`
+  调用并附带实时 loss 曲线帧，被打断时写完整存档供事故现场「恢复」。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `X` | `TENSOR` | 特征矩阵 `[n, f]`（未接 `DATASET` 时的后备输入） |
+  | `y` | `TENSOR` | 类别索引 `0..k-1`——`[n]` 或 `[n, 1]`，float 取整（后备输入） |
+  | `test_size` | `FLOAT` | 验证集比例；0 = 在全部数据上评估（默认 0.2） |
+  | `standardize` | 下拉 | `yes` / `no`——用训练集统计量做 z-score（默认 `yes`） |
+  | `hidden` | `STRING` | 逗号分隔的隐层宽度，如 `16,8`；空 = 线性（默认 `32`） |
+  | `activation` | 下拉 | 仅用于隐层之间：relu / tanh / sigmoid / none（默认 `relu`） |
+  | `steps` | `INT` | 优化步数（默认 500，1~100000） |
+  | `batch_size` | `INT` | 每步行数；0 = 全批量（默认 0） |
+  | `lr` | `FLOAT` | Adam 学习率（默认 0.03，1e-5~1） |
+  | `seed` | `INT` | 随机种子（默认 0，0~99999） |
+  | `early_stop_metric` | 下拉 | 早停跟踪量：`loss` / `accuracy`（默认 `loss`） |
+  | `early_stop_patience` | `INT` | 连续无改善步数阈值；0 = 关闭（默认 30） |
+  | `early_stop_min_delta` | `FLOAT` | 跟踪量的最小改善量（默认 1e-4） |
+  | `save_path` | `STRING` | `state_dict` 保存路径；空 = 不保存 |
+  | `dataset` | `DATASET` | 带标签的数据集；存在时覆盖 `X` / `y`（可选，forceInput） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `nn_model` | `nn_model` | 训好的模块（标准化折入，logit 头） |
+  | `accuracy` | `TENSOR` | 验证集总体准确率（`test_size = 0` 时为全集） |
+  | `predictions` | `TENSOR` | 全量输入上的 argmax 类别索引 `[n]` long |
+  | `probabilities` | `TENSOR` | 全量输入上 logits 的 softmax `[n, k]` |
+  | `loss_history` | `TENSOR` | 逐步训练损失曲线（早停时截断到最优步） |
+- **报错**：样本数不匹配或负类别索引时抛出可读 `ValueError`。
+
+### Classification Model Load（分类模型加载）
+- **类名**：`CdlClassificationModelLoad`（`comfydl/nodes/classification_train.py`）
+- **功能**：`Classification Train` 的免骨架持久化对应节点——与 `Regression Model Load`
+  为回归模型所做的一样，**仅凭保存的 `state_dict` 重建**分类器架构（标准化 MLP +
+  `k` 宽 logit 头）。恢复出的模型输出 **logits**；取 argmax（或读 `probabilities`）
+  得到类别预测。
+- **输入**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `path` | `STRING` | `Model Save` 或训练器 `save_path` 写出的 `.pt` 文件（默认 `output/classification_model.pt`） |
+  | `activation` | 下拉 | 隐层激活函数——state_dict 不存储激活参数，请与训练时保持一致（默认 `relu`） |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `model` | `nn_model` | 恢复出的模型（eval 模式） |
+  | `info` | `STRING` | 一行架构摘要（in / hidden / classes / 是否标准化 / 激活函数） |
+- **报错**：文件缺失或 state_dict 不含 `core.0.weight` 时抛出可读 `ValueError`。
+  调度注意与 `Regression Model Load` 相同：勿把 save 与 load 放进同一张图。
+
 ---
 
 ## 附录
@@ -2458,7 +2583,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **128 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **133 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2474,12 +2599,12 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/NLP Utils | 5 | 文本分词与词表 |
 | d2l/Tensor Basic | 5 | 张量 I/O、卷积、转置、广播、重塑、激活函数 |
 | d2l/_Legacy/Tensor Basic | 3 | 已弃用（软归档）：`Broadcast`、`Reshape`、`Activation`，均有核心等价节点 |
-| d2l/TorchOps | 10 | 损失、优化、评估指标 |
+| d2l/TorchOps | 11 | 损失、优化、评估指标与混淆矩阵 |
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
-| d2l/Datasets | 26 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点 |
-| d2l/Training | 3 | 教科书式线性回归训练器（小批量 SGD：w / b / loss_history / y_hat）+ 带实时 loss 预览的一盒式生产回归训练器 + 免骨架回归模型加载器 |
+| d2l/Datasets | 27 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点，以及回归/分类合成数据生成器 |
+| d2l/Training | 6 | 教科书式线性回归 / softmax 回归训练器（从零实现）+ 带实时 loss 预览与断点续训的一盒式生产回归/分类训练器 + 免骨架模型加载器 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
@@ -2500,11 +2625,11 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` 协议占位节点（ComfyUI 核心分类） |
 | 3d | 1 | `Preview 3D`，前端绑定的 3D 预览画布（ComfyUI 核心分类） |
 
-> 前 21 行统计 **ComfyDL 提供的 125 个节点**（其中 11 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
+> 前 21 行统计 **ComfyDL 提供的 133 个节点**（其中 11 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
 >
 > 其余 15 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：十个 `Network & Layers/*` 分组（75 个节点）、
 > 四个 `model/*` 分组（22 个节点）与 `3d`（1 个节点）。因此随宿主发布的节点库总计
-> **223 个节点、36 个分类** = 125 个 ComfyDL + 98 个核心节点。
+> **231 个节点、36 个分类** = 133 个 ComfyDL + 98 个核心节点。
 >
 > 有两行的数量少于宿主注册表在该分类下的实际节点数，因为注册表把本次改动未触及的原生节点也算在内：
 > `model/latent`（其第三个节点是 `LatentCompositeMasked`）以及 `image`、`utilities`、`image/color`、

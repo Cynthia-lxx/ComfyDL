@@ -84,7 +84,7 @@ python main.py
 
 ## 功能概览
 
-内置节点库共 **226 个节点**，涵盖 35 个类别 —— 其中 **128 个由 ComfyDL 提供**，
+内置节点库共 **231 个节点**，涵盖 35 个类别 —— 其中 **133 个由 ComfyDL 提供**，
 另加在其之上新增的 98 个 ComfyUI 核心节点（`Network & Layers` → `Activation` 14 个 + `Basic` 8 个
 + `Attention` 8 个 + `Normalization` 7 个 + `Regularization` 1 个 + `Training` 23 个 + `Pooling` 2 个 + `Convolution` 5 个 + `Recurrent` 3 个 + `Text` 4 个；
 `model` → `loaders` 7 个 + `merging` 11 个 + `latent` 2 个 + `conditioning` 2 个；
@@ -93,7 +93,7 @@ python main.py
 | 类别 | 节点数 | 说明 |
 |---|---|---|
 | **CV 模型** | 5 | CNN 基础与模型构建 |
-| **数据集** | 26 | 数据集下载、加载、预览与统计 |
+| **数据集** | 27 | 数据集下载、加载、预览与统计，回归/分类合成数据生成器 |
 | **设备工具** | 3 | GPU/CPU 设备查询 |
 | **GAN** | 2 | GAN 训练更新 |
 | **模型工具** | 7 | 模型信息、模式、前向、层结构、参数、克隆与存取 |
@@ -102,8 +102,8 @@ python main.py
 | **目标检测** | 10 | 锚框、IoU、NMS |
 | **语义分割** | 4 | VOC 语义分割工具 |
 | **张量基础** | 5 | 张量 I/O、卷积、转置、广播、激活函数 |
-| **张量运算** | 10 | 损失、优化、评估指标 |
-| **训练** | 3 | 从零训练的线性回归训练器（小批量 SGD） |
+| **张量运算** | 11 | 损失、优化、评估指标与混淆矩阵 |
+| **训练** | 6 | 从零实现的线性回归 / softmax 回归教科书训练器 + 一盒式生产回归/分类训练器 |
 | **可视化** | 13 | 图表与边界框可视化 |
 | **已弃用 · 模型工具** | 1 | 已弃用（软归档）：Model Mode，纯 TENSOR 图改用核心 Training Mode |
 | **已弃用 · NLP 模型** | 7 | 已弃用（软归档）：Multi-Head Attention、Add & Norm、Transformer Encoder Block/Encoder 与 RNN/GRU 构建器，改用核心 Attention/Recurrent 节点 |

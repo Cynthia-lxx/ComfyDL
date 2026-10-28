@@ -704,7 +704,7 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
 
 ---
 
-## 8. d2l / TorchOps (10 nodes)
+## 8. d2l / TorchOps (11 nodes)
 
 ### Linear Regression
 - **Class**: `CdlLinReg`
@@ -854,6 +854,31 @@ NLP model builder nodes wrap the d2lcore RNN/GRU/RNNLM, attention/Transformer an
   | Name | Type | Description |
   |------|------|-------------|
   | `model` | `nn_model` | Updated model; None if no model provided |
+
+### Confusion Matrix (Eval)
+- **Class**: `CdlConfusionMatrixEval` (`comfydl/nodes/tensor_ops.py`)
+- **Purpose**: Build the confusion matrix of a classifier — rows are the true
+  class, columns the predicted one, the diagonal holds the per-class correct
+  counts, and every precision / recall / F1 can be read straight off the
+  matrix without extra ports. Score matrices `[n, k]` are auto-`argmax`ed
+  (the same convention as `Accuracy`), so it connects directly to
+  `Classification Train`'s `predictions` or `probabilities`.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `y_true` | `TENSOR` | — | True class indices `[n]` or `[n, 1]` (float labels are rounded) |
+  | `y_pred` | `TENSOR` | — | Predictions — indices or a `[n, k]` score/probability matrix |
+  | `num_classes` | `INT` | 0 | Class count; 0 = infer as `max(true, pred) + 1` (0~1024) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `matrix` | `TENSOR` | Raw counts `[k, k]` float32 (row = truth, column = prediction) |
+  | `normalized` | `TENSOR` | Row-normalised matrix (per-class recall; empty rows stay zero) |
+  | `accuracy` | `FLOAT` | Overall accuracy (trace / total) |
+- **Errors**: readable `ValueError` for mismatched sample counts, empty labels
+  or any index outside `[0, num_classes)`.
+- **Visualisation**: pair with the renderer `Confusion Matrix` (`d2l/Visualization`)
+  — wire `matrix` in, type the class names into its `class_labels` widget.
 
 ---
 
@@ -1313,7 +1338,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 
 ---
 
-## 12. d2l / Datasets (26 nodes)
+## 12. d2l / Datasets (27 nodes)
 
 Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics. The three `DATASET` adapters below bridge the universal `DATASET` type to the raw `TENSOR` x/y and `cdlDataloader` conduits.
 
@@ -1613,6 +1638,32 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
   |------|------|-------------|
   | `stats_text` | `STRING` | Formatted text summary (per-class counts, or bin ranges + counts for histograms) |
   | `stats_image` | `IMAGE` | Label distribution chart (class bar chart or value histogram) `[1, H, W, C]` |
+
+### Classification Data Generator
+- **Class**: `CdlClassificationDataGen` (`comfydl/nodes/data_gen.py`)
+- **Purpose**: The classification counterpart of `Formula Data Generator` — three
+  built-in 2-D shapes (all generated with a local `torch.Generator`, fully
+  deterministic per seed): `blobs` (well-separated gaussian clusters on a
+  circle — linearly separable), `moons` (two interleaving half-circles, always
+  2 classes, NOT linearly separable) and `circles` (concentric rings with
+  evenly spaced radii). The out-of-the-box data source for the classification
+  trainers and templates.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `mode` | combo | `blobs` | Shape recipe: blobs / moons / circles |
+  | `n_per_class` | `INT` | 200 | Samples per class (1~100000) |
+  | `n_classes` | `INT` | 3 | Class count (2~8; ignored by `moons`) |
+  | `noise` | `FLOAT` | 0.1 | Gaussian perturbation of the point coordinates (0~10) |
+  | `seed` | `INT` | 0 | RNG seed (0~99999) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `X` | `TENSOR` | Feature matrix `[n, 2]` float32 (`n = n_per_class * n_classes`) |
+  | `y` | `TENSOR` | Class indices `[n]` long (0..k-1) |
+  | `dataset` | `DATASET` | Both bundled, labels stored as float indices (target `label`) |
+- **Errors**: readable `ValueError` for a negative `noise`, `n_per_class < 1`
+  or `n_classes < 2` on blobs/circles.
 
 ---
 
@@ -2474,7 +2525,7 @@ feeds, and it is the only 3D node the dehydrated build needs.
 
 ---
 
-## 21. d2l / Training (3 nodes)
+## 21. d2l / Training (6 nodes)
 
 `CdlLinRegTrain` (`comfydl/nodes/linreg_train.py`) is the fine-grained, from-scratch
 linear-regression trainer. Unlike the coarse `Training Loop` (which builds an MLP and
@@ -2582,6 +2633,97 @@ four results so a learner can *verify* the training against the stateless `CdlLi
   `core.0.weight` (i.e. not a regression model — use `Model Load` with a
   skeleton for those). Works under the host's `torch.inference_mode()`.
 
+### Softmax Regression Train
+- **Class**: `CdlSoftmaxTrain` (`comfydl/nodes/classification_train.py`)
+- **Purpose**: The classification counterpart of `Linear Regression Train` —
+  the textbook softmax-regression recipe: zero-initialised `W [k, f]` / `b [k]`,
+  a hand-written softmax cross-entropy (shift by the row max, exponentiate,
+  normalise, negative-log the true class) and plain full-batch gradient
+  descent. The problem is convex and the recipe deterministic, so there is
+  deliberately no seed widget — the whole run is reproducible by construction,
+  and the loss curve starts exactly at `ln(k)`.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `X` | `TENSOR` | Feature matrix `[n, f]` (required) |
+  | `y` | `TENSOR` | Class indices `0..k-1` — `[n]` or `[n, 1]`, float labels rounded (required) |
+  | `num_steps` | `INT` | Full-batch GD steps (default 300, 1~100000) |
+  | `lr` | `FLOAT` | Learning rate (default 0.1, 1e-5~1) |
+  | `dataset` | `DATASET` | Labelled dataset; wins over `X` / `y` when present (optional, forceInput) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `W` | `TENSOR` | Learned weight matrix `[k, f]` |
+  | `b` | `TENSOR` | Learned bias vector `[k]` |
+  | `logits` | `TENSOR` | Training-set scores `X @ W.T + b` `[n, k]` |
+  | `probabilities` | `TENSOR` | Softmax of the logits — rows sum to 1 `[n, k]` |
+  | `loss_history` | `TENSOR` | Per-step cross-entropy curve `[num_steps]` (1-D) |
+- **Errors**: readable `ValueError` for mismatched sample counts, empty labels
+  or negative class indices.
+
+### Classification Train
+- **Class**: `CdlClassificationTrain` (`comfydl/nodes/classification_train.py`)
+- **Purpose**: One-box production classification pipeline — the exact mechanism
+  of `Regression Train` with a cross-entropy head and class-index labels, plus
+  two classification-specific changes: a **stratified** train/val split (each
+  class is split proportionally, so a small validation set still contains every
+  class) and an `early_stop_metric` widget (smoothed validation `loss` by
+  default, or `accuracy` — monitored as `1 - acc` so the smaller-is-better
+  tracker applies). The model head outputs `k` logits; the standardisation is
+  folded into the returned module, so the `nn_model` is self-contained.
+- **Live preview / breakpoint continuation**: identical contract to
+  `Regression Train` — one `ProgressBar` call per step with a live loss-curve
+  frame, and a complete checkpoint on interrupt for crash-site Resume.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `X` | `TENSOR` | Feature matrix `[n, f]` (fallback when no `DATASET` is wired) |
+  | `y` | `TENSOR` | Class indices `0..k-1` — `[n]` or `[n, 1]`, float labels rounded (fallback) |
+  | `test_size` | `FLOAT` | Validation fraction; 0 = evaluate on all (default 0.2) |
+  | `standardize` | combo | `yes` / `no` — z-score using train-split statistics (default `yes`) |
+  | `hidden` | `STRING` | Comma-separated hidden widths, e.g. `16,8`; empty = linear (default `32`) |
+  | `activation` | combo | Between hidden layers only: relu / tanh / sigmoid / none (default `relu`) |
+  | `steps` | `INT` | Optimiser steps (default 500, 1~100000) |
+  | `batch_size` | `INT` | Rows per step; 0 = full batch (default 0) |
+  | `lr` | `FLOAT` | Adam learning rate (default 0.03, 1e-5~1) |
+  | `seed` | `INT` | RNG seed (default 0, 0~99999) |
+  | `early_stop_metric` | combo | What early stopping tracks: `loss` / `accuracy` (default `loss`) |
+  | `early_stop_patience` | `INT` | Steps without improvement before stopping; 0 = off (default 30) |
+  | `early_stop_min_delta` | `FLOAT` | Minimum improvement of the tracked metric (default 1e-4) |
+  | `save_path` | `STRING` | Destination for the `state_dict`; empty = do not save |
+  | `dataset` | `DATASET` | Labelled dataset; wins over `X` / `y` when present (optional, forceInput) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `nn_model` | `nn_model` | Trained module (standardisation baked in, logit head) |
+  | `accuracy` | `TENSOR` | Held-out overall accuracy (whole set when `test_size = 0`) |
+  | `predictions` | `TENSOR` | Argmax class indices on the full input `[n]` long |
+  | `probabilities` | `TENSOR` | Softmax of the logits on the full input `[n, k]` |
+  | `loss_history` | `TENSOR` | Per-step training-loss curve (truncated to the best step on early stop) |
+- **Errors**: readable `ValueError` for mismatched sample counts or negative
+  class indices.
+
+### Classification Model Load
+- **Class**: `CdlClassificationModelLoad` (`comfydl/nodes/classification_train.py`)
+- **Purpose**: Skeleton-free persistence counterpart of `Classification Train` —
+  rebuilds the classifier architecture (a standardised MLP with a `k`-wide
+  logit head) **from a saved `state_dict` alone**, exactly like
+  `Regression Model Load` does for regressors. The restored model produces
+  **logits**; apply `argmax` (or read `probabilities`) for class predictions.
+- **Inputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `path` | `STRING` | The `.pt` file written by `Model Save` or the trainer's `save_path` (default `output/classification_model.pt`) |
+  | `activation` | combo | Activation between hidden layers — not recoverable from a `state_dict` (default `relu`) |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `model` | `nn_model` | Restored model in eval mode |
+  | `info` | `STRING` | One-line architecture summary (in / hidden / classes / standardized / activation) |
+- **Errors**: readable `ValueError` for a missing file or a state_dict without
+  `core.0.weight`. Scheduling note identical to `Regression Model Load`:
+  never put save and load in one graph.
+
 ---
 
 ## Appendix
@@ -2592,7 +2734,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**128 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
+**133 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2608,12 +2750,12 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/NLP Utils | 5 | Text tokenization & vocabularies |
 | d2l/Tensor Basic | 5 | Tensor I/O, conv, transpose, broadcast, reshape, activation |
 | d2l/_Legacy/Tensor Basic | 3 | Deprecated (soft-archived): `Broadcast`, `Reshape`, `Activation`, all with core equivalents |
-| d2l/TorchOps | 10 | Loss, optimization, metrics |
+| d2l/TorchOps | 11 | Loss, optimization, metrics & the confusion matrix |
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
-| d2l/Datasets | 26 | Dataset download, loading, preview, statistics, DATASET adapters, format readers, and writers |
-| d2l/Training | 3 | Textbook linear-regression trainer (mini-batch SGD: w / b / loss_history / y_hat) + one-box production regression trainer with live loss preview + skeleton-free regression model loader |
+| d2l/Datasets | 27 | Dataset download, loading, preview, statistics, DATASET adapters, format readers & writers, and the synthetic regression / classification data generators |
+| d2l/Training | 6 | Textbook linear-regression & softmax-regression trainers (from scratch) + one-box production regression / classification trainers with live loss preview & breakpoint continuation + skeleton-free model loaders |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
@@ -2634,13 +2776,13 @@ ComfyUI core nodes on top. Both registers are listed below:
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` protocol placeholders (ComfyUI core category) |
 | 3d | 1 | `Preview 3D`, the frontend-bound 3D preview canvas (ComfyUI core category) |
 
-> The first 21 rows list the **125 ComfyDL-provided nodes** (11 of them soft-archived into
+> The first 21 rows list the **133 ComfyDL-provided nodes** (11 of them soft-archived into
 > `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their display names carry a
 > `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
 >
 > The other 15 rows are pure ComfyUI core categories with no ComfyDL nodes: the ten
 > `Network & Layers/*` groups (75 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
-> The shipped library therefore totals **223 nodes across 36 categories** = 125 ComfyDL + 98 core.
+> The shipped library therefore totals **231 nodes** in 36 categories = 133 ComfyDL + 98 core.
 >
 > Two rows list fewer nodes than the host registry holds in that category, because the registry
 > also counts native nodes that this refactor did not touch: `model/latent` (whose third node is
