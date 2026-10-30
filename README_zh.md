@@ -20,7 +20,8 @@
 ## 使用示例
 
 > **说明：** ComfyDL 随附的示例工作流已作为**工作流模板**在界面中提供
-> （Templates → ComfyDL Examples）：两个*语言模型*工作流与三个*回归*工作流。
+> （Templates → ComfyDL Examples）：涵盖语言模型、回归、分类与 App 模式 playground 四族；
+> 其中 `formula_playground_app` 默认以 **ComfyUI APP mode（Beta）** 打开。
 > 早于节点重构的旧示例保留在 [`example_workflows/_archived/`](./example_workflows/_archived) 以备查阅。
 
 ### 神秘的 "?"
