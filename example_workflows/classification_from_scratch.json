@@ -480,10 +480,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.5,
+      "scale": 0.72,
       "offset": [
-        0,
-        0
+        100,
+        140
       ]
     },
     "node_versions": {

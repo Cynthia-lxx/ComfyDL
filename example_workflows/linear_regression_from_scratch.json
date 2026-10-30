@@ -439,10 +439,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.5,
+      "scale": 0.72,
       "offset": [
-        0,
-        0
+        40,
+        50
       ]
     },
     "node_versions": {

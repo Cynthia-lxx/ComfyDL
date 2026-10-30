@@ -175,10 +175,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.8,
+      "scale": 0.72,
       "offset": [
         40,
-        40
+        50
       ]
     },
     "node_versions": {

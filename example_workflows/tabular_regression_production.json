@@ -602,10 +602,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.4,
+      "scale": 0.6,
       "offset": [
-        0,
-        0
+        40,
+        50
       ]
     },
     "node_versions": {
