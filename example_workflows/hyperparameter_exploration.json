@@ -1,0 +1,129 @@
+{
+  "version": 0.4,
+  "last_node_id": 6,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [0, 0],
+      "size": [760, 170],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# Hyperparameter Exploration\n\nA **Grid Search Train** scan: the JSON `param_grid` is expanded into every combination of hidden widths x learning rate, each one trains a **fresh** network with the Training Loop machinery (early stop, best-snapshot rollback), and every combination lands in the runs ledger.\n\nPress **Queue** once - the scan runs inside this single execution and the winner's parameters come out of `params`. Open the **CDL App Panel** while it runs: the combination curves overlay live in the comparison chart, and the experiment stays browsable in **Experiment runs** afterwards (the winner is marked `*`). Change `direction` to `max` to sweep a metric where bigger is better."
+      ],
+      "title": "How this works"
+    },
+    {
+      "id": 2,
+      "type": "CdlSyntheticData",
+      "pos": [40, 240],
+      "size": [280, 160],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "X", "type": "TENSOR", "links": [1], "slot_index": 0},
+        {"name": "y", "type": "TENSOR", "links": [2], "slot_index": 1}
+      ],
+      "properties": {},
+      "widgets_values": [3, 200, 0.01, 42, "fixed"],
+      "title": "Synthetic Data"
+    },
+    {
+      "id": 3,
+      "type": "TrainingOptimizer",
+      "pos": [40, 480],
+      "size": [280, 260],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "optimizer", "type": "OPTIMIZER", "links": [3], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": ["AdamW", 0.01, 0.9, 0.9, 0.999, 1e-8, 0.01, false, 0.0, 0.0],
+      "title": "Optimizer (base; grid lr overrides)"
+    },
+    {
+      "id": 4,
+      "type": "CdlGridSearchTrain",
+      "pos": [420, 240],
+      "size": [380, 420],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {"name": "x", "type": "TENSOR", "link": 1},
+        {"name": "y", "type": "TENSOR", "link": 2},
+        {"name": "optimizer", "type": "OPTIMIZER", "link": 3}
+      ],
+      "outputs": [
+        {"name": "params", "type": "PARAMS", "links": [], "slot_index": 0},
+        {"name": "best_params", "type": "STRING", "links": [5], "slot_index": 1},
+        {"name": "loss_history", "type": "TENSOR", "links": [], "slot_index": 2},
+        {"name": "summary", "type": "STRING", "links": [4], "slot_index": 3}
+      ],
+      "properties": {},
+      "widgets_values": [
+        "16,8", "relu", "mse", 40, 0, 7, "fixed", 0, 0.0001,
+        "{\"hidden\": [\"8\", \"16,8\"], \"lr\": [0.01, 0.003]}",
+        "min", "hyperparam-demo"
+      ],
+      "title": "Grid Search Train"
+    },
+    {
+      "id": 5,
+      "type": "SaveText",
+      "pos": [880, 240],
+      "size": [320, 120],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {"name": "text", "type": "STRING", "link": 4}
+      ],
+      "outputs": [
+        {"name": "text", "type": "STRING", "links": [], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": ["hyperparam_summary", "txt"],
+      "title": "Save scan table"
+    },
+    {
+      "id": 6,
+      "type": "SaveText",
+      "pos": [880, 440],
+      "size": [320, 120],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {"name": "text", "type": "STRING", "link": 5}
+      ],
+      "outputs": [
+        {"name": "text", "type": "STRING", "links": [], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": ["hyperparam_best_params", "txt"],
+      "title": "Save winner params"
+    }
+  ],
+  "links": [
+    [1, 2, 0, 4, 0, "TENSOR"],
+    [2, 2, 1, 4, 1, "TENSOR"],
+    [3, 3, 0, 4, 2, "OPTIMIZER"],
+    [4, 4, 3, 5, 0, "STRING"],
+    [5, 4, 1, 6, 0, "STRING"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {}
+}
