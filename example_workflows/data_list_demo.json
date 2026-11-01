@@ -1,0 +1,161 @@
+{
+  "version": 0.4,
+  "last_node_id": 8,
+  "last_link_id": 7,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [0, 0],
+      "size": [860, 190],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# Dataset List Semantics\n\nNative **ComfyUI list** flow for the `DATASET` type: **Dataset Split Batches** declares `OUTPUT_IS_LIST` and emits one execution's worth of zero-copy row batches; **Dataset From List** declares `INPUT_IS_LIST` and merges them back with one `torch.cat` (split -> merge reproduces the original rows exactly when `drop_last` is off).\n\nThis demo splits a 500-row synthetic table into shuffled 50-row batches, merges them back, and previews the head. **Dataset Get Item** picks a single row as a 1-sample view (flip its `index`). Swap the merge for per-batch training nodes to build epoch loops later."
+      ],
+      "title": "How this works"
+    },
+    {
+      "id": 2,
+      "type": "CdlSyntheticData",
+      "pos": [40, 260],
+      "size": [300, 170],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "X", "type": "TENSOR", "links": [1], "slot_index": 0},
+        {"name": "y", "type": "TENSOR", "links": [2], "slot_index": 1}
+      ],
+      "properties": {},
+      "widgets_values": [4, 500, 0.05, 42, "fixed"],
+      "title": "Synthetic Data (500 rows)"
+    },
+    {
+      "id": 3,
+      "type": "CdlTensorsToDataset",
+      "pos": [40, 500],
+      "size": [300, 110],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {"name": "X", "type": "TENSOR", "link": 1},
+        {"name": "y", "type": "TENSOR", "link": 2}
+      ],
+      "outputs": [
+        {"name": "dataset", "type": "DATASET", "links": [3], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": [],
+      "title": "Bundle into DATASET"
+    },
+    {
+      "id": 4,
+      "type": "CdlDatasetSplitBatches",
+      "pos": [420, 260],
+      "size": [340, 240],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {"name": "dataset", "type": "DATASET", "link": 3}
+      ],
+      "outputs": [
+        {"name": "batches", "type": "DATASET", "links": [4], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": [50, false, true, 42, "fixed"],
+      "title": "Split Batches (shuffled, 50 rows)"
+    },
+    {
+      "id": 5,
+      "type": "CdlDatasetFromList",
+      "pos": [420, 570],
+      "size": [340, 110],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {"name": "dataset", "type": "DATASET", "link": 4}
+      ],
+      "outputs": [
+        {"name": "dataset", "type": "DATASET", "links": [5, 6], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": [],
+      "title": "From List (merge back)"
+    },
+    {
+      "id": 6,
+      "type": "CdlDatasetGetItem",
+      "pos": [840, 260],
+      "size": [320, 160],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {"name": "dataset", "type": "DATASET", "link": 5}
+      ],
+      "outputs": [
+        {"name": "row", "type": "DATASET", "links": [], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": [0],
+      "title": "Get Item (row 0)"
+    },
+    {
+      "id": 7,
+      "type": "CdlDatasetPreview",
+      "pos": [840, 500],
+      "size": [320, 150],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {"name": "dataset", "type": "DATASET", "link": 6}
+      ],
+      "outputs": [
+        {"name": "preview", "type": "STRING", "links": [7], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": [8],
+      "title": "Preview head"
+    },
+    {
+      "id": 8,
+      "type": "SaveText",
+      "pos": [1230, 500],
+      "size": [320, 120],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {"name": "text", "type": "STRING", "link": 7}
+      ],
+      "outputs": [
+        {"name": "text", "type": "STRING", "links": [], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": ["data_list_preview", "txt"],
+      "title": "Save preview"
+    }
+  ],
+  "links": [
+    [1, 2, 0, 3, 0, "TENSOR"],
+    [2, 2, 1, 3, 1, "TENSOR"],
+    [3, 3, 0, 4, 0, "DATASET"],
+    [4, 4, 0, 5, 0, "DATASET"],
+    [5, 5, 0, 6, 0, "DATASET"],
+    [6, 5, 0, 7, 0, "DATASET"],
+    [7, 7, 0, 8, 0, "STRING"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {}
+}
