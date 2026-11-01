@@ -59,9 +59,15 @@ class CdlDatasetSplitBatches:
                     batch; True gives uniformly sized batches, like a
                     training DataLoader with ``drop_last=True``).
         shuffle   : permute the rows before splitting (default False).
-        seed      : permutation seed — the split is deterministic for a
+        perm_seed : permutation seed — the split is deterministic for a
                     given (seed, n) pair and uses a local ``torch.Generator``,
-                    so the global RNG state is never touched.
+                    so the global RNG state is never touched.  (Named
+                    ``perm_seed`` rather than ``seed`` on purpose: the
+                    frontend attaches a ``control_after_generate`` companion
+                    widget to inputs named ``seed``/``noise_seed``, and that
+                    companion mis-aligns ``widgets_values`` on load when the
+                    node's first input is a forceInput slot — live-reproduced
+                    2026-11-01.)
 
     Output:
         ``OUTPUT_IS_LIST=(True,)`` — one execution yields a list of
@@ -80,7 +86,7 @@ class CdlDatasetSplitBatches:
                 "batch_size": ("INT", {"default": 32, "min": 1, "max": 1000000}),
                 "drop_last": ("BOOLEAN", {"default": False}),
                 "shuffle": ("BOOLEAN", {"default": False}),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 2**31 - 1}),
+                "perm_seed": ("INT", {"default": 0, "min": 0, "max": 2**31 - 1}),
             },
         }
 
@@ -90,14 +96,15 @@ class CdlDatasetSplitBatches:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, dataset, batch_size, drop_last=False, shuffle=False, seed=0):
+    def execute(self, dataset, batch_size, drop_last=False, shuffle=False,
+                perm_seed=0):
         batch_size = int(batch_size)
         if batch_size < 1:
             raise ValueError(f"batch_size must be >= 1, got {batch_size}")
         n = dataset.n_samples
         if shuffle:
             gen = torch.Generator()
-            gen.manual_seed(int(seed))
+            gen.manual_seed(int(perm_seed))
             order = torch.randperm(n, generator=gen)
         else:
             order = None  # keep the zero-copy contiguous slicing path
@@ -107,7 +114,7 @@ class CdlDatasetSplitBatches:
                 "batch_size": batch_size,
                 "drop_last": bool(drop_last),
                 "shuffle": bool(shuffle),
-                "seed": int(seed),
+                "perm_seed": int(perm_seed),
             }
         }
         batches: List[CdlDataset] = []

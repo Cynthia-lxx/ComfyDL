@@ -70,7 +70,7 @@
         {"name": "batches", "type": "DATASET", "links": [4], "slot_index": 0}
       ],
       "properties": {},
-      "widgets_values": [50, false, true, 42, "fixed"],
+      "widgets_values": [50, false, true, 42],
       "title": "Split Batches (shuffled, 50 rows)"
     },
     {
