@@ -1333,7 +1333,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 12. d2l / Datasets（27 个节点）
+## 12. d2l / Datasets（30 个节点）
 
 数据集节点提供端到端的数据集管理能力：下载、加载、查看、预览和统计。下面三个 `DATASET` 适配器将通用 `DATASET` 类型与原始 `TENSOR` x/y 及 `cdlDataloader` 通道相互打通。
 
@@ -2583,7 +2583,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **133 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **136 个节点**，分属 21 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2603,7 +2603,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
 | d2l/Visualization | 13 | 图表与边界框可视化 |
-| d2l/Datasets | 27 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点，以及回归/分类合成数据生成器 |
+| d2l/Datasets | 30 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点，以及回归/分类合成数据生成器 |
 | d2l/Training | 6 | 教科书式线性回归 / softmax 回归训练器（从零实现）+ 带实时 loss 预览与断点续训的一盒式生产回归/分类训练器 + 免骨架模型加载器 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |

@@ -1338,7 +1338,7 @@ Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix ve
 
 ---
 
-## 12. d2l / Datasets (27 nodes)
+## 12. d2l / Datasets (30 nodes)
 
 Datasets nodes provide end-to-end dataset management: download, load, inspect, preview, and compute statistics. The three `DATASET` adapters below bridge the universal `DATASET` type to the raw `TENSOR` x/y and `cdlDataloader` conduits.
 
@@ -2734,7 +2734,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**133 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
+**136 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2754,7 +2754,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
 | d2l/Visualization | 13 | Plots, charts & bounding box visualization |
-| d2l/Datasets | 27 | Dataset download, loading, preview, statistics, DATASET adapters, format readers & writers, and the synthetic regression / classification data generators |
+| d2l/Datasets | 30 | Dataset download, loading, preview, statistics, DATASET adapters, format readers & writers, and the synthetic regression / classification data generators |
 | d2l/Training | 6 | Textbook linear-regression & softmax-regression trainers (from scratch) + one-box production regression / classification trainers with live loss preview & breakpoint continuation + skeleton-free model loaders |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
