@@ -44,13 +44,25 @@ function populate(node, text) {
     node, "cdl_show_text", ["STRING", { multiline: true }], app
   ).widget;
   w.cdlShowText = true;
-  w.inputEl.readOnly = true;
-  w.inputEl.style.opacity = "0.6";
-  w.inputEl.style.fontFamily = "monospace";
-  const lines = Math.min(
-    value.split("\n").length + 1, MAX_WIDGET_LINES
-  );
-  w.inputEl.style.height = Math.min(28 + lines * 14, 760) + "px";
+  // Read-only must survive the frontend re-creating the DOM element
+  // (Nodes 2.0 re-renders widgets): apply property AND attribute, kill the
+  // tab stop, and re-assert one frame later in case the element is swapped
+  // after creation.  populate() re-runs on every execution, so the display
+  // heals itself even if an edit slips through between runs — the backend
+  // write-back is the source of truth.
+  const apply = () => {
+    const el = w.inputEl;
+    if (!el) return;
+    el.readOnly = true;
+    el.setAttribute("readonly", "");
+    el.tabIndex = -1;
+    el.style.opacity = "0.6";
+    el.style.fontFamily = "monospace";
+    const lines = Math.min(value.split("\n").length + 1, MAX_WIDGET_LINES);
+    el.style.height = Math.min(28 + lines * 14, 760) + "px";
+  };
+  apply();
+  requestAnimationFrame(apply);
   w.value = value;
   app.graph.setDirtyCanvas(true, true);
 }
