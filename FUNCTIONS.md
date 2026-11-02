@@ -2734,7 +2734,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**136 nodes** across 21 categories come from ComfyDL itself; the shipped node library adds 98
+**138 nodes** across 22 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |

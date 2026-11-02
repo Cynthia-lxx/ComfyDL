@@ -1,0 +1,154 @@
+{
+  "version": 0.4,
+  "last_node_id": 7,
+  "last_link_id": 10,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [0, 0],
+      "size": [900, 200],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# Column-to-Port Binding (Pack / Unpack)\n\n**Dataset Unpack** turns a `DATASET` into one output port per column (`x0`..`x3` plus the `target`); **Dataset Pack** stacks per-column tensor ports back into a table — the port name *is* the column name (stamp it by connecting from an Unpack port, or rename the slot). The number of ports follows the table schema, so feature-engineering branches can consume individual columns.\n\nThis demo unpacks a 500-row synthetic table, repacks it (port `target` becomes the label again), and previews the head. Run it once: the Unpack node's ports are (re)built from the real schema and persist with the saved workflow."
+      ],
+      "title": "How this works"
+    },
+    {
+      "id": 2,
+      "type": "CdlSyntheticData",
+      "pos": [40, 280],
+      "size": [300, 170],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {"name": "X", "type": "TENSOR", "links": [1], "slot_index": 0},
+        {"name": "y", "type": "TENSOR", "links": [2], "slot_index": 1}
+      ],
+      "properties": {},
+      "widgets_values": [4, 500, 0.05, 42, "fixed"],
+      "title": "Synthetic Data (500 rows)"
+    },
+    {
+      "id": 3,
+      "type": "CdlTensorsToDataset",
+      "pos": [40, 520],
+      "size": [300, 110],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {"name": "X", "type": "TENSOR", "link": 1},
+        {"name": "y", "type": "TENSOR", "link": 2}
+      ],
+      "outputs": [
+        {"name": "dataset", "type": "DATASET", "links": [3], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": [],
+      "title": "Bundle into DATASET"
+    },
+    {
+      "id": 4,
+      "type": "CdlDatasetUnpack",
+      "pos": [430, 280],
+      "size": [320, 260],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {"name": "dataset", "type": "DATASET", "link": 3}
+      ],
+      "outputs": [
+        {"name": "x0", "type": "TENSOR", "links": [4], "slot_index": 0},
+        {"name": "x1", "type": "TENSOR", "links": [5], "slot_index": 1},
+        {"name": "x2", "type": "TENSOR", "links": [6], "slot_index": 2},
+        {"name": "x3", "type": "TENSOR", "links": [7], "slot_index": 3},
+        {"name": "target", "type": "TENSOR", "links": [8], "slot_index": 4}
+      ],
+      "properties": {},
+      "widgets_values": [],
+      "title": "Unpack (one port per column)"
+    },
+    {
+      "id": 5,
+      "type": "CdlDatasetPack",
+      "pos": [430, 600],
+      "size": [320, 280],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {"name": "col_0", "label": "x0", "type": "TENSOR", "link": 4},
+        {"name": "col_1", "label": "x1", "type": "TENSOR", "link": 5},
+        {"name": "col_2", "label": "x2", "type": "TENSOR", "link": 6},
+        {"name": "col_3", "label": "x3", "type": "TENSOR", "link": 7},
+        {"name": "col_4", "label": "target", "type": "TENSOR", "link": 8}
+      ],
+      "outputs": [
+        {"name": "dataset", "type": "DATASET", "links": [9], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": ["target"],
+      "title": "Pack (columns back into a table)"
+    },
+    {
+      "id": 6,
+      "type": "CdlDatasetPreview",
+      "pos": [850, 280],
+      "size": [320, 150],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {"name": "dataset", "type": "DATASET", "link": 9}
+      ],
+      "outputs": [
+        {"name": "preview", "type": "STRING", "links": [10], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": [8],
+      "title": "Preview head"
+    },
+    {
+      "id": 7,
+      "type": "SaveText",
+      "pos": [850, 520],
+      "size": [320, 120],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {"name": "text", "type": "STRING", "link": 10}
+      ],
+      "outputs": [
+        {"name": "text", "type": "STRING", "links": [], "slot_index": 0}
+      ],
+      "properties": {},
+      "widgets_values": ["dataops_preview", "txt"],
+      "title": "Save preview"
+    }
+  ],
+  "links": [
+    [1, 2, 0, 3, 0, "TENSOR"],
+    [2, 2, 1, 3, 1, "TENSOR"],
+    [3, 3, 0, 4, 0, "DATASET"],
+    [4, 4, 0, 5, 0, "TENSOR"],
+    [5, 4, 1, 5, 1, "TENSOR"],
+    [6, 4, 2, 5, 2, "TENSOR"],
+    [7, 4, 3, 5, 3, "TENSOR"],
+    [8, 4, 4, 5, 4, "TENSOR"],
+    [9, 5, 0, 6, 0, "DATASET"],
+    [10, 6, 0, 7, 0, "STRING"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {}
+}

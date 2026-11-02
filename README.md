@@ -100,6 +100,7 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | Category | Count | Description |
 |---|---|---|
 | **CV Models** | 5 | CNN fundamentals & model construction |
+| **DataOps** | 2 |  |
 | **Datasets** | 30 | Dataset download, load, preview & stats, synthetic regression / classification data generators |
 | **Device Utils** | 3 | GPU/CPU device utilities |
 | **GAN** | 2 | GAN training updates |
