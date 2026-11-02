@@ -139,8 +139,50 @@ class CdlWriteDB:
         return (db_path,)
 
 
+#: Write-back limits — the canvas text must never bloat saved workflows
+#: (the full preview string still goes to the STRING output untouched).
+PREVIEW_WRITEBACK_MAX_LINES = 50
+PREVIEW_WRITEBACK_MAX_CHARS = 120
+
+
+def _clip_for_canvas(text: str) -> str:
+    """Clip a preview string for the widgets_values write-back channel."""
+    clipped_lines = []
+    for line in text.splitlines()[:PREVIEW_WRITEBACK_MAX_LINES]:
+        clipped_lines.append(
+            line if len(line) <= PREVIEW_WRITEBACK_MAX_CHARS
+            else line[:PREVIEW_WRITEBACK_MAX_CHARS - 1] + "…"
+        )
+    total = text.count("\n") + 1
+    if total > PREVIEW_WRITEBACK_MAX_LINES:
+        clipped_lines.append(
+            f"… ({total - PREVIEW_WRITEBACK_MAX_LINES} more rows truncated; "
+            "raise the head widget or use the STRING output)"
+        )
+    return "\n".join(clipped_lines)
+
+
 class CdlDatasetPreview:
-    """Render a ``DATASET`` head as a ``STRING`` for quick inspection."""
+    """Render a ``DATASET`` head as a ``STRING`` — and show it on the canvas.
+
+    Output (unchanged contract):
+        one ``STRING`` — the full ``df.head(head).to_string()`` table, ready
+        for ``SaveText`` chaining.  Untouched by the canvas limits below.
+
+    Canvas write-back (SP-6c, ShowText pattern):
+        ``OUTPUT_NODE`` + the hidden ``unique_id``/``extra_pnginfo`` channel:
+        after each execution the node resolves itself in the serialized
+        workflow and writes ``widgets_values = [head, canvas_text]`` — the
+        frontend (``comfydl/web/js/show_text.js``) then renders
+        ``canvas_text`` in a read-only multiline widget under the ``head``
+        slider, and the value persists with the saved workflow (restore via
+        ``onConfigure``).  The same text also rides the ``ui`` channel for
+        live updates.  ``canvas_text`` is clipped to
+        ``PREVIEW_WRITEBACK_MAX_LINES`` x ``PREVIEW_WRITEBACK_MAX_CHARS`` so
+        a 1000-row head can never bloat a saved workflow JSON.
+    """
+
+    OUTPUT_NODE = True
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -151,6 +193,10 @@ class CdlDatasetPreview:
             "optional": {
                 "head": ("INT", {"default": 5, "min": 1, "max": 1000, "step": 1}),
             },
+            "hidden": {
+                "unique_id": "UNIQUE_ID",
+                "extra_pnginfo": "EXTRA_PNGINFO",
+            },
         }
 
     RETURN_TYPES = ("STRING",)
@@ -158,9 +204,24 @@ class CdlDatasetPreview:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, dataset: CdlDataset, head: int = 5):
+    def execute(self, dataset: CdlDataset, head: int = 5,
+                unique_id=None, extra_pnginfo=None):
+        from .data_ops import resolve_workflow_node
+
         df = dataset.to_dataframe()
-        return (df.head(head).to_string(),)
+        text = df.head(head).to_string()
+        canvas_text = _clip_for_canvas(text)
+
+        node, _ = resolve_workflow_node(extra_pnginfo, unique_id)
+        if node is not None:
+            # Widget order contract (frontend show_text.js): index 0 = the
+            # head INT, index 1 = the read-only display widget.
+            node["widgets_values"] = [head, canvas_text]
+
+        return {
+            "ui": {"text": [canvas_text]},
+            "result": (text,),
+        }
 
 
 NODE_CLASS_MAPPINGS.update({

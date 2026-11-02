@@ -10,6 +10,26 @@ zero-copy view when the dtype already matches).  Optional dependencies (openpyxl
 for xlsx, pyodbc for accdb) are imported lazily inside ``execute`` so a missing
 driver raises a readable ``pip install`` hint instead of crashing module load.
 
+Sharding (SP-6c): every reader takes ``start_idx``/``num_samples`` —
+``num_samples=-1`` (the default) reads all rows, a positive value reads that
+many rows starting at ``start_idx``.  The shard is applied to the parsed
+DataFrame *after* the parse, so ``df.iloc[start:end]`` semantics are exact and
+a shard can never collide with the cache (see below).
+
+Caching (SP-6c): the raw parsed ``DataFrame`` is cached under the hot switch
+``comfydl.dataio.cache`` (see :mod:`._dataio_cache` for the key construction,
+the byte budget and the self-metering).  The shard is applied *after* the
+cache, so shard changes are structurally immune to stale-cache bugs and N
+shards share one cached parse.  Every parameter that affects the parsed
+DataFrame (delimiter/header/sheet/query text, the file's mtime_ns+size)
+IS part of the key — a changed file or a changed parse parameter produces a
+new key.  ``target``/``dtype`` are applied after the parse and are therefore
+not part of it.
+
+Empty-value rule: a source with 0 rows, a ``start_idx`` beyond the table, or
+a shard that selects nothing raises a readable ``ValueError`` — readers never
+emit an empty ``DATASET``.
+
 All readers live in the ``d2l/Datasets`` category and output a single ``DATASET``.
 Writers live in :mod:`comfydl.nodes.data_io_writers` (batch 3).
 """
@@ -17,16 +37,54 @@ Writers live in :mod:`comfydl.nodes.data_io_writers` (batch 3).
 from __future__ import annotations
 
 import io
+from typing import Optional
 
+from . import _dataio_cache as _dcache
 from .data_types import CdlDataset
 
 NODE_CLASS_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS = {}
 
+# Declare the hot switch (idempotent; no-op outside the host registry).
+_dcache.register()
+
 
 def _target(target: str) -> Optional[str]:
     """Empty target string means "unlabelled dataset"."""
     return target if target else None
+
+
+def _shard(df, start_idx, num_samples, source: str):
+    """Apply the ``[start : start+num]`` row window (``num<0`` = to the end).
+
+    Raises a readable ``ValueError`` instead of ever returning an empty
+    selection — an empty ``DATASET`` downstream is always a bug the user
+    should hear about at the reader, not a silent 0-row tensor.
+    """
+    n = len(df)
+    start = int(start_idx)
+    num = int(num_samples)
+    if start < 0:
+        raise ValueError(f"{source}: start_idx must be >= 0, got {start}")
+    if num == 0:
+        raise ValueError(
+            f"{source}: num_samples=0 is ambiguous — use -1 for 'all rows' "
+            "or a positive count."
+        )
+    if n == 0:
+        raise ValueError(f"{source}: the source has 0 rows (empty file/query).")
+    if start >= n:
+        raise ValueError(
+            f"{source}: start_idx {start} is out of range for a {n}-row source."
+        )
+    end = n if num < 0 else min(n, start + num)
+    out = df.iloc[start:end]
+    if len(out) == 0:
+        raise ValueError(
+            f"{source}: the shard [{start}:{end}) selects no rows "
+            f"(source has {n} rows)."
+        )
+    return out
 
 
 class CdlReadCSV:
@@ -43,6 +101,8 @@ class CdlReadCSV:
                 "delimiter": ("STRING", {"default": ","}),
                 "dtype": (["float32", "float64"], {"default": "float32"}),
                 "header": ("BOOLEAN", {"default": True}),
+                "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
+                "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
             },
         }
 
@@ -51,12 +111,25 @@ class CdlReadCSV:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, file, target, delimiter=",", dtype="float32", header=True):
+    def execute(self, file, target, delimiter=",", dtype="float32", header=True,
+                start_idx=0, num_samples=-1):
         import pandas as pd
 
-        df = pd.read_csv(
-            file, sep=delimiter, header=0 if header else None, low_memory=False
-        )
+        key = None
+        hit, df = False, None
+        if _dcache.enabled():
+            with _dcache.measure():
+                key = _dcache.cache_key("csv", _dcache.file_stamp(file),
+                                        delimiter, bool(header))
+                hit, df = _dcache.lookup(key)
+        if not hit:
+            df = pd.read_csv(
+                file, sep=delimiter, header=0 if header else None, low_memory=False
+            )
+            if key is not None:
+                with _dcache.measure():
+                    _dcache.store(key, df)
+        df = _shard(df, start_idx, num_samples, source=f"CSV file {file!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
 
@@ -79,6 +152,8 @@ class CdlReadText:
                 "delimiter": ("STRING", {"default": "\t"}),
                 "dtype": (["float32", "float64"], {"default": "float32"}),
                 "header": ("BOOLEAN", {"default": False}),
+                "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
+                "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
             },
         }
 
@@ -87,15 +162,28 @@ class CdlReadText:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, file, target, delimiter="\t", dtype="float32", header=False):
+    def execute(self, file, target, delimiter="\t", dtype="float32", header=False,
+                start_idx=0, num_samples=-1):
         import pandas as pd
 
-        df = pd.read_csv(
-            file,
-            sep=delimiter,
-            header=0 if header else None,
-            engine="python",
-        )
+        key = None
+        hit, df = False, None
+        if _dcache.enabled():
+            with _dcache.measure():
+                key = _dcache.cache_key("text", _dcache.file_stamp(file),
+                                        delimiter, bool(header))
+                hit, df = _dcache.lookup(key)
+        if not hit:
+            df = pd.read_csv(
+                file,
+                sep=delimiter,
+                header=0 if header else None,
+                engine="python",
+            )
+            if key is not None:
+                with _dcache.measure():
+                    _dcache.store(key, df)
+        df = _shard(df, start_idx, num_samples, source=f"text file {file!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
 
@@ -122,6 +210,8 @@ class CdlReadString:
                 "delimiter": ("STRING", {"default": "\t"}),
                 "dtype": (["float32", "float64"], {"default": "float32"}),
                 "header": ("BOOLEAN", {"default": True}),
+                "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
+                "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
             },
         }
 
@@ -130,15 +220,28 @@ class CdlReadString:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, text, target, delimiter="\t", dtype="float32", header=True):
+    def execute(self, text, target, delimiter="\t", dtype="float32", header=True,
+                start_idx=0, num_samples=-1):
         import pandas as pd
 
-        df = pd.read_csv(
-            io.StringIO(text),
-            sep=delimiter,
-            header=0 if header else None,
-            engine="python",
-        )
+        key = None
+        hit, df = False, None
+        if _dcache.enabled():
+            with _dcache.measure():
+                key = _dcache.cache_key("string", _dcache.md5_hex(text),
+                                        delimiter, bool(header))
+                hit, df = _dcache.lookup(key)
+        if not hit:
+            df = pd.read_csv(
+                io.StringIO(text),
+                sep=delimiter,
+                header=0 if header else None,
+                engine="python",
+            )
+            if key is not None:
+                with _dcache.measure():
+                    _dcache.store(key, df)
+        df = _shard(df, start_idx, num_samples, source="inline STRING table")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
 
@@ -154,6 +257,8 @@ class CdlReadJSON:
             },
             "optional": {
                 "dtype": (["float32", "float64"], {"default": "float32"}),
+                "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
+                "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
             },
         }
 
@@ -162,10 +267,21 @@ class CdlReadJSON:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, file, target, dtype="float32"):
+    def execute(self, file, target, dtype="float32", start_idx=0, num_samples=-1):
         import pandas as pd
 
-        df = pd.read_json(file)
+        key = None
+        hit, df = False, None
+        if _dcache.enabled():
+            with _dcache.measure():
+                key = _dcache.cache_key("json", _dcache.file_stamp(file))
+                hit, df = _dcache.lookup(key)
+        if not hit:
+            df = pd.read_json(file)
+            if key is not None:
+                with _dcache.measure():
+                    _dcache.store(key, df)
+        df = _shard(df, start_idx, num_samples, source=f"JSON file {file!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
 
@@ -182,6 +298,8 @@ class CdlReadXLSX:
             "optional": {
                 "sheet": ("STRING", {"default": "0"}),
                 "dtype": (["float32", "float64"], {"default": "float32"}),
+                "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
+                "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
             },
         }
 
@@ -190,11 +308,23 @@ class CdlReadXLSX:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, file, target, sheet="0", dtype="float32"):
+    def execute(self, file, target, sheet="0", dtype="float32",
+                start_idx=0, num_samples=-1):
         import pandas as pd
 
-        sheet_name = sheet if sheet not in ("", "0") else 0
-        df = pd.read_excel(file, sheet_name=sheet_name)
+        key = None
+        hit, df = False, None
+        if _dcache.enabled():
+            with _dcache.measure():
+                key = _dcache.cache_key("xlsx", _dcache.file_stamp(file), sheet)
+                hit, df = _dcache.lookup(key)
+        if not hit:
+            sheet_name = sheet if sheet not in ("", "0") else 0
+            df = pd.read_excel(file, sheet_name=sheet_name)
+            if key is not None:
+                with _dcache.measure():
+                    _dcache.store(key, df)
+        df = _shard(df, start_idx, num_samples, source=f"XLSX file {file!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
 
@@ -215,6 +345,8 @@ class CdlReadDB:
             },
             "optional": {
                 "dtype": (["float32", "float64"], {"default": "float32"}),
+                "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
+                "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
             },
         }
 
@@ -223,13 +355,26 @@ class CdlReadDB:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, db_path, query, target, dtype="float32"):
+    def execute(self, db_path, query, target, dtype="float32",
+                start_idx=0, num_samples=-1):
         import pandas as pd
         from sqlalchemy import create_engine, text
 
-        engine = create_engine(f"sqlite:///{db_path}")
-        with engine.connect() as conn:
-            df = pd.read_sql_query(text(query), conn)
+        key = None
+        hit, df = False, None
+        if _dcache.enabled():
+            with _dcache.measure():
+                key = _dcache.cache_key("db", _dcache.file_stamp(db_path),
+                                        _dcache.md5_hex(query))
+                hit, df = _dcache.lookup(key)
+        if not hit:
+            engine = create_engine(f"sqlite:///{db_path}")
+            with engine.connect() as conn:
+                df = pd.read_sql_query(text(query), conn)
+            if key is not None:
+                with _dcache.measure():
+                    _dcache.store(key, df)
+        df = _shard(df, start_idx, num_samples, source=f"SQLite {db_path!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
 
@@ -252,6 +397,8 @@ class CdlReadAccDB:
             },
             "optional": {
                 "dtype": (["float32", "float64"], {"default": "float32"}),
+                "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
+                "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
             },
         }
 
@@ -260,7 +407,8 @@ class CdlReadAccDB:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
-    def execute(self, db_path, query, target, dtype="float32"):
+    def execute(self, db_path, query, target, dtype="float32",
+                start_idx=0, num_samples=-1):
         try:
             import pyodbc
         except ImportError as exc:  # pragma: no cover - optional driver
@@ -271,13 +419,25 @@ class CdlReadAccDB:
             ) from exc
         import pandas as pd
 
-        conn = pyodbc.connect(
-            f"Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path};"
-        )
-        try:
-            df = pd.read_sql(query, conn)
-        finally:
-            conn.close()
+        key = None
+        hit, df = False, None
+        if _dcache.enabled():
+            with _dcache.measure():
+                key = _dcache.cache_key("accdb", _dcache.file_stamp(db_path),
+                                        _dcache.md5_hex(query))
+                hit, df = _dcache.lookup(key)
+        if not hit:
+            conn = pyodbc.connect(
+                f"Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path};"
+            )
+            try:
+                df = pd.read_sql(query, conn)
+            finally:
+                conn.close()
+            if key is not None:
+                with _dcache.measure():
+                    _dcache.store(key, df)
+        df = _shard(df, start_idx, num_samples, source=f"Access DB {db_path!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
 

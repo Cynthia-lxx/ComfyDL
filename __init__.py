@@ -17,7 +17,12 @@ from collections import Counter
 
 from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+# Frontend assets served by the server at /extensions/comfydl/... (declared
+# here so the custom-node web-folder contract finds them; nodes.py registers
+# the folder for this top-level package in init_builtin_dl_nodes).
+WEB_DIRECTORY = "./web"
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
 
 
 def _print_startup_info():
