@@ -176,6 +176,14 @@ class CdlReadCSV:
                 "header": ("BOOLEAN", {"default": True}),
                 "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
                 "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
+                "single_line_guard": ("BOOLEAN", {
+                    "default": True,
+                    "advanced": True,
+                    "tooltip": "Refuse huge single-line files before parsing "
+                               "(a JSON dump would wedge the executor in "
+                               "uninterruptible C code). Disable only if you "
+                               "really have one giant record.",
+                }),
             },
         }
 
@@ -185,7 +193,7 @@ class CdlReadCSV:
     CATEGORY = "d2l/Datasets"
 
     def execute(self, file, target, delimiter=",", dtype="float32", header=True,
-                start_idx=0, num_samples=-1):
+                start_idx=0, num_samples=-1, single_line_guard=True):
         import pandas as pd
 
         file = _resolve_input_path(file)
@@ -197,7 +205,8 @@ class CdlReadCSV:
                                         delimiter, bool(header))
                 hit, df = _dcache.lookup(key)
         if not hit:
-            _guard_line_oriented(file, source=f"CSV file {file!r}")
+            if single_line_guard:
+                _guard_line_oriented(file, source=f"CSV file {file!r}")
             df = pd.read_csv(
                 file, sep=delimiter, header=0 if header else None, low_memory=False
             )
@@ -229,6 +238,13 @@ class CdlReadText:
                 "header": ("BOOLEAN", {"default": False}),
                 "start_idx": ("INT", {"default": 0, "min": 0, "max": 1000000000}),
                 "num_samples": ("INT", {"default": -1, "min": -1, "max": 1000000000}),
+                "single_line_guard": ("BOOLEAN", {
+                    "default": True,
+                    "advanced": True,
+                    "tooltip": "Refuse huge single-line files before parsing "
+                               "(they would wedge the executor in "
+                               "uninterruptible C code).",
+                }),
             },
         }
 
@@ -238,7 +254,7 @@ class CdlReadText:
     CATEGORY = "d2l/Datasets"
 
     def execute(self, file, target, delimiter="\t", dtype="float32", header=False,
-                start_idx=0, num_samples=-1):
+                start_idx=0, num_samples=-1, single_line_guard=True):
         import pandas as pd
 
         file = _resolve_input_path(file)
@@ -250,7 +266,8 @@ class CdlReadText:
                                         delimiter, bool(header))
                 hit, df = _dcache.lookup(key)
         if not hit:
-            _guard_line_oriented(file, source=f"text file {file!r}")
+            if single_line_guard:
+                _guard_line_oriented(file, source=f"text file {file!r}")
             df = pd.read_csv(
                 file,
                 sep=delimiter,
