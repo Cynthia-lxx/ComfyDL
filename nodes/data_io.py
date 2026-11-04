@@ -97,6 +97,25 @@ def _resolve_input_path(file: str) -> str:
     )
 
 
+def _file_fingerprint(kwargs: dict, param: str):
+    """``IS_CHANGED`` fingerprint for a file-backed reader (official contract).
+
+    Returns ``(normcase abspath, mtime_ns, size)`` — the exact tuple that
+    feeds the DataFrame-cache key, so ComfyUI's execution cache and the
+    in-execute DataFrame cache share one notion of "the file changed".
+    Per the official docs (``server_overview.mdx``): the value is compared
+    with the previous run via ``!=`` and must never be a ``bool``.  When the
+    file cannot be resolved/stat'd we return ``NaN`` (never equal to
+    anything, so the node re-runs and ``execute`` raises the readable
+    "tried: ..." error).
+    """
+    try:
+        resolved = _resolve_input_path(kwargs.get(param))
+    except Exception:  # noqa: BLE001 - missing/unreadable: force re-run
+        return float("NaN")
+    return _dcache.file_stamp(resolved)
+
+
 #: Guards the line-oriented readers against pathological inputs: a very large
 #: file whose first chunk contains no line break (a JSON dump, a single giant
 #: record) would explode the pandas C parser into millions of columns and
@@ -192,6 +211,11 @@ class CdlReadCSV:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        """File fingerprint for the execution cache — see ``_file_fingerprint``."""
+        return _file_fingerprint(kwargs, "file")
+
     def execute(self, file, target, delimiter=",", dtype="float32", header=True,
                 start_idx=0, num_samples=-1, single_line_guard=True):
         import pandas as pd
@@ -212,7 +236,9 @@ class CdlReadCSV:
             )
             if key is not None:
                 with _dcache.measure():
-                    _dcache.store(key, df)
+                    _dcache.store(key, df, meta=_dcache.describe(
+                        "csv", os.path.basename(file), file,
+                        f"sep={delimiter!r} header={'on' if header else 'off'}"))
         df = _shard(df, start_idx, num_samples, source=f"CSV file {file!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
@@ -253,6 +279,11 @@ class CdlReadText:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        """File fingerprint for the execution cache — see ``_file_fingerprint``."""
+        return _file_fingerprint(kwargs, "file")
+
     def execute(self, file, target, delimiter="\t", dtype="float32", header=False,
                 start_idx=0, num_samples=-1, single_line_guard=True):
         import pandas as pd
@@ -276,7 +307,9 @@ class CdlReadText:
             )
             if key is not None:
                 with _dcache.measure():
-                    _dcache.store(key, df)
+                    _dcache.store(key, df, meta=_dcache.describe(
+                        "text", os.path.basename(file), file,
+                        f"sep={delimiter!r} header={'on' if header else 'off'}"))
         df = _shard(df, start_idx, num_samples, source=f"text file {file!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
@@ -334,7 +367,9 @@ class CdlReadString:
             )
             if key is not None:
                 with _dcache.measure():
-                    _dcache.store(key, df)
+                    _dcache.store(key, df, meta=_dcache.describe(
+                        "string", "inline STRING", None,
+                        f"sep={delimiter!r} header={'on' if header else 'off'}"))
         df = _shard(df, start_idx, num_samples, source="inline STRING table")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
@@ -361,6 +396,11 @@ class CdlReadJSON:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        """File fingerprint for the execution cache — see ``_file_fingerprint``."""
+        return _file_fingerprint(kwargs, "file")
+
     def execute(self, file, target, dtype="float32", start_idx=0, num_samples=-1):
         import pandas as pd
 
@@ -375,7 +415,8 @@ class CdlReadJSON:
             df = pd.read_json(file)
             if key is not None:
                 with _dcache.measure():
-                    _dcache.store(key, df)
+                    _dcache.store(key, df, meta=_dcache.describe(
+                        "json", os.path.basename(file), file))
         df = _shard(df, start_idx, num_samples, source=f"JSON file {file!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
@@ -403,6 +444,11 @@ class CdlReadXLSX:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        """File fingerprint for the execution cache — see ``_file_fingerprint``."""
+        return _file_fingerprint(kwargs, "file")
+
     def execute(self, file, target, sheet="0", dtype="float32",
                 start_idx=0, num_samples=-1):
         import pandas as pd
@@ -419,7 +465,9 @@ class CdlReadXLSX:
             df = pd.read_excel(file, sheet_name=sheet_name)
             if key is not None:
                 with _dcache.measure():
-                    _dcache.store(key, df)
+                    _dcache.store(key, df, meta=_dcache.describe(
+                        "xlsx", os.path.basename(file), file,
+                        f"sheet={sheet!r}"))
         df = _shard(df, start_idx, num_samples, source=f"XLSX file {file!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
@@ -451,6 +499,11 @@ class CdlReadDB:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        """File fingerprint for the execution cache — see ``_file_fingerprint``."""
+        return _file_fingerprint(kwargs, "db_path")
+
     def execute(self, db_path, query, target, dtype="float32",
                 start_idx=0, num_samples=-1):
         import pandas as pd
@@ -470,7 +523,9 @@ class CdlReadDB:
                 df = pd.read_sql_query(text(query), conn)
             if key is not None:
                 with _dcache.measure():
-                    _dcache.store(key, df)
+                    _dcache.store(key, df, meta=_dcache.describe(
+                        "db", os.path.basename(db_path), db_path,
+                        "SQL: " + " ".join(query.split())[:120]))
         df = _shard(df, start_idx, num_samples, source=f"SQLite {db_path!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 
@@ -504,6 +559,11 @@ class CdlReadAccDB:
     FUNCTION = "execute"
     CATEGORY = "d2l/Datasets"
 
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        """File fingerprint for the execution cache — see ``_file_fingerprint``."""
+        return _file_fingerprint(kwargs, "db_path")
+
     def execute(self, db_path, query, target, dtype="float32",
                 start_idx=0, num_samples=-1):
         try:
@@ -534,7 +594,9 @@ class CdlReadAccDB:
                 conn.close()
             if key is not None:
                 with _dcache.measure():
-                    _dcache.store(key, df)
+                    _dcache.store(key, df, meta=_dcache.describe(
+                        "accdb", os.path.basename(db_path), db_path,
+                        "SQL: " + " ".join(query.split())[:120]))
         df = _shard(df, start_idx, num_samples, source=f"Access DB {db_path!r}")
         return (CdlDataset.from_dataframe(df, target=_target(target), dtype=dtype),)
 

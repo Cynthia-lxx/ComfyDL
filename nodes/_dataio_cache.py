@@ -30,6 +30,14 @@ Memory discipline (RAM is expensive — this is a budget, not a pagefile):
 * accounting uses ``df.memory_usage(deep=True).sum()`` computed once at
   store time.
 
+Per-entry metadata (Profiling "Data cache" card): a side table ``_META``
+mirrors every live cache key with display/bookkeeping facts — reader family,
+display label, source path, file stamp, parse parameters, cached byte size,
+hit count, stored/last-hit timestamps (use_count/last_used ledger pattern,
+cf. ComfyUI-Model-Analytics).  The payload table stays pure DataFrames; the
+meta table is popped in lockstep on replacement, eviction and clear, so
+``entries()`` can never describe a frame that is no longer cached.
+
 Switch/telemetry (ADR-D1): the cache registers the hot switch
 ``comfydl.dataio.cache`` in ``comfy.profiling.switch_registry`` (default ON,
 self-metered).  Only the cache layer's *own* work (key building, stat,
@@ -58,6 +66,7 @@ MAX_ENTRIES = 64
 
 _LOCK = threading.Lock()
 _CACHE: "OrderedDict[str, Any]" = OrderedDict()
+_META: Dict[str, Dict[str, Any]] = {}
 _CACHED_BYTES = 0
 _STATS: Dict[str, int] = {
     "hits": 0,
@@ -162,11 +171,49 @@ def lookup(key: str) -> Tuple[bool, Any]:
             return False, None
         _CACHE.move_to_end(key)
         _STATS["hits"] += 1
+        meta = _META.get(key)
+        if meta is not None:
+            meta["hits"] += 1
+            meta["last_hit"] = time.time()
         return True, df
 
 
-def store(key: str, df: Any) -> None:
-    """Insert/refresh a DataFrame under the byte budget (FIFO eviction)."""
+def describe(
+    reader: str,
+    label: str,
+    file_path: Any = None,
+    params: str = "",
+) -> Dict[str, Any]:
+    """Build the per-entry display metadata recorded by :func:`store`.
+
+    ``reader``    -- reader family id (``"csv"``, ``"json"``, ``"db"`` ...);
+    ``label``     -- short human label (file basename / ``"inline STRING"``);
+    ``file_path`` -- source file path (``None`` for inline payloads; the
+                     stamp fields then stay ``None``);
+    ``params``    -- parse parameters worth showing (delimiter/header/sheet
+                     or a trimmed query snippet).
+    """
+    if file_path is not None:
+        norm, mtime_ns, size = file_stamp(str(file_path))
+    else:
+        norm, mtime_ns, size = None, None, None
+    return {
+        "reader": reader,
+        "label": label,
+        "path": norm,
+        "mtime_ns": mtime_ns,
+        "file_size": size,
+        "params": params,
+    }
+
+
+def store(key: str, df: Any, meta: Any = None) -> None:
+    """Insert/refresh a DataFrame under the byte budget (FIFO eviction).
+
+    ``meta`` is an optional :func:`describe` payload; when given it is
+    stored (with bookkeeping fields added) alongside the frame and popped
+    again by replacement, eviction and :func:`clear`.
+    """
     global _CACHED_BYTES
     try:
         nbytes = int(df.memory_usage(deep=True).sum())
@@ -175,6 +222,7 @@ def store(key: str, df: Any) -> None:
     with _LOCK:
         old = _CACHE.pop(key, None)
         if old is not None:
+            _META.pop(key, None)
             try:
                 _CACHED_BYTES -= int(old.memory_usage(deep=True).sum())
             except Exception:  # noqa: BLE001
@@ -186,11 +234,19 @@ def store(key: str, df: Any) -> None:
             len(_CACHE) >= MAX_ENTRIES
             or _CACHED_BYTES + nbytes > MAX_TOTAL_BYTES
         ):
-            _, evicted = _CACHE.popitem(last=False)
+            evicted_key, evicted = _CACHE.popitem(last=False)
+            _META.pop(evicted_key, None)
             _CACHED_BYTES -= int(evicted.memory_usage(deep=True).sum())
             _STATS["evictions"] += 1
         _CACHE[key] = df
         _CACHED_BYTES += nbytes
+        if meta is not None:
+            record = dict(meta)
+            record["cached_bytes"] = nbytes
+            record["hits"] = 0
+            record["stored_ts"] = time.time()
+            record["last_hit"] = None
+            _META[key] = record
 
 
 def clear() -> None:
@@ -198,7 +254,27 @@ def clear() -> None:
     global _CACHED_BYTES
     with _LOCK:
         _CACHE.clear()
+        _META.clear()
         _CACHED_BYTES = 0
+
+
+def entries() -> list:
+    """Per-entry metadata for live cache entries (newest stored first).
+
+    Each record: ``key`` (md5 hex), ``reader``, ``label``, ``path``,
+    ``mtime_ns``, ``file_size``, ``params``, ``cached_bytes``, ``hits``,
+    ``stored_ts``, ``last_hit``.  Payloads are never included.
+    """
+    with _LOCK:
+        out = []
+        for key, meta in _META.items():
+            if key not in _CACHE:
+                continue  # defensive: meta outlived its frame
+            record = dict(meta)
+            record["key"] = key
+            out.append(record)
+        out.sort(key=lambda r: r.get("stored_ts") or 0.0, reverse=True)
+        return out
 
 
 def stats() -> Dict[str, int]:

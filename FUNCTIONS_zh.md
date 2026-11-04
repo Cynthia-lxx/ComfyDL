@@ -1401,6 +1401,15 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 ### Read AccDB → Dataset（读取 Access → 数据集）
 - **类名**：`CdlReadAccDB` — 通过 pyodbc 读取 Microsoft Access `.accdb`/`.mdb`（需 `pip install pyodbc` 及 Access 驱动）。输入：`db_path`、`query`、`target`、`dtype`。输出 `dataset`。
 
+> **读取族共享行为**（全部 7 个读取节点）：均带可选 `start_idx` / `num_samples`
+> （`-1` = 全部行）在缓存之后对解析结果分片。文件型读取节点按 ComfyUI 惯例解析
+> 路径（绝对路径直通、裸文件名先查 `input/` 目录、CWD 兜底），并暴露 `IS_CHANGED`
+> 指纹——`(路径, mtime_ns, 大小)`——让 ComfyUI 执行缓存对未变更的读取直接整节点跳过。
+> 解析结果以 DataFrame 形式缓存（键覆盖路径 + mtime + 全部解析参数；分片共享同一份
+> 缓存解析）；实时清单见 Profiling 面板的**数据缓存**卡。`CdlReadCSV` /
+> `CdlReadText` 另有 Advanced 开关 `single_line_guard`（默认开）：超过 1MB 且无任何
+> 换行的文件毫秒级报可读错误，不会把执行器卡死在 C 解析器里。
+
 ### Dataset → Write CSV（数据集 → 写 CSV）
 - **类名**：`CdlWriteCSV`
 - **功能**：将 `DATASET` 写入 CSV 文件并返回路径以便串联。

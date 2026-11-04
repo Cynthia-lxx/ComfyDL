@@ -1431,6 +1431,18 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 - **Inputs**: `db_path`, `query` (`STRING` multiline), `target`, `dtype`
 - **Outputs**: `dataset` (`DATASET`)
 
+> **Read-family shared behaviour** (all 7 readers): every reader takes optional
+> `start_idx` / `num_samples` (`-1` = all rows) that shard the parsed table after
+> caching. File-backed readers resolve paths the ComfyUI way (absolute as-is, bare
+> names from the `input/` directory, CWD fallback) and expose an `IS_CHANGED`
+> fingerprint — `(path, mtime_ns, size)` — so ComfyUI's execution cache skips
+> unchanged reads entirely. Parsed tables are cached as DataFrames (key covers
+> path + mtime + all parse parameters; shards share one cached parse); the live
+> inventory is visible in the Profiling panel's **Data cache** card.
+> `CdlReadCSV` / `CdlReadText` additionally carry the Advanced toggle
+> `single_line_guard` (default on): a >1 MB file without any line break fails
+> fast with a readable error instead of wedging the executor in the C parser.
+
 ### Dataset → Write CSV
 - **Class**: `CdlWriteCSV`
 - **Purpose**: Writes a `DATASET` to a CSV file and returns the path for chaining.
