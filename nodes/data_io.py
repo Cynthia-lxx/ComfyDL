@@ -37,6 +37,7 @@ Writers live in :mod:`comfydl.nodes.data_io_writers` (batch 3).
 from __future__ import annotations
 
 import io
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -94,6 +95,36 @@ def _resolve_input_path(file: str) -> str:
         " (absolute paths are used as-is; bare filenames are looked up in "
         "the ComfyUI input directory first)"
     )
+
+
+#: Guards the line-oriented readers against pathological inputs: a very large
+#: file whose first chunk contains no line break (a JSON dump, a single giant
+#: record) would explode the pandas C parser into millions of columns and
+#: wedge the executor inside uninterruptible C code for hours — the whole
+#: queue then looks dead because prompts run serially.  Fail fast instead.
+_LINE_SCAN_BYTES = 64 * 1024
+_LINE_SCAN_MIN_FILE = 1 * 1024 * 1024
+
+
+def _guard_line_oriented(path: str, source: str) -> None:
+    """Reject huge single-line files before they reach the CSV parser."""
+    try:
+        size = os.path.getsize(path)
+        if size < _LINE_SCAN_MIN_FILE:
+            return
+        with open(path, "rb") as fh:
+            chunk = fh.read(_LINE_SCAN_BYTES)
+        if b"\n" not in chunk:
+            raise ValueError(
+                f"{source}: the first {_LINE_SCAN_BYTES // 1024} KB of this "
+                f"{size / 1e6:.1f} MB file contain no line break — it does "
+                "not look like a line-oriented CSV/text table (a JSON dump "
+                "or other single-line file would wedge the parser for "
+                "hours). Use CdlReadJSON for JSON, or re-export the data "
+                "with line breaks."
+            )
+    except OSError:
+        return  # let the parser itself report the unreadable file
 
 
 def _shard(df, start_idx, num_samples, source: str):
@@ -166,6 +197,7 @@ class CdlReadCSV:
                                         delimiter, bool(header))
                 hit, df = _dcache.lookup(key)
         if not hit:
+            _guard_line_oriented(file, source=f"CSV file {file!r}")
             df = pd.read_csv(
                 file, sep=delimiter, header=0 if header else None, low_memory=False
             )
@@ -218,6 +250,7 @@ class CdlReadText:
                                         delimiter, bool(header))
                 hit, df = _dcache.lookup(key)
         if not hit:
+            _guard_line_oriented(file, source=f"text file {file!r}")
             df = pd.read_csv(
                 file,
                 sep=delimiter,
