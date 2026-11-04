@@ -169,16 +169,19 @@ class CdlDatasetPreview:
         one ``STRING`` — the full ``df.head(head).to_string()`` table, ready
         for ``SaveText`` chaining.  Untouched by the canvas limits below.
 
-    Canvas write-back (SP-6c, ShowText pattern):
+    Canvas write-back (SP-6c + dual-renderer rich widget):
         ``OUTPUT_NODE`` + the hidden ``unique_id``/``extra_pnginfo`` channel:
         after each execution the node resolves itself in the serialized
-        workflow and writes ``widgets_values = [head, canvas_text]`` — the
-        frontend (``comfydl/web/js/show_text.js``) then renders
-        ``canvas_text`` in a read-only multiline widget under the ``head``
-        slider, and the value persists with the saved workflow (restore via
-        ``onConfigure``).  The same text also rides the ``ui`` channel for
-        live updates.  ``canvas_text`` is clipped to
-        ``PREVIEW_WRITEBACK_MAX_LINES`` x ``PREVIEW_WRITEBACK_MAX_CHARS`` so
+        workflow and writes ``widgets_values = [head, canvas_text]``.
+        ``richwidget.js`` renders the text as a scrollable canvas report in
+        both Legacy and Nodes 2.0.  ``show_text.js`` keeps a hidden, read-only
+        multiline state widget so the serialized contract stays exactly
+        ``[head, canvas_text]`` and remains the visible DOM fallback when
+        custom widgets are unavailable.  Workflow restore uses the official
+        ``beforeConfigureGraph`` / ``loadedGraphNode`` hooks so the frontend's
+        widget-value migration cannot shift ``canvas_text`` into ``head``.
+        The same text rides the ``ui`` channel for live updates and is clipped
+        to ``PREVIEW_WRITEBACK_MAX_LINES`` x ``PREVIEW_WRITEBACK_MAX_CHARS`` so
         a 1000-row head can never bloat a saved workflow JSON.
     """
 

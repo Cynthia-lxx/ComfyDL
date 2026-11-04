@@ -35,6 +35,7 @@ function removeDisplayWidgets(node) {
 }
 
 function populate(node, text) {
+  const richActive = !!node.__cdlRichPreview?.widget;
   // text arrives as the ui payload's list (one entry: the whole clipped
   // table) or as a saved string — normalize to one string.
   const value = Array.isArray(text) ? text.join("\n") : String(text ?? "");
@@ -44,6 +45,17 @@ function populate(node, text) {
     node, "cdl_show_text", ["STRING", { multiline: true }], app
   ).widget;
   w.cdlShowText = true;
+  if (richActive) {
+    // Keep [head, canvas_text] schema-backed even though the canvas is the
+    // visible renderer. Both hidden marks are required by the two renderers;
+    // Nodes 2.0 also needs zero layout and a real display:none on the DOM row.
+    w.hidden = true;
+    w.options.hidden = true;
+    w.computeSize = () => [0, -4];
+    w.computeLayoutSize = () => ({
+      minHeight: 0, maxHeight: 0, minWidth: 0, maxWidth: 0,
+    });
+  }
   // Read-only must survive the frontend re-creating the DOM element
   // (Nodes 2.0 re-renders widgets): apply property AND attribute, kill the
   // tab stop, and re-assert one frame later in case the element is swapped
@@ -58,12 +70,28 @@ function populate(node, text) {
     el.tabIndex = -1;
     el.style.opacity = "0.6";
     el.style.fontFamily = "monospace";
-    const lines = Math.min(value.split("\n").length + 1, MAX_WIDGET_LINES);
-    el.style.height = Math.min(28 + lines * 14, 760) + "px";
+    if (richActive) {
+      el.style.display = "none";
+    } else {
+      const lines = Math.min(value.split("\n").length + 1, MAX_WIDGET_LINES);
+      el.style.height = Math.min(28 + lines * 14, 760) + "px";
+    }
   };
   apply();
   requestAnimationFrame(apply);
   w.value = value;
+  if (richActive) {
+    // A non-serialized widget before a serialized one is saved as a null
+    // placeholder on some frontend versions. Keep the rich renderer last so
+    // the persisted contract remains exactly [head, canvas_text].
+    const rich = node.__cdlRichPreview.widget;
+    const index = node.widgets.indexOf(rich);
+    if (index >= 0 && index !== node.widgets.length - 1) {
+      node.widgets.splice(index, 1);
+      node.widgets.push(rich);
+    }
+    rich.triggerDraw?.();
+  }
   app.graph.setDirtyCanvas(true, true);
 }
 
@@ -72,6 +100,15 @@ app.registerExtension({
   beforeRegisterNodeDef(nodeType) {
     if (nodeType.comfyClass !== "CdlDatasetPreview") return;
 
+    const onNodeCreated = nodeType.prototype.onNodeCreated;
+    nodeType.prototype.onNodeCreated = function () {
+      const result = onNodeCreated?.apply(this, arguments);
+      // Create the serialized state slot BEFORE workflow values are mapped.
+      // Otherwise the legacy canvas_text value can be assigned to head.
+      if (this.__cdlRichPreview?.widget) populate(this, "");
+      return result;
+    };
+
     const onExecuted = nodeType.prototype.onExecuted;
     nodeType.prototype.onExecuted = function (message) {
       onExecuted?.apply(this, arguments);
@@ -79,11 +116,27 @@ app.registerExtension({
     };
 
     const onConfigure = nodeType.prototype.onConfigure;
-    nodeType.prototype.onConfigure = function () {
+    nodeType.prototype.onConfigure = function (info) {
       onConfigure?.apply(this, arguments);
+      // Use the raw snapshot: before the hidden state widget is recreated,
+      // LiteGraph can otherwise misassign the legacy text slot to head.
+      const v = info?.widgets_values ?? this.widgets_values;
+      const head = this.widgets?.find((w) => w.name === "head");
+      if (head && v && v.length > 0) head.value = v[0];
       // widgets_values[0] is the head INT; [1:] is the saved display text.
-      const v = this.widgets_values;
       if (v && v.length > 1) populate(this, v.slice(1));
     };
+  },
+
+  loadedGraphNode(node) {
+    if (node.comfyClass !== "CdlDatasetPreview") return;
+    setTimeout(() => {
+      // Nodes 2.0 may discard dynamically added widgets during configure.
+      // RichWidget restores cdl_preview_text first; recreate the hidden
+      // serialized slot afterwards so the next save keeps [head, text].
+      const saved = node.properties?.cdl_preview_text
+        ?? node.widgets?.find((w) => w.cdlShowText)?.value;
+      if (saved) populate(node, saved);
+    }, 0);
   },
 });

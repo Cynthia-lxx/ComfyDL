@@ -1472,6 +1472,11 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 - **Purpose**: Renders the `DATASET` head as a `STRING` for quick inspection.
 - **Inputs**: `dataset` (`DATASET`, `forceInput`), `head` (`INT`, default 5)
 - **Outputs**: `preview` (`STRING`)
+- **Frontend**: a scrollable canvas report supports both Legacy and Nodes 2.0
+  (drag to scroll, resize normally). A hidden read-only ShowText state widget
+  preserves the exact `[head, canvas_text]` workflow contract; it becomes the
+  visible fallback if custom widgets are unavailable. Saving and loading uses
+  `node.properties` plus pre-migration widget values, including subgraphs.
 
 ### Formula Data Generator
 - **Class**: `CdlFormulaDataGen` (`comfydl/nodes/data_gen.py`)

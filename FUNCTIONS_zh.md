@@ -1427,6 +1427,10 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ### Dataset → Preview（数据集 → 预览）
 - **类名**：`CdlDatasetPreview` — 将 `DATASET` 头部渲染为 `STRING` 便于快速查看。输入：`dataset`（`forceInput`）、`head`（`INT`，默认 5）。输出 `preview`（`STRING`）。
+- **前端**：可滚动 canvas 报告同时支持 Legacy 与 Nodes 2.0（拖拽滚动、正常调整
+  节点尺寸）。隐藏的只读 ShowText 状态 widget 保持严格的 `[head, canvas_text]`
+  工作流契约；custom widget 不可用时它转为可见降级。保存/加载通过
+  `node.properties` 与迁移前原始 widget 值恢复，覆盖子图。
 
 ### Formula Data Generator（公式数据生成器）
 - **类名**：`CdlFormulaDataGen`（`comfydl/nodes/data_gen.py`）
