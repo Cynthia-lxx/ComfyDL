@@ -37,6 +37,7 @@ Writers live in :mod:`comfydl.nodes.data_io_writers` (batch 3).
 from __future__ import annotations
 
 import io
+from pathlib import Path
 from typing import Optional
 
 from . import _dataio_cache as _dcache
@@ -52,6 +53,47 @@ _dcache.register()
 def _target(target: str) -> Optional[str]:
     """Empty target string means "unlabelled dataset"."""
     return target if target else None
+
+
+def _resolve_input_path(file: str) -> str:
+    """Resolve a user-supplied path the ComfyUI way (SP-6c hotfix).
+
+    ComfyUI convention: file inputs live in the ``input/`` directory and users
+    type bare filenames.  Resolution order:
+
+    1. absolute path — used as-is (backwards compatible, sandbox/bench safe);
+    2. bare/relative name — first tried against ``folder_paths``
+       ``get_input_directory()`` (the ``<ComfyUI>\\input\\`` root);
+    3. then CWD-relative (legacy behaviour, what the smoke harness relies on
+       with its ``chdir`` sandbox).
+
+    Raises a readable ``FileNotFoundError`` naming every candidate when
+    nothing resolves — a bare ``pandas`` ENOENT never says where it looked.
+    """
+    p = str(file or "").strip()
+    if not p:
+        return p
+    cand = Path(p)
+    if cand.is_absolute():
+        return p
+    tried = []
+    try:
+        import folder_paths
+
+        merged = Path(folder_paths.get_input_directory()) / p
+        tried.append(str(merged))
+        if merged.is_file():
+            return str(merged)
+    except Exception:  # noqa: BLE001 - no host: straight to the CWD fallback
+        pass
+    tried.append(str(Path.cwd() / p))
+    if cand.is_file():
+        return p
+    raise FileNotFoundError(
+        f"input file {p!r} not found — tried: " + "; ".join(tried) +
+        " (absolute paths are used as-is; bare filenames are looked up in "
+        "the ComfyUI input directory first)"
+    )
 
 
 def _shard(df, start_idx, num_samples, source: str):
@@ -115,6 +157,7 @@ class CdlReadCSV:
                 start_idx=0, num_samples=-1):
         import pandas as pd
 
+        file = _resolve_input_path(file)
         key = None
         hit, df = False, None
         if _dcache.enabled():
@@ -166,6 +209,7 @@ class CdlReadText:
                 start_idx=0, num_samples=-1):
         import pandas as pd
 
+        file = _resolve_input_path(file)
         key = None
         hit, df = False, None
         if _dcache.enabled():
@@ -270,6 +314,7 @@ class CdlReadJSON:
     def execute(self, file, target, dtype="float32", start_idx=0, num_samples=-1):
         import pandas as pd
 
+        file = _resolve_input_path(file)
         key = None
         hit, df = False, None
         if _dcache.enabled():
@@ -312,6 +357,7 @@ class CdlReadXLSX:
                 start_idx=0, num_samples=-1):
         import pandas as pd
 
+        file = _resolve_input_path(file)
         key = None
         hit, df = False, None
         if _dcache.enabled():
@@ -360,6 +406,7 @@ class CdlReadDB:
         import pandas as pd
         from sqlalchemy import create_engine, text
 
+        db_path = _resolve_input_path(db_path)
         key = None
         hit, df = False, None
         if _dcache.enabled():
@@ -419,6 +466,7 @@ class CdlReadAccDB:
             ) from exc
         import pandas as pd
 
+        db_path = _resolve_input_path(db_path)
         key = None
         hit, df = False, None
         if _dcache.enabled():
