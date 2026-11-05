@@ -1480,20 +1480,25 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
 
 ### Dataset → Histogram
 - **Class**: `CdlDatasetHistogram` (`comfydl/nodes/visualization.py`)
-- **Purpose**: Aggregates one `DATASET` column (any feature, or the label
-  column) into a histogram summary and renders it as a rich custom-canvas
-  widget (Legacy + Nodes 2.0) with hover bin read-outs. Aggregation happens
-  server-side: no raw data reaches the frontend and the saved workflow only
-  carries `2*bins + O(1)` numbers plus the column-name list.
+- **Purpose**: Aggregates EVERY numeric `DATASET` column (all features plus
+  the label column) into per-column histogram summaries and renders them as
+  a rich custom-canvas widget (Legacy + Nodes 2.0) with hover bin read-outs.
+  The payload carries a `series` map, so switching the plotted column in
+  the combo redraws instantly from cached data — no re-run needed.
+  Aggregation happens server-side: no raw data reaches the frontend and
+  the saved workflow only carries `_HIST_MAX_NAMES` columns x `bins+6`
+  numbers each.
 - **Inputs**: `dataset` (`DATASET`, `forceInput`), `feature` (combo, `*` =
   first column; the option list refreshes from the dataset after the first
-  run), `bins` (INT, default 32), `max_examples` (INT, default 100000 —
-  larger columns are uniformly sub-sampled with endpoints kept)
+  run, `VALIDATE_INPUTS` accepts any string so a saved selection survives
+  dataset shape changes, unknown names degrade to the first column),
+  `bins` (INT, default 32), `max_examples` (INT, default 100000 — larger
+  columns are uniformly sub-sampled with endpoints kept)
 - **Outputs**: `dataset` (`DATASET`, zero-copy passthrough so the node can
   sit inline in any data flow)
 - **Notes**: NaN/Inf values are excluded from bins/statistics and reported
-  as `dropped`; an all-NaN column or an empty dataset fails with a readable
-  error listing the available columns. Distinct from `Histogram`
+  as `dropped`; an all-NaN column or an empty dataset yields an empty
+  series entry instead of failing the flow. Distinct from `Histogram`
   (TENSOR → matplotlib IMAGE).
 
 ### Formula Data Generator

@@ -1434,17 +1434,19 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ### Dataset → Histogram（数据集 → 直方图）
 - **类名**：`CdlDatasetHistogram`（`comfydl/nodes/visualization.py`）— 将
-  `DATASET` 的某一列（任意特征列或标签列）聚合为直方图摘要，并在节点内的
+  `DATASET` 的全部数值列（所有特征列 + 标签列）逐列聚合为直方图摘要，并在节点内的
   rich custom canvas（Legacy + Nodes 2.0）上绘制，支持 hover 读取每个 bin 的
-  区间与计数。聚合完全在服务端完成：原始数据不出后端，保存的工作流只携带
-  `2*bins + O(1)` 个数字与列名清单。
+  区间与计数。payload 携带 `series` 映射：在 combo 里换列即时重绘缓存数据，
+  无需重新执行。聚合完全在服务端完成：原始数据不出后端，保存的工作流只携带
+  至多 `_HIST_MAX_NAMES` 列 × 每列 `bins+6` 个数字。
 - **输入**：`dataset`（`DATASET`，`forceInput`）、`feature`（下拉，`*` = 首列；
-  选项列表在首次运行后从数据集回填）、`bins`（INT，默认 32）、`max_examples`
-  （INT，默认 100000 — 超过则均匀抽样并保留首尾）
+  选项列表在首次运行后从数据集回填，`VALIDATE_INPUTS` 放行任意字符串使已保存
+  的选择在数据集形状变化后依然有效，未知列名降级为首列）、`bins`（INT，默认 32）、
+  `max_examples`（INT，默认 100000 — 超过则均匀抽样并保留首尾）
 - **输出**：`dataset`（`DATASET`，零拷贝 passthrough，可内联串接在任意数据流中）
 - **注意**：NaN/Inf 值不参与分箱与统计，并以 `dropped` 报告；全 NaN 列或空
-  数据集会报可读错误并列出可用列。与 `Histogram`（TENSOR → matplotlib IMAGE）
-  职责不同。
+  数据集产出空 series 条目而不是中断数据流。与 `Histogram`
+  （TENSOR → matplotlib IMAGE）职责不同。
 
 ### Formula Data Generator（公式数据生成器）
 - **类名**：`CdlFormulaDataGen`（`comfydl/nodes/data_gen.py`）

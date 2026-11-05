@@ -1293,46 +1293,37 @@ def _resolve_hist_columns(dataset):
 
 
 def _resolve_hist_feature(columns, feature):
-    """Resolve the ``feature`` widget value to ``(name, tensor)``.
+    """Resolve the ``feature`` widget value to a column name.
 
     ``""`` / ``"*"`` mean "first column"; otherwise an exact name match is
-    required (error message lists every available column). Numeric strings
-    are also accepted as 0-based indices so a saved workflow survives a
-    renamed column set.
+    tried first, numeric strings fall back to 0-based indices (so a saved
+    workflow survives a renamed column set), and anything unknown degrades
+    to the first column instead of raising — the widget selector may still
+    hold a stale name from a previous dataset shape.
     """
     if feature in ("", "*"):
-        return columns[0]
-    for name, tensor in columns:
+        return columns[0][0]
+    for name, _ in columns:
         if name == feature:
-            return name, tensor
+            return name
     if feature.isdigit() and int(feature) < len(columns):
-        return columns[int(feature)]
-    available = ", ".join(name for name, _ in columns)
-    raise KeyError(
-        f"feature column {feature!r} not found in the dataset — available "
-        f"columns: {available}"
-    )
+        return columns[int(feature)][0]
+    return columns[0][0]
 
 
-def _histogram_payload(dataset, feature, bins, max_examples):
-    """Aggregate one column into a histogram summary (no raw data leaves).
+def _hist_series_entry(values, bins, max_examples):
+    """Aggregate ONE column into a histogram summary (no raw data leaves).
 
     NaN/Inf values are excluded from bins and statistics but reported in
     ``n_dropped``; rows are uniformly sub-sampled (endpoints kept) when the
-    column exceeds ``max_examples``. The payload is JSON-ready and small by
-    construction (``2*bins + O(1)`` numbers plus at most
-    ``_HIST_MAX_NAMES`` column names).
+    column exceeds ``max_examples``. Columns without a single finite value
+    yield an empty entry (``counts: []``) instead of failing the whole node.
     """
-    bins = int(max(2, min(_HIST_MAX_BINS, int(bins))))
-    columns, _ = _resolve_hist_columns(dataset)
-    if not columns:
-        raise ValueError("dataset has no feature columns to histogram")
-    name, values = _resolve_hist_feature(columns, str(feature))
     n_total = int(values.numel())
     if n_total == 0:
-        raise ValueError(
-            f"cannot histogram column {name!r}: the dataset has 0 samples"
-        )
+        return {"bins": bins, "counts": [], "edges": [], "min": None,
+                "max": None, "mean": None, "std": None, "n_used": 0,
+                "n_total": 0, "n_dropped": 0, "sampled": False}
     if n_total > int(max_examples) > 0:
         indices = torch.linspace(0, n_total - 1, int(max_examples)).long()
         sampled = values[indices]
@@ -1341,17 +1332,14 @@ def _histogram_payload(dataset, feature, bins, max_examples):
     finite = sampled[torch.isfinite(sampled)]
     n_dropped = int(sampled.numel() - finite.numel())
     if finite.numel() == 0:
-        raise ValueError(
-            f"cannot histogram column {name!r}: every sampled value is "
-            f"NaN/Inf ({n_dropped} of {sampled.numel()} dropped)"
-        )
+        return {"bins": bins, "counts": [], "edges": [], "min": None,
+                "max": None, "mean": None, "std": None, "n_used": 0,
+                "n_total": n_total, "n_dropped": n_dropped, "sampled": False}
     # torch.histogram rejects integer dtypes (e.g. a dataset built from
     # Long labels/indices); aggregate in float32 like the DATASET contract.
     finite = finite.to(torch.float32)
     counts, edges = torch.histogram(finite, bins=bins)
-    names = [str(n) for n, _ in columns][:_HIST_MAX_NAMES]
     return {
-        "feature": name,
         "bins": bins,
         "counts": [int(c) for c in counts.tolist()],
         "edges": [round(float(e), 6) for e in edges.tolist()],
@@ -1363,35 +1351,81 @@ def _histogram_payload(dataset, feature, bins, max_examples):
         "n_total": n_total,
         "n_dropped": n_dropped,
         "sampled": bool(n_total > int(max_examples) > 0),
+    }
+
+
+def _histogram_payload(dataset, feature, bins, max_examples):
+    """Aggregate EVERY numeric column into one histogram payload.
+
+    The payload carries a ``series`` map (column name -> per-column summary,
+    see :func:`_hist_series_entry`) so the frontend can switch the plotted
+    column instantly without re-running the workflow. ``feature`` only
+    selects which column is shown first; an unknown value degrades to the
+    first column. The payload stays small by construction (at most
+    ``_HIST_MAX_NAMES`` columns x ``bins + 6`` numbers each).
+    """
+    bins = int(max(2, min(_HIST_MAX_BINS, int(bins))))
+    columns, _ = _resolve_hist_columns(dataset)
+    if not columns:
+        raise ValueError("dataset has no feature columns to histogram")
+    names = [str(n) for n, _ in columns][:_HIST_MAX_NAMES]
+    series = {}
+    for name, values in columns[:_HIST_MAX_NAMES]:
+        series[str(name)] = _hist_series_entry(values, bins, max_examples)
+    return {
+        "feature": _resolve_hist_feature(columns, str(feature)),
         "feature_names": names,
+        "series": series,
+        "n_total": int(dataset.features.shape[0]) if dataset.features.dim() else 0,
     }
 
 
 class CdlDatasetHistogram:
-    """Aggregate one DATASET column into a histogram and render it in-node.
+    """Aggregate DATASET numeric columns into histograms, rendered in-node.
 
     What: the distribution-inspection counterpart of ``Dataset → Preview``.
           Unlike ``Histogram`` (TENSOR → matplotlib IMAGE), this node eats a
-          ``DATASET``, aggregates ONE column server-side into a compact
-          histogram summary (bin counts + edges + mean/std/min/max) and
-          draws it as a rich custom-canvas widget (Legacy and Nodes 2.0)
-          with hover bin read-outs. No raw data travels to the frontend and
-          nothing bloats the saved workflow: only ``2*bins + O(1)`` numbers
-          plus the column-name list (persisted via ``node.properties``).
+          ``DATASET`` and aggregates EVERY numeric column server-side into
+          compact histogram summaries (bin counts + edges + mean/std/min/max
+          per column). The payload rides the ``ui`` channel as a ``series``
+          map, so the frontend can switch the plotted column instantly from
+          cached data without re-running the workflow. Rendered as a rich
+          custom-canvas widget (Legacy and Nodes 2.0) with hover bin
+          read-outs. No raw data travels to the frontend and nothing bloats
+          the saved workflow: at most ``_HIST_MAX_NAMES`` columns x
+          ``bins + 6`` numbers each (persisted via ``node.properties``).
     In:   ``dataset`` — the DATASET to inspect (forceInput socket);
-          ``feature`` — column to plot: ``*`` = first column, otherwise a
+          ``feature`` — column to show first: ``*`` = first column, or a
           column name (features first, then the label column if present);
-          the combo options refresh after the first run;
+          unknown names degrade to the first column. The combo options
+          refresh after the first run, and ``VALIDATE_INPUTS`` accepts any
+          string so a saved selection survives dataset shape changes;
           ``bins`` — histogram bin count (2-512, default 32);
-          ``max_examples`` — uniform sub-sample cap; larger columns are
-          down-sampled with endpoints kept (default 100000).
+          ``max_examples`` — uniform sub-sample cap per column; larger
+          columns are down-sampled with endpoints kept (default 100000).
     Out:  ``dataset`` — the SAME dataset object (zero-copy passthrough), so
           the node can sit inline in any data flow; the histogram payload
-          rides the ``ui`` channel and is written back into the serialized
-          workflow node for save/reload.
+          is also written back into the serialized workflow node for
+          save/reload.
     """
 
     OUTPUT_NODE = True
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, feature):
+        """Accept any feature selector (string).
+
+        The static ``INPUT_TYPES`` combo only carries ``*`` because the
+        column names depend on the upstream dataset, which the server
+        cannot know at schema time; the frontend refreshes the option list
+        from the payload instead. Opting ``feature`` into ``VALIDATE_INPUTS``
+        skips the default combo membership check that would otherwise
+        reject a saved column name on the next run (execution resolves the
+        name against the actual dataset and degrades to ``*`` if stale).
+        """
+        if not isinstance(feature, str):
+            return "feature must be a string column name, '*' or a numeric index"
+        return True
 
     @classmethod
     def INPUT_TYPES(cls):

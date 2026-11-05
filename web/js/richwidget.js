@@ -362,7 +362,8 @@ function mountHistogram(node) {
   if (node.__cdlRichHistogram) return node.__cdlRichHistogram;
   if (typeof node.addCustomWidget !== "function") return null;
 
-  const state = { payload: null, hover: null, box: null, domEl: null };
+  const state = { series: null, feature: null, hover: null, box: null,
+    domEl: null };
 
   function histogramPlot() {
     const box = state.box;
@@ -401,13 +402,19 @@ function mountHistogram(node) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
       ctx.fill();
       ctx.clip();
-      const p = state.payload;
+      const p = state.series && state.feature
+        ? state.series[state.feature] : null;
       if (!p || !Array.isArray(p.counts) || !p.counts.length) {
         ctx.font = "12px ui-monospace, Consolas, monospace";
         ctx.textBaseline = "top";
         ctx.fillStyle = LiteGraph?.NODE_TEXT_COLOR ?? "#ddd";
-        ctx.fillText("(run the workflow to plot the histogram)",
-          HIST_PAD * 2, box.y + HIST_PAD * 2);
+        const hint = p && p.n_total === 0
+          ? `(column "${state.feature}" has 0 samples)`
+          : p
+            ? `(column "${state.feature}" has no finite values`
+              + `${p.n_dropped ? `, ${p.n_dropped} NaN/Inf dropped` : ""})`
+            : "(run the workflow to plot the histogram)";
+        ctx.fillText(hint, HIST_PAD * 2, box.y + HIST_PAD * 2);
         ctx.restore();
         return;
       }
@@ -444,7 +451,7 @@ function mountHistogram(node) {
       const sampled = p.sampled ? " \u00b7 sampled" : "";
       ctx.font = "12px ui-monospace, Consolas, monospace";
       ctx.fillStyle = LiteGraph?.NODE_TEXT_COLOR ?? "#ddd";
-      ctx.fillText(`${p.feature}  n=${p.n_used}${sampled}${dropped}`
+      ctx.fillText(`${state.feature}  n=${p.n_used}${sampled}${dropped}`
         + `  mean=${fmtValue(p.mean)}  std=${fmtValue(p.std)}`,
         HIST_PAD * 2, box.y + 6);
 
@@ -480,7 +487,8 @@ function mountHistogram(node) {
       if (event.type !== "pointermove" && event.type !== "mousemove") {
         return false;
       }
-      const p = state.payload;
+      const p = state.series && state.feature
+        ? state.series[state.feature] : null;
       if (!inside || !p || !Array.isArray(p.counts) || !p.counts.length) {
         if (state.hover != null) {
           state.hover = null;
@@ -507,9 +515,9 @@ function mountHistogram(node) {
 function refreshHistogramCombo(node, payload) {
   const widget = node.widgets?.find((w) => w.name === "feature");
   if (!widget) return;
-  const names = Array.isArray(payload.feature_names)
-    ? payload.feature_names.map(String) : [];
-  const values = ["*"].concat(names);
+  const series = payload && payload.series ? payload.series : null;
+  if (!series) return;
+  const values = ["*"].concat(Object.keys(series));
   widget.options ??= {};
   widget.options.values = values;
   // Legacy canvas renderer reads the raw widget; Nodes 2.0 needs the store.
@@ -521,14 +529,53 @@ function refreshHistogramCombo(node, payload) {
   }
 }
 
+function normalizeHistogramPayload(payload) {
+  // Accept the multi-column payload ({series: {name: entry}}) and the
+  // pre-0.82g single-column one ({counts: [...]}) so restored workflows
+  // saved by older builds still render.
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.series && typeof payload.series === "object") {
+    const series = {};
+    const names = Array.isArray(payload.feature_names)
+      ? payload.feature_names.map(String) : [];
+    for (const name of names) {
+      if (payload.series[name]) series[name] = payload.series[name];
+    }
+    for (const key of Object.keys(payload.series)) {
+      if (!series[key]) series[key] = payload.series[key];
+    }
+    if (!Object.keys(series).length) return null;
+    return { ...payload, series };
+  }
+  if (Array.isArray(payload.counts)) {
+    const entry = { ...payload };
+    const name = String(payload.feature ?? "*");
+    delete entry.feature;
+    delete entry.feature_names;
+    return {
+      feature: name,
+      feature_names: [name],
+      series: { [name]: entry },
+    };
+  }
+  return null;
+}
+
 function showHistogram(node, payload) {
   const hist = mountHistogram(node);
   if (!hist) return;
-  const body = payload && typeof payload === "object"
-    && Array.isArray(payload.counts) ? payload : null;
+  const body = normalizeHistogramPayload(payload);
   if (!body) return;
-  hist.state.payload = body;
+  hist.state.series = body.series;
   hist.state.hover = null;
+  // Show the column the widget currently asks for (instant combo switch),
+  // falling back to the execution-time selection, then the first column.
+  const widget = node.widgets?.find((w) => w.name === "feature");
+  const wanted = String(widget?.value ?? "");
+  const keys = Object.keys(body.series);
+  hist.state.feature = body.series[wanted]
+    ? wanted
+    : (body.series[body.feature] ? body.feature : keys[0]);
   node.properties ??= {};
   node.properties[HIST_PROPERTY] = body;
   refreshHistogramCombo(node, body);
@@ -541,6 +588,28 @@ function wireHistogramNode(nodeType) {
     const result = onNodeCreated?.apply(this, arguments);
     try {
       mountHistogram(this);
+      // Both renderers invoke widget.callback when the combo value changes
+      // (Vue does it through createWidgetUpdateHandler). The payload
+      // already carries every column, so a selection change can redraw
+      // instantly from the cached series without re-running the workflow.
+      const feature = this.widgets?.find((w) => w.name === "feature");
+      if (feature && !feature.__cdlHistFeatureHook) {
+        feature.__cdlHistFeatureHook = true;
+        const original = feature.callback;
+        feature.callback = (value) => {
+          const callbackResult = original?.call(feature, value);
+          const saved = this.properties?.[HIST_PROPERTY];
+          if (saved) {
+            try {
+              showHistogram(this, saved);
+            } catch (error) {
+              console.warn("[ComfyDL.RichWidget] histogram switch failed",
+                error);
+            }
+          }
+          return callbackResult;
+        };
+      }
     } catch (error) {
       console.warn("[ComfyDL.RichWidget] histogram canvas unavailable;"
         + " the node still works without the chart", error);
