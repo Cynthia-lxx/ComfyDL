@@ -35,6 +35,7 @@ const PREVIEW_MIN_HEIGHT = 48;
 const PREVIEW_PLACEHOLDER = "(run the workflow to preview the dataset)";
 const PREVIEW_PROPERTY = "cdl_preview_text";
 const RESTORE_PROPERTY = "cdl_restore_widgets_values";
+let executedFallbackBound = false;
 
 export function isVueRenderer() {
   return typeof LiteGraph !== "undefined" && !!LiteGraph.vueNodesMode;
@@ -230,12 +231,54 @@ function mountPreview(node) {
 function showPreview(node, value) {
   const preview = mountPreview(node);
   if (!preview) return;
-  preview.state.lines = previewText(value).split("\n");
+  // previewText already normalizes arrays to one string.
+  const text = previewText(value);
+  // Idempotence: the onExecuted path and the direct `executed` event fallback
+  // can both deliver the same payload. Re-applying identical text would
+  // needlessly reset the scroll position, so unchanged text is a no-op.
+  if (preview.state.lines.length > 0
+    && preview.state.lines.join("\n") === text
+    && node.properties?.[PREVIEW_PROPERTY] === text) {
+    return;
+  }
+  preview.state.lines = text.split("\n");
   preview.state.scroll = 0;
   preview.state.drag = null;
   node.properties ??= {};
-  node.properties[PREVIEW_PROPERTY] = preview.state.lines.join("\n");
+  node.properties[PREVIEW_PROPERTY] = text;
   redrawRichWidget(node, preview.widget);
+}
+
+function findPreviewNode(rawId) {
+  if (rawId == null) return null;
+  // The raw event carries node ids as strings; Vue-mode getNodeById only
+  // resolves numbers. Mirror the frontend's normalization tolerance.
+  const graph = app.graph;
+  let node = graph?.getNodeById?.(rawId);
+  if (!node && typeof rawId === "string" && /^\d+$/.test(rawId)) {
+    node = graph?.getNodeById?.(Number(rawId));
+  }
+  if (!node && Array.isArray(graph?._nodes)) {
+    node = graph._nodes.find((n) => String(n.id) === String(rawId));
+  }
+  return node;
+}
+
+function updatePreviewFromEvent(event) {
+  // addEventListener hands over the CustomEvent itself — the payload lives
+  // on event.detail (the official dispatch destructures the same way).
+  const detail = event?.detail;
+  const text = detail?.output?.text;
+  if (!text) return;
+  const node = findPreviewNode(detail.display_node ?? detail.node);
+  if (node?.comfyClass !== "CdlDatasetPreview" && node?.type !== "CdlDatasetPreview") {
+    return;
+  }
+  try {
+    showPreview(node, text);
+  } catch (error) {
+    console.warn("[ComfyDL.RichWidget] preview event update failed", error);
+  }
 }
 
 function stampPreviewRestoreValues(nodes) {
@@ -258,6 +301,30 @@ app.registerExtension({
     for (const subgraph of graphData?.definitions?.subgraphs || []) {
       stampPreviewRestoreValues(subgraph.nodes);
     }
+  },
+
+  setup() {
+    // Belt and braces: node.onExecuted is the official delivery path, but
+    // some page states / frontend builds do not reach it (observed once on a
+    // long-lived real session). The raw `executed` event carries the same
+    // payload; showPreview is idempotent, so double delivery is harmless.
+    // app.api can still be undefined when setup() runs — optional chaining
+    // would silently skip the subscription, so bind now or retry briefly.
+    if (executedFallbackBound || typeof app.api?.addEventListener !== "function") {
+      if (!executedFallbackBound) {
+        const retry = setInterval(() => {
+          if (typeof app.api?.addEventListener === "function") {
+            clearInterval(retry);
+            app.api.addEventListener("executed", updatePreviewFromEvent);
+            executedFallbackBound = true;
+          }
+        }, 200);
+        setTimeout(() => clearInterval(retry), 10000);
+      }
+      return;
+    }
+    app.api.addEventListener("executed", updatePreviewFromEvent);
+    executedFallbackBound = true;
   },
 
   beforeRegisterNodeDef(nodeType, nodeData) {
