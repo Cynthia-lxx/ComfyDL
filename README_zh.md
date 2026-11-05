@@ -106,7 +106,7 @@ python main.py
 | **张量基础** | 5 | 张量 I/O、卷积、转置、广播、激活函数 |
 | **张量运算** | 11 | 损失、优化、评估指标与混淆矩阵 |
 | **训练** | 6 | 从零实现的线性回归 / softmax 回归教科书训练器 + 一盒式生产回归/分类训练器 |
-| **可视化** | 13 | 图表与边界框可视化 |
+| **可视化** | 14 | 图表与边界框可视化 |
 | **已弃用 · 模型工具** | 1 | 已弃用（软归档）：Model Mode，纯 TENSOR 图改用核心 Training Mode |
 | **已弃用 · NLP 模型** | 7 | 已弃用（软归档）：Multi-Head Attention、Add & Norm、Transformer Encoder Block/Encoder 与 RNN/GRU 构建器，改用核心 Attention/Recurrent 节点 |
 | **已弃用 · 张量基础** | 3 | 已弃用（软归档）：Broadcast、Reshape、Activation |

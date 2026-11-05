@@ -112,7 +112,7 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **Tensor Basic** | 5 | Tensor I/O, conv, transpose, broadcast, activation |
 | **TorchOps** | 11 | Loss, optimization, metrics & the confusion matrix |
 | **Training** | 6 | From-scratch linear-regression & softmax-regression trainers + one-box production regression / classification trainers |
-| **Visualization** | 13 | Plots, charts & bounding box visualization |
+| **Visualization** | 14 | Plots, charts & bounding box visualization |
 | **d2l/_Legacy/Model Utils** | 1 | Deprecated (soft-archived): Model Mode; use the core Training Mode |
 | **d2l/_Legacy/NLP Models** | 7 | Deprecated (soft-archived): Multi-Head Attention, Add & Norm, Transformer Encoder Block/Encoder; use the core Attention/Recurrent nodes |
 | **d2l/_Legacy/Tensor Basic** | 3 | Deprecated (soft-archived): Broadcast, Reshape, Activation |
