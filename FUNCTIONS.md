@@ -1094,7 +1094,7 @@ The 21 classes: `background, aeroplane, bicycle, bird, boat, bottle, bus, car, c
 
 ---
 
-## 11. d2l / Visualization (13 nodes)
+## 11. d2l / Visualization (14 nodes)
 
 Visualization nodes follow a "dual variant" design pattern: `(Output)` suffix versions are ComfyUI output nodes (showing interactive plots directly in the UI), while non-suffix versions render plots as `IMAGE` tensors for downstream nodes.
 
@@ -1477,6 +1477,24 @@ Datasets nodes provide end-to-end dataset management: download, load, inspect, p
   preserves the exact `[head, canvas_text]` workflow contract; it becomes the
   visible fallback if custom widgets are unavailable. Saving and loading uses
   `node.properties` plus pre-migration widget values, including subgraphs.
+
+### Dataset → Histogram
+- **Class**: `CdlDatasetHistogram` (`comfydl/nodes/visualization.py`)
+- **Purpose**: Aggregates one `DATASET` column (any feature, or the label
+  column) into a histogram summary and renders it as a rich custom-canvas
+  widget (Legacy + Nodes 2.0) with hover bin read-outs. Aggregation happens
+  server-side: no raw data reaches the frontend and the saved workflow only
+  carries `2*bins + O(1)` numbers plus the column-name list.
+- **Inputs**: `dataset` (`DATASET`, `forceInput`), `feature` (combo, `*` =
+  first column; the option list refreshes from the dataset after the first
+  run), `bins` (INT, default 32), `max_examples` (INT, default 100000 —
+  larger columns are uniformly sub-sampled with endpoints kept)
+- **Outputs**: `dataset` (`DATASET`, zero-copy passthrough so the node can
+  sit inline in any data flow)
+- **Notes**: NaN/Inf values are excluded from bins/statistics and reported
+  as `dropped`; an all-NaN column or an empty dataset fails with a readable
+  error listing the available columns. Distinct from `Histogram`
+  (TENSOR → matplotlib IMAGE).
 
 ### Formula Data Generator
 - **Class**: `CdlFormulaDataGen` (`comfydl/nodes/data_gen.py`)
@@ -2751,7 +2769,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**138 nodes** across 22 categories come from ComfyDL itself; the shipped node library adds 98
+**139 nodes** across 22 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2770,7 +2788,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | d2l/TorchOps | 11 | Loss, optimization, metrics & the confusion matrix |
 | d2l/ObjectDetection | 10 | Anchor boxes, IoU, NMS |
 | d2l/Segmentation | 4 | VOC semantic segmentation tools |
-| d2l/Visualization | 13 | Plots, charts & bounding box visualization |
+| d2l/Visualization | 14 | Plots, charts & bounding box visualization |
 | d2l/Datasets | 30 | Dataset download, loading, preview, statistics, DATASET adapters, format readers & writers, and the synthetic regression / classification data generators |
 | d2l/Training | 6 | Textbook linear-regression & softmax-regression trainers (from scratch) + one-box production regression / classification trainers with live loss preview & breakpoint continuation + skeleton-free model loaders |
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |

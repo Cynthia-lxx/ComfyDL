@@ -35,6 +35,9 @@ const PREVIEW_MIN_HEIGHT = 48;
 const PREVIEW_PLACEHOLDER = "(run the workflow to preview the dataset)";
 const PREVIEW_PROPERTY = "cdl_preview_text";
 const RESTORE_PROPERTY = "cdl_restore_widgets_values";
+const HIST_PROPERTY = "cdl_histogram";
+const HIST_HEIGHT = 170;
+const HIST_PAD = 8;
 let executedFallbackBound = false;
 
 export function isVueRenderer() {
@@ -249,7 +252,7 @@ function showPreview(node, value) {
   redrawRichWidget(node, preview.widget);
 }
 
-function findPreviewNode(rawId) {
+function findRichNode(rawId) {
   if (rawId == null) return null;
   // The raw event carries node ids as strings; Vue-mode getNodeById only
   // resolves numbers. Mirror the frontend's normalization tolerance.
@@ -268,17 +271,237 @@ function updatePreviewFromEvent(event) {
   // addEventListener hands over the CustomEvent itself — the payload lives
   // on event.detail (the official dispatch destructures the same way).
   const detail = event?.detail;
-  const text = detail?.output?.text;
-  if (!text) return;
-  const node = findPreviewNode(detail.display_node ?? detail.node);
-  if (node?.comfyClass !== "CdlDatasetPreview" && node?.type !== "CdlDatasetPreview") {
-    return;
-  }
+  const output = detail?.output;
+  if (!output) return;
+  const node = findRichNode(detail.display_node ?? detail.node);
+  if (!node) return;
   try {
-    showPreview(node, text);
+    if (output.text) {
+      showPreview(node, output.text);
+    } else if (output.cdl_histogram) {
+      const payload = Array.isArray(output.cdl_histogram)
+        ? output.cdl_histogram[0] : output.cdl_histogram;
+      showHistogram(node, payload);
+    }
   } catch (error) {
-    console.warn("[ComfyDL.RichWidget] preview event update failed", error);
+    console.warn("[ComfyDL.RichWidget] event update failed", error);
   }
+}
+
+function mountHistogram(node) {
+  if (node.__cdlRichHistogram) return node.__cdlRichHistogram;
+  if (typeof node.addCustomWidget !== "function") return null;
+
+  const state = { payload: null, hover: null, box: null };
+
+  function histogramPlot() {
+    const box = state.box;
+    return {
+      x: box.x + HIST_PAD,
+      y: box.y + 26,
+      w: box.width - HIST_PAD * 2,
+      h: Math.max(10, box.height - 26 - 18 - 4),
+    };
+  }
+
+  const fmtValue = (v) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return "-";
+    if (Math.abs(n) >= 1000 || (Math.abs(n) < 0.001 && n !== 0)) {
+      return n.toPrecision(4);
+    }
+    return String(Math.round(n * 10000) / 10000);
+  };
+
+  const widget = createCanvasRichWidget(node, {
+    name: "cdl_rich_histogram",
+    type: "cdl_rich_histogram",
+    minHeight: HIST_HEIGHT,
+    contentHeight: () => HIST_HEIGHT,
+
+    draw(ctx, box) {
+      const width = Math.max(0, box.width - HIST_PAD * 2);
+      const height = Math.max(0, box.height - 4);
+      state.box = { x: HIST_PAD, y: box.y, width, height };
+      ctx.save();
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(HIST_PAD, box.y, width, height, 6);
+      else ctx.rect(HIST_PAD, box.y, width, height);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+      ctx.fill();
+      ctx.clip();
+      const p = state.payload;
+      if (!p || !Array.isArray(p.counts) || !p.counts.length) {
+        ctx.font = "12px ui-monospace, Consolas, monospace";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = LiteGraph?.NODE_TEXT_COLOR ?? "#ddd";
+        ctx.fillText("(run the workflow to plot the histogram)",
+          HIST_PAD * 2, box.y + HIST_PAD * 2);
+        ctx.restore();
+        return;
+      }
+
+      const counts = p.counts;
+      const edges = Array.isArray(p.edges) ? p.edges : [];
+      const plot = histogramPlot();
+      const peak = Math.max(1, ...counts);
+      const binW = plot.w / counts.length;
+      for (let i = 0; i < counts.length; i += 1) {
+        const barH = (counts[i] / peak) * plot.h;
+        if (barH <= 0) continue;
+        ctx.fillStyle = state.hover === i
+          ? "rgba(26, 188, 154, 0.95)"
+          : "rgba(26, 188, 154, 0.55)";
+        ctx.fillRect(plot.x + i * binW + 0.5, plot.y + plot.h - barH,
+          Math.max(1, binW - 1), barH);
+      }
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+      ctx.beginPath();
+      ctx.moveTo(plot.x, plot.y + plot.h + 0.5);
+      ctx.lineTo(plot.x + plot.w, plot.y + plot.h + 0.5);
+      ctx.stroke();
+      ctx.font = "10px ui-monospace, Consolas, monospace";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+      ctx.fillText(fmtValue(p.min), plot.x, plot.y + plot.h + 4);
+      ctx.textAlign = "right";
+      ctx.fillText(fmtValue(p.max), plot.x + plot.w, plot.y + plot.h + 4);
+      ctx.textAlign = "left";
+
+      const dropped = p.n_dropped ? ` \u00b7 dropped ${p.n_dropped}` : "";
+      const sampled = p.sampled ? " \u00b7 sampled" : "";
+      ctx.font = "12px ui-monospace, Consolas, monospace";
+      ctx.fillStyle = LiteGraph?.NODE_TEXT_COLOR ?? "#ddd";
+      ctx.fillText(`${p.feature}  n=${p.n_used}${sampled}${dropped}`
+        + `  mean=${fmtValue(p.mean)}  std=${fmtValue(p.std)}`,
+        HIST_PAD * 2, box.y + 6);
+
+      if (state.hover != null && state.hover >= 0
+        && state.hover < counts.length) {
+        const i = state.hover;
+        const cx = plot.x + i * binW + binW / 2;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.beginPath();
+        ctx.moveTo(cx, plot.y);
+        ctx.lineTo(cx, plot.y + plot.h);
+        ctx.stroke();
+        const lo = edges[i] ?? p.min;
+        const hi = edges[i + 1] ?? p.max;
+        const text = `[${fmtValue(lo)} ~ ${fmtValue(hi)})  count=${counts[i]}`;
+        ctx.font = "11px ui-monospace, Consolas, monospace";
+        const textW = ctx.measureText(text).width;
+        const tx = Math.max(plot.x,
+          Math.min(cx - textW / 2, plot.x + plot.w - textW));
+        ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+        ctx.fillRect(tx - 4, plot.y + 2, textW + 8, 16);
+        ctx.fillStyle = "#1abc9c";
+        ctx.fillText(text, tx, plot.y + 5);
+      }
+      ctx.restore();
+    },
+
+    mouse(event, pos) {
+      const box = state.box;
+      if (!box) return false;
+      const inside = pos[0] >= box.x && pos[0] <= box.x + box.width
+        && pos[1] >= box.y && pos[1] <= box.y + box.height;
+      if (event.type !== "pointermove" && event.type !== "mousemove") {
+        return false;
+      }
+      const p = state.payload;
+      if (!inside || !p || !Array.isArray(p.counts) || !p.counts.length) {
+        if (state.hover != null) {
+          state.hover = null;
+          redrawRichWidget(node, widget);
+        }
+        return false;
+      }
+      const plot = histogramPlot();
+      const rel = (pos[0] - plot.x) / Math.max(1, plot.w);
+      const index = Math.max(0, Math.min(p.counts.length - 1,
+        Math.floor(rel * p.counts.length)));
+      if (state.hover !== index) {
+        state.hover = index;
+        redrawRichWidget(node, widget);
+      }
+      return true;
+    },
+  });
+
+  node.__cdlRichHistogram = { widget, state };
+  return node.__cdlRichHistogram;
+}
+
+function refreshHistogramCombo(node, payload) {
+  const widget = node.widgets?.find((w) => w.name === "feature");
+  if (!widget) return;
+  const names = Array.isArray(payload.feature_names)
+    ? payload.feature_names.map(String) : [];
+  const values = ["*"].concat(names);
+  widget.options ??= {};
+  widget.options.values = values;
+  const current = String(widget.value ?? "");
+  if (current !== "*" && !values.includes(current)) {
+    widget.value = values.includes(String(payload.feature))
+      ? String(payload.feature) : "*";
+  }
+}
+
+function showHistogram(node, payload) {
+  const hist = mountHistogram(node);
+  if (!hist) return;
+  const body = payload && typeof payload === "object"
+    && Array.isArray(payload.counts) ? payload : null;
+  if (!body) return;
+  hist.state.payload = body;
+  hist.state.hover = null;
+  node.properties ??= {};
+  node.properties[HIST_PROPERTY] = body;
+  refreshHistogramCombo(node, body);
+  redrawRichWidget(node, hist.widget);
+}
+
+function wireHistogramNode(nodeType) {
+  const onNodeCreated = nodeType.prototype.onNodeCreated;
+  nodeType.prototype.onNodeCreated = function () {
+    const result = onNodeCreated?.apply(this, arguments);
+    try {
+      mountHistogram(this);
+    } catch (error) {
+      console.warn("[ComfyDL.RichWidget] histogram canvas unavailable;"
+        + " the node still works without the chart", error);
+    }
+    return result;
+  };
+
+  const onExecuted = nodeType.prototype.onExecuted;
+  nodeType.prototype.onExecuted = function (message) {
+    const result = onExecuted?.apply(this, arguments);
+    const payload = message?.cdl_histogram;
+    if (payload) {
+      try {
+        showHistogram(this, Array.isArray(payload) ? payload[0] : payload);
+      } catch (error) {
+        console.warn("[ComfyDL.RichWidget] histogram update failed", error);
+      }
+    }
+    return result;
+  };
+
+  const onConfigure = nodeType.prototype.onConfigure;
+  nodeType.prototype.onConfigure = function () {
+    const result = onConfigure?.apply(this, arguments);
+    setTimeout(() => {
+      try {
+        const saved = this.properties?.[HIST_PROPERTY];
+        if (saved) showHistogram(this, saved);
+      } catch (error) {
+        console.warn("[ComfyDL.RichWidget] histogram restore failed", error);
+      }
+    }, 0);
+    return result;
+  };
 }
 
 function stampPreviewRestoreValues(nodes) {
@@ -328,6 +551,10 @@ app.registerExtension({
   },
 
   beforeRegisterNodeDef(nodeType, nodeData) {
+    if (nodeData.name === "CdlDatasetHistogram") {
+      wireHistogramNode(nodeType);
+      return;
+    }
     if (nodeData.name !== "CdlDatasetPreview") return;
 
     const onNodeCreated = nodeType.prototype.onNodeCreated;
@@ -377,6 +604,17 @@ app.registerExtension({
   },
 
   loadedGraphNode(node) {
+    if (node.comfyClass === "CdlDatasetHistogram") {
+      setTimeout(() => {
+        try {
+          const saved = node.properties?.[HIST_PROPERTY];
+          if (saved) showHistogram(node, saved);
+        } catch (error) {
+          console.warn("[ComfyDL.RichWidget] histogram restore failed", error);
+        }
+      }, 0);
+      return;
+    }
     if (node.comfyClass !== "CdlDatasetPreview") return;
     setTimeout(() => {
       try {

@@ -1089,7 +1089,7 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
 
 ---
 
-## 11. d2l / Visualization（13 个节点）
+## 11. d2l / Visualization（14 个节点）
 
 可视化节点采用"双变体"设计模式：带 `(Output)` 后缀的版本是 ComfyUI 输出节点（直接在界面中显示交互式图表），不带后缀的版本将图表渲染为 `IMAGE` 张量，供下游节点使用。
 
@@ -1431,6 +1431,20 @@ NLP 模型构建节点包装 d2lcore 的 RNN/GRU/RNNLM、注意力/Transformer �
   节点尺寸）。隐藏的只读 ShowText 状态 widget 保持严格的 `[head, canvas_text]`
   工作流契约；custom widget 不可用时它转为可见降级。保存/加载通过
   `node.properties` 与迁移前原始 widget 值恢复，覆盖子图。
+
+### Dataset → Histogram（数据集 → 直方图）
+- **类名**：`CdlDatasetHistogram`（`comfydl/nodes/visualization.py`）— 将
+  `DATASET` 的某一列（任意特征列或标签列）聚合为直方图摘要，并在节点内的
+  rich custom canvas（Legacy + Nodes 2.0）上绘制，支持 hover 读取每个 bin 的
+  区间与计数。聚合完全在服务端完成：原始数据不出后端，保存的工作流只携带
+  `2*bins + O(1)` 个数字与列名清单。
+- **输入**：`dataset`（`DATASET`，`forceInput`）、`feature`（下拉，`*` = 首列；
+  选项列表在首次运行后从数据集回填）、`bins`（INT，默认 32）、`max_examples`
+  （INT，默认 100000 — 超过则均匀抽样并保留首尾）
+- **输出**：`dataset`（`DATASET`，零拷贝 passthrough，可内联串接在任意数据流中）
+- **注意**：NaN/Inf 值不参与分箱与统计，并以 `dropped` 报告；全 NaN 列或空
+  数据集会报可读错误并列出可用列。与 `Histogram`（TENSOR → matplotlib IMAGE）
+  职责不同。
 
 ### Formula Data Generator（公式数据生成器）
 - **类名**：`CdlFormulaDataGen`（`comfydl/nodes/data_gen.py`）
@@ -2596,7 +2610,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **138 个节点**，分属 22 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **139 个节点**，分属 22 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2615,7 +2629,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | d2l/TorchOps | 11 | 损失、优化、评估指标与混淆矩阵 |
 | d2l/ObjectDetection | 10 | 锚框、IoU、NMS |
 | d2l/Segmentation | 4 | VOC 语义分割工具 |
-| d2l/Visualization | 13 | 图表与边界框可视化 |
+| d2l/Visualization | 14 | 图表与边界框可视化 |
 | d2l/Datasets | 30 | 数据集下载、加载、预览、统计、DATASET 适配器、格式读取与写入节点，以及回归/分类合成数据生成器 |
 | d2l/Training | 6 | 教科书式线性回归 / softmax 回归训练器（从零实现）+ 带实时 loss 预览与断点续训的一盒式生产回归/分类训练器 + 免骨架模型加载器 |
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |

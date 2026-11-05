@@ -19,6 +19,7 @@ import torch
 import numpy as np
 import io
 from PIL import Image as PILImage
+from .data_types import CdlDataset
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend for server-side rendering
 import matplotlib.pyplot as plt
@@ -1265,3 +1266,179 @@ class CdlAreaChart:
 
 NODE_CLASS_MAPPINGS["CdlAreaChart"] = CdlAreaChart
 NODE_DISPLAY_NAME_MAPPINGS["CdlAreaChart"] = "Area Chart"
+
+
+# ============================================================
+# Dataset → Histogram (rich-canvas widget, SP-7 ⑤)
+# ============================================================
+
+# ui-payload caps: counts/edges scale with bins, names with the column count.
+_HIST_MAX_BINS = 512
+_HIST_MAX_NAMES = 64
+
+
+def _resolve_hist_columns(dataset):
+    """Histogrammable columns: features plus (if present) the label column.
+
+    Returns ``(columns, default_index)`` where ``columns`` is
+    ``[(name, tensor_1d), ...]``. The label column sorts last.
+    """
+    columns = []
+    for index, name in enumerate(dataset.feature_names):
+        columns.append((str(name), dataset.features[:, index]))
+    if dataset.labels is not None:
+        label_name = dataset.target_name or "label"
+        columns.append((str(label_name), dataset.labels.reshape(-1)))
+    return columns, 0
+
+
+def _resolve_hist_feature(columns, feature):
+    """Resolve the ``feature`` widget value to ``(name, tensor)``.
+
+    ``""`` / ``"*"`` mean "first column"; otherwise an exact name match is
+    required (error message lists every available column). Numeric strings
+    are also accepted as 0-based indices so a saved workflow survives a
+    renamed column set.
+    """
+    if feature in ("", "*"):
+        return columns[0]
+    for name, tensor in columns:
+        if name == feature:
+            return name, tensor
+    if feature.isdigit() and int(feature) < len(columns):
+        return columns[int(feature)]
+    available = ", ".join(name for name, _ in columns)
+    raise KeyError(
+        f"feature column {feature!r} not found in the dataset — available "
+        f"columns: {available}"
+    )
+
+
+def _histogram_payload(dataset, feature, bins, max_examples):
+    """Aggregate one column into a histogram summary (no raw data leaves).
+
+    NaN/Inf values are excluded from bins and statistics but reported in
+    ``n_dropped``; rows are uniformly sub-sampled (endpoints kept) when the
+    column exceeds ``max_examples``. The payload is JSON-ready and small by
+    construction (``2*bins + O(1)`` numbers plus at most
+    ``_HIST_MAX_NAMES`` column names).
+    """
+    bins = int(max(2, min(_HIST_MAX_BINS, int(bins))))
+    columns, _ = _resolve_hist_columns(dataset)
+    if not columns:
+        raise ValueError("dataset has no feature columns to histogram")
+    name, values = _resolve_hist_feature(columns, str(feature))
+    n_total = int(values.numel())
+    if n_total == 0:
+        raise ValueError(
+            f"cannot histogram column {name!r}: the dataset has 0 samples"
+        )
+    if n_total > int(max_examples) > 0:
+        indices = torch.linspace(0, n_total - 1, int(max_examples)).long()
+        sampled = values[indices]
+    else:
+        sampled = values
+    finite = sampled[torch.isfinite(sampled)]
+    n_dropped = int(sampled.numel() - finite.numel())
+    if finite.numel() == 0:
+        raise ValueError(
+            f"cannot histogram column {name!r}: every sampled value is "
+            f"NaN/Inf ({n_dropped} of {sampled.numel()} dropped)"
+        )
+    # torch.histogram rejects integer dtypes (e.g. a dataset built from
+    # Long labels/indices); aggregate in float32 like the DATASET contract.
+    finite = finite.to(torch.float32)
+    counts, edges = torch.histogram(finite, bins=bins)
+    names = [str(n) for n, _ in columns][:_HIST_MAX_NAMES]
+    return {
+        "feature": name,
+        "bins": bins,
+        "counts": [int(c) for c in counts.tolist()],
+        "edges": [round(float(e), 6) for e in edges.tolist()],
+        "min": round(float(finite.min()), 6),
+        "max": round(float(finite.max()), 6),
+        "mean": round(float(finite.mean()), 6),
+        "std": round(float(finite.std()), 6) if finite.numel() > 1 else 0.0,
+        "n_used": int(finite.numel()),
+        "n_total": n_total,
+        "n_dropped": n_dropped,
+        "sampled": bool(n_total > int(max_examples) > 0),
+        "feature_names": names,
+    }
+
+
+class CdlDatasetHistogram:
+    """Aggregate one DATASET column into a histogram and render it in-node.
+
+    What: the distribution-inspection counterpart of ``Dataset → Preview``.
+          Unlike ``Histogram`` (TENSOR → matplotlib IMAGE), this node eats a
+          ``DATASET``, aggregates ONE column server-side into a compact
+          histogram summary (bin counts + edges + mean/std/min/max) and
+          draws it as a rich custom-canvas widget (Legacy and Nodes 2.0)
+          with hover bin read-outs. No raw data travels to the frontend and
+          nothing bloats the saved workflow: only ``2*bins + O(1)`` numbers
+          plus the column-name list (persisted via ``node.properties``).
+    In:   ``dataset`` — the DATASET to inspect (forceInput socket);
+          ``feature`` — column to plot: ``*`` = first column, otherwise a
+          column name (features first, then the label column if present);
+          the combo options refresh after the first run;
+          ``bins`` — histogram bin count (2-512, default 32);
+          ``max_examples`` — uniform sub-sample cap; larger columns are
+          down-sampled with endpoints kept (default 100000).
+    Out:  ``dataset`` — the SAME dataset object (zero-copy passthrough), so
+          the node can sit inline in any data flow; the histogram payload
+          rides the ``ui`` channel and is written back into the serialized
+          workflow node for save/reload.
+    """
+
+    OUTPUT_NODE = True
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "dataset": ("DATASET", {"forceInput": True}),
+                "feature": (["*"], {"tooltip": "Column to plot. * = first "
+                                      "column; the option list refreshes "
+                                      "from the dataset after the first run."}),
+                "bins": ("INT", {"default": 32, "min": 2, "max": _HIST_MAX_BINS,
+                                 "step": 1}),
+                "max_examples": ("INT", {"default": 100000, "min": 100,
+                                         "max": 10000000, "step": 100}),
+            },
+            "hidden": {
+                "unique_id": "UNIQUE_ID",
+                "extra_pnginfo": "EXTRA_PNGINFO",
+            },
+        }
+
+    RETURN_TYPES = ("DATASET",)
+    RETURN_NAMES = ("dataset",)
+    FUNCTION = "execute"
+    CATEGORY = "d2l/Visualization"
+
+    def execute(self, dataset, feature="*", bins=32, max_examples=100000,
+                unique_id=None, extra_pnginfo=None):
+        if not isinstance(dataset, CdlDataset):
+            raise TypeError(
+                "CdlDatasetHistogram expects a DATASET input; got "
+                f"{type(dataset).__name__}"
+            )
+        payload = _histogram_payload(dataset, feature, bins, max_examples)
+
+        from .data_ops import resolve_workflow_node
+
+        node, _ = resolve_workflow_node(extra_pnginfo, unique_id)
+        if node is not None:
+            properties = node.get("properties")
+            if isinstance(properties, dict):
+                properties["cdl_histogram"] = payload
+
+        return {
+            "ui": {"cdl_histogram": [payload]},
+            "result": (dataset,),
+        }
+
+
+NODE_CLASS_MAPPINGS["CdlDatasetHistogram"] = CdlDatasetHistogram
+NODE_DISPLAY_NAME_MAPPINGS["CdlDatasetHistogram"] = "Dataset → Histogram"
