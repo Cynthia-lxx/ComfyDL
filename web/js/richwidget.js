@@ -44,6 +44,76 @@ export function isVueRenderer() {
   return typeof LiteGraph !== "undefined" && !!LiteGraph.vueNodesMode;
 }
 
+function widgetValueStore() {
+  // Nodes 2.0 keeps per-widget state (value/options) in a reactive pinia
+  // store; the raw LiteGraph widget object is not observed there. This
+  // mirrors the frontend's own syncPromotedComboHostOptions access path.
+  try {
+    const root = document.querySelector("#vue-app");
+    const pinia = root?.__vue_app__?.config?.globalProperties?.$pinia;
+    return pinia?._s?.get("widgetValue") ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function syncComboOptionsToVueStore(node, widget, values) {
+  const store = widgetValueStore();
+  if (!store || typeof store.getWidget !== "function") return false;
+  try {
+    const graphId = app.rootGraph?.id ?? app.graph?.rootGraph?.id;
+    if (graphId == null) return false;
+    const id = `${graphId}:${encodeURIComponent(String(node.id))}`
+      + `:${encodeURIComponent(widget.name)}`;
+    const record = store.getWidget(id);
+    if (!record) return false;
+    // Assigning a fresh options object (not mutating the old one) is what
+    // makes the Vue renderer rebuild the dropdown; verified against the
+    // WidgetSelectDefault component, which re-reads it on every open.
+    record.options = { ...record.options, values };
+    const current = String(record.value ?? "");
+    if (current !== "" && !values.includes(current)) {
+      record.value = values[0];
+      widget.value = values[0];
+    }
+    return true;
+  } catch (error) {
+    console.warn("[ComfyDL.RichWidget] combo option sync failed;"
+      + " the dropdown may keep its stale option list", error);
+    return false;
+  }
+}
+
+function ensureHistogramHoverHook(node, widget, state) {
+  const nodeEl = document.querySelector(`[data-node-id="${node.id}"]`);
+  const canvas = nodeEl?.querySelector("canvas") ?? null;
+  if (!canvas || state.domEl === canvas) return;
+  // Vue may re-create the node DOM (theme switch, renderer toggle); the
+  // previous listeners died with the old element, so re-hook on the new one.
+  state.domEl = canvas;
+  const toWidgetPos = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    // Page zoom is a CSS transform: getBoundingClientRect is scaled while
+    // the widget box stays in layout pixels — compensate both axes.
+    const scaleX = (canvas.offsetWidth || rect.width) / rect.width;
+    const scaleY = (canvas.offsetHeight || rect.height) / rect.height;
+    return [
+      (event.clientX - rect.left) * scaleX,
+      (event.clientY - rect.top) * scaleY,
+    ];
+  };
+  // Nodes 2.0 renders the widget as a DOM canvas and never forwards
+  // button-less pointer moves to widget.mouse; bridge the real DOM events
+  // into the same handler so hover tracking works. Legacy rendering has no
+  // per-node DOM canvas, so this stays a no-op there.
+  canvas.addEventListener("pointermove", (event) => {
+    widget.mouse?.({ type: "pointermove" }, toWidgetPos(event), node);
+  });
+  canvas.addEventListener("pointerleave", () => {
+    widget.mouse?.({ type: "pointermove" }, [-1e4, -1e4], node);
+  });
+}
+
 export function redrawRichWidget(node, widget) {
   node.graph?.setDirtyCanvas(true, true);
   // Nodes 2.0 paints custom widgets through WidgetLegacy's own canvas.
@@ -292,7 +362,7 @@ function mountHistogram(node) {
   if (node.__cdlRichHistogram) return node.__cdlRichHistogram;
   if (typeof node.addCustomWidget !== "function") return null;
 
-  const state = { payload: null, hover: null, box: null };
+  const state = { payload: null, hover: null, box: null, domEl: null };
 
   function histogramPlot() {
     const box = state.box;
@@ -320,6 +390,7 @@ function mountHistogram(node) {
     contentHeight: () => HIST_HEIGHT,
 
     draw(ctx, box) {
+      ensureHistogramHoverHook(node, this, state);
       const width = Math.max(0, box.width - HIST_PAD * 2);
       const height = Math.max(0, box.height - 4);
       state.box = { x: HIST_PAD, y: box.y, width, height };
@@ -441,6 +512,8 @@ function refreshHistogramCombo(node, payload) {
   const values = ["*"].concat(names);
   widget.options ??= {};
   widget.options.values = values;
+  // Legacy canvas renderer reads the raw widget; Nodes 2.0 needs the store.
+  syncComboOptionsToVueStore(node, widget, values);
   const current = String(widget.value ?? "");
   if (current !== "*" && !values.includes(current)) {
     widget.value = values.includes(String(payload.feature))
