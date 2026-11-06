@@ -2308,7 +2308,7 @@ half lives in the `Training` group (17.4).
 
 ---
 
-## 18. ComfyUI / utilities/conversion (7 nodes)
+## 18. ComfyUI / utilities/conversion (8 nodes)
 
 Merged into the ComfyUI core category `utilities/conversion`. These are the only ComfyDL nodes
 written against the ComfyUI **V3** node API (`io.ComfyNode` + `io.Schema`) rather than the legacy
@@ -2337,6 +2337,33 @@ backend checking at all. Metadata that cannot fit inside a bare tensor (`noise_m
   | Name | Type | Description |
   |------|------|-------------|
   | `text` | `STRING` | The value rendered as text |
+
+### Convert
+- **Class**: `CdlConvert` (`comfydl/nodes/convert.py`, V1 API; frontend `comfydl/web/js/convert.js`)
+- **Purpose**: The one universal type adapter for the "my payload's declared type does not
+  match the downstream slot" problem class. One wildcard input, one output whose *declared*
+  type is decided by the `target_type` combo (`match link` + STRING/INT/FLOAT/BOOLEAN/
+  TENSOR/IMAGE/MASK/LATENT). `match link` (the default) is Reroute-style: when the value
+  input gets wired, the frontend auto-fills the combo from the origin socket's type and
+  retypes the output socket accordingly (a manual combo pick is never overwritten, and an
+  auto-filled pick reverts on disconnect). The declared output type is a frontend link guard
+  only — the backend stays type-blind and applies the casting matrix: STRING uses the To Text
+  semantics; INT/FLOAT/BOOLEAN cast scalars and single-element tensors (multi-element tensors
+  raise a readable error); TENSOR materializes scalars/numeric strings/lists and unwraps
+  LATENT `samples`; IMAGE/MASK/LATENT wrap a tensor into the ComfyUI dict convention
+  (`{"samples": t}`). With `match link` active and no cast possible the payload passes
+  through untouched. Supersedes neither `Value → Tensor` / `Tensor → Value` (the five-way
+  metadata-aware family) nor `To Text` (the notebook-flavoured display cast) — it is the
+  generic graph-level adapter.
+- **Inputs**:
+  | Name | Type | Default | Description |
+  |------|------|---------|-------------|
+  | `target_type` | combo | `match link` | Declared type of the output socket; `match link` mirrors the wired origin |
+  | `value` | `*` | — | The payload to cast |
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `value` | `*` (retyped by the frontend to `target_type`) | The cast payload |
 
 ### Value → Tensor
 - **Class**: `CdlValueToTensor`
@@ -2829,7 +2856,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**141 nodes** across 23 categories come from ComfyDL itself; the shipped node library adds 98
+**142 nodes** across 23 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2855,7 +2882,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
-| utilities/conversion | 7 | Comfy value ↔ generic `TENSOR` round-trip + wildcard→STRING cast (ComfyUI core category) |
+| utilities/conversion | 8 | Comfy value ↔ generic `TENSOR` round-trip + wildcard→STRING cast + the universal Convert adapter (ComfyUI core category) |
 | Network & Layers/Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Attention | 8 | Core multi-head / self / cross attention, the assembled post-LN Transformer encoder & decoder blocks, the causal / padding masks and the sinusoidal positional encoding, weights wired in (ComfyUI core category) |
@@ -2872,7 +2899,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` protocol placeholders (ComfyUI core category) |
 | 3d | 1 | `Preview 3D`, the frontend-bound 3D preview canvas (ComfyUI core category) |
 
-> The table lists every category in the host registry. **141 nodes come from ComfyDL** (11 of them
+> The table lists every category in the host registry. **142 nodes come from ComfyDL** (11 of them
 > soft-archived into `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their
 > display names carry a `(DEPRECATED)` suffix and the node library moves them into the Legacy
 > categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image`

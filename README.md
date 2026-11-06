@@ -121,7 +121,7 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **image/color (Comfy core)** | 3 | Grayscale, normalize & brightness/contrast/saturation |
 | **image/transform (Comfy core)** | 1 | Arbitrary-angle rotation + canvas expand |
 | **utilities (Comfy core)** | 4 | MessageBox, NoOp pass-through & benchmark timer |
-| **conversion** | 6 |  |
+| **conversion** | 8 |  |
 
 > The 20 categories above are the ones ComfyDL itself provides; the other 14 categories of the
 > shipped library (`Network & Layers/*`, `model/*` and `3d`, 98 nodes in total) are pure ComfyUI

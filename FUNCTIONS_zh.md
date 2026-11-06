@@ -2187,7 +2187,7 @@ batch 维的张量同样接受——内部补上缺少的前导维，结果再�
 
 ---
 
-## 18. ComfyUI / utilities/conversion（7 个节点）
+## 18. ComfyUI / utilities/conversion（8 个节点）
 
 并入 ComfyUI 核心分类 `utilities/conversion`。这些是 ComfyDL 中**唯一**基于 ComfyUI **V3** 节点 API
 （`io.ComfyNode` + `io.Schema`）而非旧式 `INPUT_TYPES` / `RETURN_TYPES` 编写的节点，因为联合输入
@@ -2212,6 +2212,29 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
   | 名称 | 类型 | 说明 |
   |------|------|------|
   | `text` | `STRING` | 渲染为文本的值 |
+
+### Convert（通用类型转换）
+- **类名**：`CdlConvert`（`comfydl/nodes/convert.py`，V1 API；前端 `comfydl/web/js/convert.js`）
+- **功能**：一个通吃"载荷声明类型与下游插槽不符"问题的通用类型适配器。一个通配输入，
+  一个输出，输出的*声明*类型由 `target_type` 下拉框决定（`match link` + STRING/INT/FLOAT/
+  BOOLEAN/TENSOR/IMAGE/MASK/LATENT）。`match link`（默认值）是 Reroute 式体验：value 输入
+  一连线，前端就从源插槽类型自动填入 combo 并同步改写输出插槽的声明类型（手动选择的值
+  永不被覆盖，自动填入的值在断线后回退）。声明的输出类型只是前端连线守卫——后端完全不
+  看类型，按转换矩阵执行：STRING 走 To Text 语义；INT/FLOAT/BOOLEAN 转换标量与单元素
+  张量（多元素张量抛可读错误）；TENSOR 将标量/数字字符串/列表物化为张量并拆包 LATENT
+  `samples`；IMAGE/MASK/LATENT 把张量包进 ComfyUI 字典约定（`{"samples": t}`）。`match
+  link` 激活且无法确定目标时载荷原样透传。既不取代 `Value → Tensor` / `Tensor → Value`
+  （带平行元数据插槽的五路家族），也不取代 `To Text`（笔记本控制台风味的显示转换）——
+  它是图级的通用适配器。
+- **输入**：
+  | 名称 | 类型 | 默认值 | 说明 |
+  |------|------|---------|------|
+  | `target_type` | combo | `match link` | 输出插槽的声明类型；`match link` 跟随连线源 |
+  | `value` | `*` | — | 待转换的载荷 |
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `value` | `*`（前端按 `target_type` 改写） | 转换后的载荷 |
 
 ### Value → Tensor（数值转张量）
 - **类名**：`CdlValueToTensor`
@@ -2660,7 +2683,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **141 个节点**，分属 23 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **142 个节点**，分属 23 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2687,7 +2710,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
-| utilities/conversion | 7 | Comfy 语义值与通用 `TENSOR` 的往返转换 + 通配→STRING 转换（ComfyUI 核心分类） |
+| utilities/conversion | 8 | Comfy 语义值与通用 `TENSOR` 的往返转换 + 通配→STRING 转换 + 通用 Convert 适配器（ComfyUI 核心分类） |
 | Network & Layers/Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
 | Network & Layers/Basic | 8 | `TENSOR` 类型上的核心基础层与张量运算（ComfyUI 核心分类） |
 | Network & Layers/Attention | 8 | 多头 / 自 / 交叉注意力、组装好的 post-LN Transformer 编码器与解码器块、因果 / 填充掩码与正弦位置编码，权重走插槽（ComfyUI 核心分类） |
@@ -2704,7 +2727,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` 协议占位节点（ComfyUI 核心分类） |
 | 3d | 1 | `Preview 3D`，前端绑定的 3D 预览画布（ComfyUI 核心分类） |
 
-> 表内列出宿主注册表的全部分类。**141 个节点来自 ComfyDL**（其中 11 个已软归档到
+> 表内列出宿主注册表的全部分类。**142 个节点来自 ComfyDL**（其中 11 个已软归档到
 > `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中
 > 移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image`
 > 是 ComfyDL 节点并入的 ComfyUI 核心分类，`model/latent`、`model/conditioning` 与 `3d`

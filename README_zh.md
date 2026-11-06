@@ -115,7 +115,7 @@ python main.py
 | **Comfy 图像/颜色** | 3 | 灰度、归一化与亮度/对比度/饱和度 |
 | **Comfy 图像/变换** | 1 | 任意角度旋转 + 画布扩展 |
 | **Comfy 实用工具** | 4 | MessageBox、NoOp 空操作与基准计时 |
-| **conversion** | 6 |  |
+| **conversion** | 8 |  |
 
 > 上表 20 个类别是 ComfyDL 自身提供的部分；随宿主发布的节点库另外 14 个类别（`Network & Layers/*`、
 > `model/*` 与 `3d` 三条分支，共 98 个节点）是纯 ComfyUI 核心分类。
