@@ -34,15 +34,19 @@ function mountNotebookOutput(node) {
   if (node.__cdlNotebookOutput) return node.__cdlNotebookOutput;
   if (typeof node.addCustomWidget !== "function") return null;
 
-  const state = { lines: ["(run the cell to see its output)"], box: null };
+  const state = { lines: ["(run the cell to see its output)"], box: null,
+    wrappedCount: 0 };
 
   const widget = createCanvasRichWidget(node, {
     name: "cdl_notebook_output",
     type: "cdl_notebook_output",
     minHeight: LOG_MIN_HEIGHT + BANNER_HEIGHT,
-    contentHeight: () => BANNER_HEIGHT
-      + Math.max(LOG_MIN_HEIGHT,
-        state.lines.length * LOG_LINE + 16),
+    contentHeight: () => {
+      // Grow with the wrapped line count (capped: a huge cell output must
+      // not blow the node up to canvas size).
+      const rows = Math.min(state.wrappedCount ?? state.lines.length, 40);
+      return BANNER_HEIGHT + Math.max(LOG_MIN_HEIGHT, rows * LOG_LINE + 16);
+    },
 
     draw(ctx, box) {
       const pad = 8;
@@ -75,9 +79,31 @@ function mountNotebookOutput(node) {
       ctx.textBaseline = "top";
       ctx.fillStyle = "#d1d5db";
       const room = Math.max(0, Math.floor((logH - 10) / LOG_LINE));
-      const tail = state.lines.slice(-room);
-      for (let row = 0; row < tail.length; row += 1) {
-        ctx.fillText(tail[row], pad + 8, logY + 6 + row * LOG_LINE);
+      // Wrap long lines to the widget width (a canvas fillText just clips);
+      // the tail of the wrapped stream stays visible like a real console.
+      const wrapLimit = Math.max(16, Math.floor((width - 16) / 7.2));
+      const wrapped = [];
+      for (const line of state.lines) {
+        const text = String(line);
+        if (text.length <= wrapLimit) {
+          wrapped.push(text);
+          continue;
+        }
+        for (let start = 0; start < text.length; start += wrapLimit) {
+          wrapped.push(text.slice(start, start + wrapLimit));
+        }
+      }
+      const overflow = wrapped.length - room;
+      if (overflow > 0) {
+        wrapped.splice(0, overflow,
+          `(... ${overflow} earlier line(s) above ...)`);
+      }
+      state.wrappedCount = state.lines.reduce((total, line) => {
+        const text = String(line);
+        return total + Math.max(1, Math.ceil(text.length / wrapLimit));
+      }, 0);
+      for (let row = 0; row < Math.min(wrapped.length, room); row += 1) {
+        ctx.fillText(wrapped[row], pad + 8, logY + 6 + row * LOG_LINE);
       }
       ctx.restore();
     },

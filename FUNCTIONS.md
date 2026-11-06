@@ -2308,7 +2308,7 @@ half lives in the `Training` group (17.4).
 
 ---
 
-## 18. ComfyUI / utilities/conversion (6 nodes)
+## 18. ComfyUI / utilities/conversion (7 nodes)
 
 Merged into the ComfyUI core category `utilities/conversion`. These are the only ComfyDL nodes
 written against the ComfyUI **V3** node API (`io.ComfyNode` + `io.Schema`) rather than the legacy
@@ -2322,6 +2322,21 @@ dynamic socket: a concrete socket is statically typed, so the frontend physicall
 mismatched link *and* the backend validator performs a real check — a `MatchType` socket gets no
 backend checking at all. Metadata that cannot fit inside a bare tensor (`noise_mask`,
 `batch_index`, `type`, `sampler_rate`) travels on parallel sockets.
+
+### To Text
+- **Class**: `CdlToText` (`comfydl/nodes/text_convert.py`, V1 API)
+- **Purpose**: The wildcard-to-text adapter. A `Notebook Cell` result (or any `*` payload)
+  is only valid downstream where the declared type matches at runtime; text consumers declare
+  `STRING`, so a raw int/dict/tensor result crashes them mid-run (`write() argument must be str`).
+  This node casts anything to text and forwards the STRING: Python `str()` semantics, plus
+  `None -> ""` (no literal "None"), single-element tensors as their value, small tensors/lists
+  (<=16 elements) with their values, and larger ones as compact `Tensor(shape=..., dtype=...)` /
+  `list(len=...)` summaries - inspect real tensor data with the Visualization family instead.
+- **Inputs**: `value` (`*`, forceInput)
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `text` | `STRING` | The value rendered as text |
 
 ### Value → Tensor
 - **Class**: `CdlValueToTensor`
@@ -2814,7 +2829,7 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**140 nodes** across 23 categories come from ComfyDL itself; the shipped node library adds 98
+**141 nodes** across 23 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
@@ -2840,7 +2855,7 @@ ComfyUI core nodes on top. Both registers are listed below:
 | image/color | 3 | Grayscale, normalize & brightness/contrast/saturation (ComfyUI core category) |
 | image/transform | 1 | Arbitrary-angle rotation + expand (ComfyUI core category) |
 | image | 1 | Per-channel image batch statistics (ComfyUI core category) |
-| utilities/conversion | 6 | Comfy value ↔ generic `TENSOR` round-trip (ComfyUI core category) |
+| utilities/conversion | 7 | Comfy value ↔ generic `TENSOR` round-trip + wildcard→STRING cast (ComfyUI core category) |
 | Network & Layers/Activation | 14 | Core activation functions on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Basic | 8 | Core basic layers & tensor ops on the `TENSOR` type (ComfyUI core category) |
 | Network & Layers/Attention | 8 | Core multi-head / self / cross attention, the assembled post-LN Transformer encoder & decoder blocks, the causal / padding masks and the sinusoidal positional encoding, weights wired in (ComfyUI core category) |
@@ -2857,15 +2872,11 @@ ComfyUI core nodes on top. Both registers are listed below:
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` protocol placeholders (ComfyUI core category) |
 | 3d | 1 | `Preview 3D`, the frontend-bound 3D preview canvas (ComfyUI core category) |
 
-> The first 21 rows list the **133 ComfyDL-provided nodes** (11 of them soft-archived into
-> `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their display names carry a
-> `(DEPRECATED)` suffix and the node library moves them into the Legacy categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image` are ComfyUI core categories that ComfyDL nodes were merged into, so those categories also contain native ComfyUI nodes.
->
-> The other 15 rows are pure ComfyUI core categories with no ComfyDL nodes: the ten
-> `Network & Layers/*` groups (75 nodes), the four `model/*` groups (22 nodes) and `3d` (1 node).
-> The shipped library therefore totals **231 nodes** in 36 categories = 133 ComfyDL + 98 core.
->
-> Two rows list fewer nodes than the host registry holds in that category, because the registry
-> also counts native nodes that this refactor did not touch: `model/latent` (whose third node is
-> `LatentCompositeMasked`), and `image`, `utilities`, `image/color`, `image/transform`, which mix
-> ComfyDL nodes with the native ones they were merged next to.
+> The table lists every category in the host registry. **141 nodes come from ComfyDL** (11 of them
+> soft-archived into `d2l/_Legacy/*`: nothing was removed, old workflows still load, but their
+> display names carry a `(DEPRECATED)` suffix and the node library moves them into the Legacy
+> categories). `utilities`, `utilities/conversion`, `image/color`, `image/transform` and `image`
+> are ComfyUI core categories that ComfyDL nodes were merged into, and `model/latent`,
+> `model/conditioning` and `3d` hold protocol placeholders / frontend-bound nodes, so those rows
+> also contain (or alias) native ComfyUI nodes; the remaining `Network & Layers/*` and `model/*`
+> groups are the shipped node library's 98 core nodes.

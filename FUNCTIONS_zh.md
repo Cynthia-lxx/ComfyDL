@@ -2187,7 +2187,7 @@ batch 维的张量同样接受——内部补上缺少的前导维，结果再�
 
 ---
 
-## 18. ComfyUI / utilities/conversion（6 个节点）
+## 18. ComfyUI / utilities/conversion（7 个节点）
 
 并入 ComfyUI 核心分类 `utilities/conversion`。这些是 ComfyDL 中**唯一**基于 ComfyUI **V3** 节点 API
 （`io.ComfyNode` + `io.Schema`）而非旧式 `INPUT_TYPES` / `RETURN_TYPES` 编写的节点，因为联合输入
@@ -2198,6 +2198,20 @@ AUDIO / SIGMAS）能够进入通用张量链路，并原样返回。`Tensor → 
 而不是一个动态槽：具体槽是静态类型的，前端会从物理上阻止接错类型，同时后端校验器会做真正的类型
 检查——而 `MatchType` 槽在后端完全拿不到校验。无法塞进裸张量的元数据（`noise_mask`、`batch_index`、
 `type`、`sampler_rate`）走平行插槽传递。
+
+### To Text（转为文本）
+- **类名**：`CdlToText`（`comfydl/nodes/text_convert.py`，V1 API）
+- **功能**：通配转文本适配器。`Notebook Cell` 的 result（或任何 `*` 载荷）只有在下游声明
+  类型与运行时一致时才有效；文本类节点声明 `STRING`，裸 int/dict/tensor 的 result 会让它们
+  运行中途炸出 `write() argument must be str`。本节点把任意值转换为文本并输出 STRING：
+  语义同 Python `str()`，外加 `None -> ""`（不输出字面 "None"）、单元素张量输出其值、
+  小张量/列表（≤16 个元素）带数值、更大的输出紧凑摘要 `Tensor(shape=..., dtype=...)` /
+  `list(len=...)`——查看真实张量数据请用 Visualization 系列节点。
+- **输入**：`value`（`*`，forceInput）
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `text` | `STRING` | 渲染为文本的值 |
 
 ### Value → Tensor（数值转张量）
 - **类名**：`CdlValueToTensor`
@@ -2646,7 +2660,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **140 个节点**，分属 23 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **141 个节点**，分属 23 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
@@ -2673,7 +2687,7 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | image/color | 3 | 灰度、归一化与亮度/对比度/饱和度（ComfyUI 核心分类） |
 | image/transform | 1 | 任意角度旋转 + 画布扩展（ComfyUI 核心分类） |
 | image | 1 | 图像批次逐通道统计（ComfyUI 核心分类） |
-| utilities/conversion | 6 | Comfy 语义值与通用 `TENSOR` 的往返转换（ComfyUI 核心分类） |
+| utilities/conversion | 7 | Comfy 语义值与通用 `TENSOR` 的往返转换 + 通配→STRING 转换（ComfyUI 核心分类） |
 | Network & Layers/Activation | 14 | `TENSOR` 类型上的核心激活函数（ComfyUI 核心分类） |
 | Network & Layers/Basic | 8 | `TENSOR` 类型上的核心基础层与张量运算（ComfyUI 核心分类） |
 | Network & Layers/Attention | 8 | 多头 / 自 / 交叉注意力、组装好的 post-LN Transformer 编码器与解码器块、因果 / 填充掩码与正弦位置编码，权重走插槽（ComfyUI 核心分类） |
@@ -2690,12 +2704,9 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 | model/conditioning | 2 | `CLIP Text Encode (Prompt)` / `CLIP Set Last Layer` 协议占位节点（ComfyUI 核心分类） |
 | 3d | 1 | `Preview 3D`，前端绑定的 3D 预览画布（ComfyUI 核心分类） |
 
-> 前 21 行统计 **ComfyDL 提供的 133 个节点**（其中 11 个已软归档到 `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image` 是 ComfyUI 核心分类（ComfyDL 节点并入其中），这些分类下还有 ComfyUI 原生节点。
->
-> 其余 15 行是纯 ComfyUI 核心分类，不含 ComfyDL 节点：十个 `Network & Layers/*` 分组（75 个节点）、
-> 四个 `model/*` 分组（22 个节点）与 `3d`（1 个节点）。因此随宿主发布的节点库总计
-> **231 个节点、36 个分类** = 133 个 ComfyDL + 98 个核心节点。
->
-> 有两行的数量少于宿主注册表在该分类下的实际节点数，因为注册表把本次改动未触及的原生节点也算在内：
-> `model/latent`（其第三个节点是 `LatentCompositeMasked`）以及 `image`、`utilities`、`image/color`、
-> `image/transform`（ComfyDL 节点与相邻的原生节点混在同一分类里）。
+> 表内列出宿主注册表的全部分类。**141 个节点来自 ComfyDL**（其中 11 个已软归档到
+> `d2l/_Legacy/*`：节点不删、旧工作流照常加载，但显示名带 `(DEPRECATED)` 后缀并在节点库中
+> 移入 Legacy 分类）。`utilities`、`utilities/conversion`、`image/color`、`image/transform`、`image`
+> 是 ComfyDL 节点并入的 ComfyUI 核心分类，`model/latent`、`model/conditioning` 与 `3d`
+> 则是协议占位 / 前端绑定节点，这些行同时包含（或别名）ComfyUI 原生节点；其余
+> `Network & Layers/*` 与 `model/*` 分组即随宿主发布的 98 个核心节点。> `image/transform`（ComfyDL 节点与相邻的原生节点混在同一分类里）。
