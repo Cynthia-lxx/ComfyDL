@@ -2770,9 +2770,10 @@ four results so a learner can *verify* the training against the stateless `CdlLi
 
 A Jupyter-style cell for teaching experiments. **Tier-2 feature, default
 off**: cells execute user Python WITHOUT a sandbox, so the node refuses to
-run until the `comfydl.notebook` switch is enabled (Profiling panel switch
-list or `PATCH /comfydl/switches/comfydl.notebook`). The node UI carries a
-permanent amber banner as a reminder, plus a streaming console widget.
+run until the `comfydl.notebook` switch is enabled (Settings > ComfyDL
+"ComfyDL notebook cells", or `PATCH /comfydl/switches/comfydl.notebook`).
+The node UI carries a permanent amber banner as a reminder, plus a
+streaming console widget.
 
 ### Notebook → Cell
 - **Class**: `CdlNotebookCell` (`comfydl/nodes/notebook.py`, kernel in

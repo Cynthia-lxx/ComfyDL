@@ -2607,8 +2607,9 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
 ## 22. d2l / Notebook（1 节点）
 
 Jupyter 式教学实验单元格。**Tier-2 功能，默认关闭**：单元格执行用户 Python
-且无沙箱，因此节点在 `comfydl.notebook` 开关开启前拒绝运行（Profiling 面板
-开关列表或 `PATCH /comfydl/switches/comfydl.notebook`）。节点 UI 带常驻
+且无沙箱，因此节点在 `comfydl.notebook` 开关开启前拒绝运行（Settings →
+ComfyDL 分类下的「ComfyDL 笔记本单元格」，或
+`PATCH /comfydl/switches/comfydl.notebook`）。节点 UI 带常驻
 amber 警告横幅与流式控制台 widget。
 
 ### Notebook → Cell（笔记本 → 单元格）

@@ -174,8 +174,8 @@ class CdlNotebookCell:
             raise RuntimeError(
                 "CdlNotebookCell is disabled: user code runs without a "
                 f"sandbox, so it is gated behind the '{SWITCH_ID}' switch "
-                "(default off). Enable it in the Profiling panel switch "
-                "list, then re-queue."
+                "(default off). Enable it in Settings > ComfyDL "
+                "(ComfyDL notebook cells), then re-queue."
             )
         code = str(code or "")
         if not code.strip():
