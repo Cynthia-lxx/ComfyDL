@@ -87,7 +87,20 @@ function mountNotebookOutput(node) {
   return node.__cdlNotebookOutput;
 }
 
-function setLog(node, text) {
+function extractLog(output) {
+  // onExecuted hands over the output dict itself on current builds; older
+  // ones (and the raw executed event) nest it under message.output. Accept
+  // both shapes — verbose-verified: top-level on this build, but the event
+  // path and future updates must not depend on the layout.
+  const log = output?.cdl_notebook_log;
+  const repr = output?.cdl_notebook_result;
+  return {
+    text: Array.isArray(log) ? log[0] : log,
+    result: Array.isArray(repr) ? repr[0] : repr,
+  };
+}
+
+function setLog(node, text, resultRepr) {
   const output = mountNotebookOutput(node);
   if (!output) return;
   const lines = String(text ?? "").replace(/\r/g, "").split("\n");
@@ -95,7 +108,15 @@ function setLog(node, text) {
     lines.splice(0, lines.length - MAX_LINES,
       `(... ${lines.length - MAX_LINES} earlier lines trimmed ...)`);
   }
-  output.state.lines = lines.length ? lines : ["[no output]"];
+  if (lines.length === 0) lines.push("[no output]");
+  // Echo the result socket's value and type on the console: `result` is a
+  // wildcard, and feeding e.g. a number into a STRING target (SaveText)
+  // fails at that node — seeing "[Result] 90" here makes the mismatch
+  // obvious at the source instead.
+  if (resultRepr !== undefined && resultRepr !== null) {
+    lines.push(`[Result] ${resultRepr}`);
+  }
+  output.state.lines = lines;
   node.graph?.setDirtyCanvas(true, true);
   output.widget?.triggerDraw?.();
 }
@@ -116,10 +137,10 @@ function wireNotebookNode(nodeType) {
   const onExecuted = nodeType.prototype.onExecuted;
   nodeType.prototype.onExecuted = function (message) {
     const result = onExecuted?.apply(this, arguments);
-    const log = message?.cdl_notebook_log;
-    if (log) {
+    const { text, result: resultRepr } = extractLog(message?.output ?? message);
+    if (text) {
       try {
-        setLog(this, Array.isArray(log) ? log[0] : log);
+        setLog(this, text, resultRepr);
       } catch (error) {
         console.warn("[ComfyDL.Notebook] log update failed", error);
       }
@@ -140,12 +161,18 @@ function wireNotebookNode(nodeType) {
   };
 }
 
+function isNotebookNode(node) {
+  // comfyClass is the LiteGraph-side name; some graph states (Vue-rendered
+  // nodes restored from storage) only carry `type`. Accept both.
+  return (node?.comfyClass === "CdlNotebookCell"
+    || node?.type === "CdlNotebookCell");
+}
+
 function findNotebookNode(rawId) {
   const wanted = String(rawId);
   const nodes = app.graph?._nodes ?? [];
   for (const node of nodes) {
-    if (node.comfyClass === "CdlNotebookCell"
-      && String(node.id) === wanted) {
+    if (isNotebookNode(node) && String(node.id) === wanted) {
       return node;
     }
   }
@@ -156,13 +183,12 @@ let streamedFallbackBound = false;
 
 function onStreamedEvent(event) {
   const detail = event?.detail;
-  const output = detail?.output;
-  if (!output?.cdl_notebook_log) return;
+  const { text, result: resultRepr } = extractLog(detail?.output);
+  if (!text) return;
   const node = findNotebookNode(detail?.display_node ?? detail?.node);
   if (!node) return;
-  const log = output.cdl_notebook_log;
   try {
-    setLog(node, Array.isArray(log) ? log[0] : log);
+    setLog(node, text, resultRepr);
   } catch (error) {
     console.warn("[ComfyDL.Notebook] streamed log update failed", error);
   }
@@ -188,10 +214,12 @@ app.registerExtension({
       return true;
     };
     if (!bind()) {
+      // Retry indefinitely at low frequency: app.api can late-bind long
+      // after setup on restored sessions, and a permanently unbound
+      // fallback is exactly how "console never refreshes" reports happen.
       const retry = setInterval(() => {
         if (bind()) clearInterval(retry);
-      }, 200);
-      setTimeout(() => clearInterval(retry), 10000);
+      }, 2000);
     }
   },
 });
