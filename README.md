@@ -107,6 +107,7 @@ plus 98 ComfyUI core nodes (`Network & Layers` → `Activation` 14 + `Basic` 8 +
 | **Model Utils** | 7 | Model info, mode, forward, layers, params, clone & persistence |
 | **NLP Models** | 9 | RNNLM & attention/Seq2Seq building blocks (RNN/GRU builders soft-archived) |
 | **NLP Utils** | 5 | Text tokenization & vocabularies |
+| **Notebook** | 1 |  |
 | **ObjectDetection** | 10 | Anchor boxes, IoU, NMS |
 | **Segmentation** | 4 | VOC semantic segmentation tools |
 | **Tensor Basic** | 5 | Tensor I/O, conv, transpose, broadcast, activation |

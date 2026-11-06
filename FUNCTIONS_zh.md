@@ -2604,6 +2604,39 @@ L2 是仅剩的缺口：LoRA loader 需要权重适配代码，而回水合阶�
 
 ---
 
+## 22. d2l / Notebook（1 节点）
+
+Jupyter 式教学实验单元格。**Tier-2 功能，默认关闭**：单元格执行用户 Python
+且无沙箱，因此节点在 `comfydl.notebook` 开关开启前拒绝运行（Profiling 面板
+开关列表或 `PATCH /comfydl/switches/comfydl.notebook`）。节点 UI 带常驻
+amber 警告横幅与流式控制台 widget。
+
+### Notebook → Cell（笔记本 → 单元格）
+- **类名**：`CdlNotebookCell`（`comfydl/nodes/notebook.py`，内核位于
+  `_notebook_kernel.py`）
+- **功能**：在工作流级内核命名空间中执行多行 Python 单元格。移植自
+  ComfyUI-Notebook 参考实现的四大机制：(1) 工作流级内核——变量在同一工作流的
+  单元格间、多次运行间持续存在；(2) 可中断执行——宿主 Stop 按钮在一个轮询
+  周期内打断循环（对 `range`/`iter`/`next`/`map`/... 注入中断检查）；
+  (3) 流式 stdout——`print` 输出在单元格运行期间实时流式推送到节点控制台；
+  (4) 变量巡检——`GET /comfydl/notebook/variables?workflow=<id>` 列出内核各
+  变量的名称/类型/截断 repr，`POST /comfydl/notebook/free` 重置内核
+  （开关关闭时两条路由均以 409 拒绝）。
+- **输入**：`code`（STRING 多行，默认值为可直接运行的平方数示例）、`input`
+  （通配 `*`，可选——以 `input` 变量进入单元格）
+- **单元格约定**：给 `Result` 赋值即从 result 端口输出；调用 `Notebook.plot()`
+  捕获当前 matplotlib 图形；每个新内核预载 `torch` 与 `np`（numpy）。
+- **输出**：
+  | 名称 | 类型 | 说明 |
+  |------|------|------|
+  | `result` | `*` | 单元格的 `Result` 变量（未赋值为 None） |
+  | `plot` | `IMAGE` | 捕获的图形纵向堆叠（无图为 1x1 占位） |
+  | `stdout` | `STRING` | 单元格打印的全部内容 |
+- **报错**：开关关闭 → 可读 `RuntimeError`；空单元格 → `ValueError`；
+  单元格内异常按节点失败传播（crash site 与其他节点错误同样捕获）。
+
+---
+
 ## 附录
 
 ### 节点注册机制
@@ -2612,10 +2645,12 @@ ComfyDL 在 `nodes/__init__.py` 中使用基于 importlib 的自动发现机制�
 
 ### 节点总数
 
-共 **139 个节点**，分属 22 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
+共 **140 个节点**，分属 23 个类别均由 ComfyDL 本身提供；随宿主一起发布的节点库另加 98 个 ComfyUI
 核心节点，两个口径都列在下表：
 
 | 类别 | 数量 | 说明 |
+|------|------|------|
+| d2l/Notebook | 1 | Jupyter 式单元格（Tier-2，经 `comfydl.notebook` 开关默认关闭） |
 |----------|-------|------|
 | d2l/Device Utils | 3 | GPU/CPU 设备查询 |
 | d2l/CV Models | 5 | CNN 基础与模型构建 |

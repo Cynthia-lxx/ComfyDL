@@ -2766,6 +2766,45 @@ four results so a learner can *verify* the training against the stateless `CdlLi
 
 ---
 
+## 22. d2l / Notebook (1 node)
+
+A Jupyter-style cell for teaching experiments. **Tier-2 feature, default
+off**: cells execute user Python WITHOUT a sandbox, so the node refuses to
+run until the `comfydl.notebook` switch is enabled (Profiling panel switch
+list or `PATCH /comfydl/switches/comfydl.notebook`). The node UI carries a
+permanent amber banner as a reminder, plus a streaming console widget.
+
+### Notebook → Cell
+- **Class**: `CdlNotebookCell` (`comfydl/nodes/notebook.py`, kernel in
+  `_notebook_kernel.py`)
+- **Purpose**: executes a multiline Python cell inside a per-workflow kernel
+  namespace. Four mechanisms ported from the ComfyUI-Notebook reference:
+  (1) per-workflow kernel — variables persist across cells and runs of the
+  same workflow; (2) interruptible execution — the host Stop button breaks
+  loops within one poll tick (injected interrupt checks on
+  `range`/`iter`/`next`/`map`/...); (3) streaming stdout — `print` output
+  streams to the node console while the cell runs; (4) variable inspection —
+  `GET /comfydl/notebook/variables?workflow=<id>` lists each kernel
+  variable's name/type/truncated repr, `POST /comfydl/notebook/free` resets
+  kernels (both routes refuse with 409 while the switch is off).
+- **Inputs**: `code` (STRING multiline, default is a runnable squares
+  example), `input` (wildcard `*`, optional — reaches the cell as the
+  `input` variable)
+- **Cell conventions**: assign `Result` to emit on the result socket; call
+  `Notebook.plot()` to capture the current matplotlib figure; `torch` and
+  `np` (numpy) are preloaded in every fresh kernel.
+- **Outputs**:
+  | Name | Type | Description |
+  |------|------|-------------|
+  | `result` | `*` | The cell's `Result` variable (None if unset) |
+  | `plot` | `IMAGE` | Captured figures stacked (1x1 placeholder if none) |
+  | `stdout` | `STRING` | Everything the cell printed |
+- **Errors**: switch off → readable `RuntimeError`; empty cell →
+  `ValueError`; exceptions inside the cell propagate as node failures
+  (captured by the crash site like any other node error).
+
+---
+
 ## Appendix
 
 ### Node Registration Mechanism
@@ -2774,11 +2813,12 @@ ComfyDL uses an importlib-based auto-discovery mechanism in `nodes/__init__.py`:
 
 ### Total Node Count
 
-**139 nodes** across 22 categories come from ComfyDL itself; the shipped node library adds 98
+**140 nodes** across 23 categories come from ComfyDL itself; the shipped node library adds 98
 ComfyUI core nodes on top. Both registers are listed below:
 
 | Category | Count | Description |
 |----------|-------|-------------|
+| d2l/Notebook | 1 | Jupyter-style cell (Tier-2, default off via the `comfydl.notebook` switch) |
 | d2l/Device Utils | 3 | GPU/CPU device queries |
 | d2l/CV Models | 5 | CNN fundamentals & model construction |
 | d2l/GAN | 2 | GAN training updates |
