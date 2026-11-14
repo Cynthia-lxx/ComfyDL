@@ -179,7 +179,8 @@ def _report_step(pbar, previewer, loss: float, done: int, total: int, force: boo
     """
     frame = None
     if pbar is not None and previewer is not None:
-        frame = previewer.record(loss, force=force)
+        # `done` is 1-based; the previewer adds 1 to the 0-based step we pass.
+        frame = previewer.record(loss, step=done - 1, force=force)
     if pbar is None:
         return
     if frame is not None:
