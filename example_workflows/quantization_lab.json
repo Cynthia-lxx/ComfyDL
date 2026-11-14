@@ -1,0 +1,122 @@
+{
+  "version": 0.4,
+  "last_node_id": 3,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        1300,
+        220
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# Quantization Lab\n\n**Quantization Inspector** opens a GGUF file from `models/unet_gguf` *without loading any weights into RAM* and prints a per-layer byte ledger: layer name, quant type, compressed bytes, hypothetical fp16/fp32 bytes, compression ratio and the **effective bits per weight** - then saves it with the Save Text node (also under `output/comfydl/`).\n\n## How to read the ledger\n\n- **bytes vs fp bytes** - what the file actually stores vs what the same tensors would cost at fp16. The ratio column is the honest compression factor.\n- **bits/w** - bytes * 8 / elements. For K-quants this is *fractional*: block scales ride along, so **Q4_K is 4.5 bits/weight, not 4** - exactly why the family is named Q4 but stores more.\n- **TOTAL** - the whole-file verdict plus the saved percentage of the fp footprint.\n\n## Why lazy dequant matters\n\nThe companion loader (`Load Diffusion Model (GGUF)`) keeps weights compressed on disk and dequantizes each layer right before its matmul, so VRAM scales with the *file*, not the fp16 footprint. Pair this template with that node when you want the same file to *run* instead of just *inspect*.\n\nPick any GGUF in the Inspector's dropdown and press **Queue** - inspection is metadata-only and always cheap."
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CdlQuantizationInspector",
+      "pos": [
+        40,
+        320
+      ],
+      "size": [
+        440,
+        120
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "ledger",
+          "type": "STRING",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CdlQuantizationInspector"
+      },
+      "widgets_values": [
+        "diffusion_model-Q4_K_M.gguf"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "SaveText",
+      "pos": [
+        560,
+        320
+      ],
+      "size": [
+        380,
+        180
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": null,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveText"
+      },
+      "widgets_values": [
+        "comfydl/quant_ledger",
+        "txt"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      3,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.72,
+      "offset": [
+        40,
+        50
+      ]
+    },
+    "node_versions": {
+      "comfy-core": "0.3.14",
+      "ComfyDL": "test"
+    }
+  }
+}

@@ -20,8 +20,9 @@
 ## Examples in Action
 
 > **Note:** The example workflows that ship with ComfyDL are served as **workflow templates** in the UI
-> (Templates → ComfyDL Examples): language-model, regression, classification and App-mode
-> playground workflows. `formula_playground_app` opens in **ComfyUI APP mode (beta)** by default.
+> (Templates → ComfyDL Examples): language-model, regression, classification, App-mode
+> playground and performance-lab (Attention Lab / Quantization Lab) workflows. `formula_playground_app`
+> opens in **ComfyUI APP mode (beta)** by default.
 > Older examples that predate the node refactor are kept for reference under
 > [`example_workflows/_archived/`](./example_workflows/_archived).
 
