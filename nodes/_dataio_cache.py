@@ -55,7 +55,7 @@ import threading
 import time
 from collections import OrderedDict
 from contextlib import contextmanager
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 SWITCH_ID = "comfydl.dataio.cache"
 
@@ -179,20 +179,31 @@ def lookup(key: str) -> Tuple[bool, Any]:
 
 
 def describe(
-    reader: str,
-    label: str,
+    reader: Optional[str] = None,
+    label: Optional[str] = None,
     file_path: Any = None,
     params: str = "",
 ) -> Dict[str, Any]:
-    """Build the per-entry display metadata recorded by :func:`store`.
+    """Dual-mode (ADR-D7 ② / P6b):
 
-    ``reader``    -- reader family id (``"csv"``, ``"json"``, ``"db"`` ...);
-    ``label``     -- short human label (file basename / ``"inline STRING"``);
+    * zero args -> the panel's static feature contract (``id``/``default``/
+      ``hot_toggle``/``self_meter``/``hard_disable_check``);
+    * with ``reader``+``label`` -> the per-entry display metadata recorded
+      by :func:`store` (all 7 existing call sites pass those two args).
+
     ``file_path`` -- source file path (``None`` for inline payloads; the
                      stamp fields then stay ``None``);
     ``params``    -- parse parameters worth showing (delimiter/header/sheet
                      or a trimmed query snippet).
     """
+    if reader is None:
+        return {
+            "id": SWITCH_ID,
+            "default": True,
+            "hot_toggle": True,
+            "self_meter": True,
+            "hard_disable_check": None,
+        }
     if file_path is not None:
         norm, mtime_ns, size = file_stamp(str(file_path))
     else:
@@ -205,6 +216,28 @@ def describe(
         "file_size": size,
         "params": params,
     }
+
+
+def status() -> Dict[str, Any]:
+    """ADR-D7 ② (P6b): live cache counters + switch state.
+
+    ``registered`` is false when the host has not called :func:`register`
+    yet (the switch is registered explicitly by data_io.py, not at module
+    import) - the cache itself is still available, so this never raises.
+    """
+    out = stats()
+    out["enabled"] = enabled()
+    out["available"] = True
+    mod = _registry()
+    try:
+        reg = mod.describe(SWITCH_ID) if mod is not None else None
+    except Exception:  # noqa: BLE001 - switch not registered yet
+        reg = None
+    out["registered"] = reg is not None
+    if reg is not None:
+        out["hard_disabled"] = reg["hard_disabled"]
+        out["self_overhead"] = reg["self_overhead"]
+    return out
 
 
 def store(key: str, df: Any, meta: Any = None) -> None:
