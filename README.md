@@ -17,6 +17,10 @@
 
 **ComfyDL has its own GUI version:** [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) ships ComfyDL as a built-in node pack on top of a ComfyUI runtime fork — see [Installation](#installation).
 
+> **UI kit accent theme:** in the GUI build, open **Settings → ComfyDL → UI kit accent theme**
+> to pick one of nine hues (`host` follows the host ComfyUI theme). This is an appearance
+> setting, separate from the performance switches in the Optimizer window.
+
 ## Examples in Action
 
 > **Note:** The example workflows that ship with ComfyDL are served as **workflow templates** in the UI

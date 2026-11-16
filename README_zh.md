@@ -17,6 +17,9 @@
 
 **ComfyDL 有自己的 GUI 版本：** [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) 把 ComfyDL 作为内置节点包注册在 ComfyUI 运行时分支之上——详见[安装](#安装)一节。
 
+> **UI kit 主题色：** GUI 版本中在 **Settings → ComfyDL → UI kit accent theme** 选择九种色相之一
+> （`host` 表示跟随宿主 ComfyUI 主题）。这是外观设置，与 Optimizer 浮窗里的性能开关无关。
+
 ## 使用示例
 
 > **说明：** ComfyDL 随附的示例工作流已作为**工作流模板**在界面中提供

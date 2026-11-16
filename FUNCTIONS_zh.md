@@ -6,6 +6,8 @@
 
 ComfyDL 以 **GPL-3.0** 授权（见 [LICENSE](LICENSE)），同时也随其自有的 GUI 版本 [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI) 一起分发——在那里，下文所有节点都作为内置节点注册。
 
+仅 GUI 说明：UI kit 主题色在 **Settings → ComfyDL → UI kit accent theme** 中设置，只改变组件配色、不是节点输入；下文节点数量不变。
+
 ---
 
 ## 数据类型
