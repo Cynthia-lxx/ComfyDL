@@ -6,7 +6,7 @@ This document details every custom node in ComfyDL: what it does, its inputs, an
 
 ComfyDL is licensed under **GPL-3.0** (see [LICENSE](LICENSE)) and also ships as part of its own GUI build, [ComfyDL_UI](https://github.com/Cynthia-lxx/ComfyDL_UI), where every node below is registered as a built-in node.
 
-GUI-only note: the UI kit accent theme is configured in **Settings → ComfyDL → UI kit accent theme**; it changes component colours only and is not a node input. Node counts below are unchanged.
+GUI-only note: the UI kit accent theme is configured in **Settings → ComfyDL → UI kit accent theme**; it changes component colours only and is not a node input. Since [0.90], the three built-in panels share lazy-loaded UI-kit controls and a single semantic-colour module; no node inputs or counts were changed.
 
 ---
 

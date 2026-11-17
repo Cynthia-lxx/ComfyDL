@@ -20,6 +20,9 @@
 > **UI kit accent theme:** in the GUI build, open **Settings → ComfyDL → UI kit accent theme**
 > to pick one of nine hues (`host` follows the host ComfyUI theme). This is an appearance
 > setting, separate from the performance switches in the Optimizer window.
+> Since [0.90], the Optimizer / Observation / Profiler panels share lazy-loaded
+> UI-kit controls (`ui-button`, `ui-spinner`, `ui-textbox`, `ui-tabs`, `ui-checkbox`)
+> and one semantic-colour module; no node inputs or counts were changed.
 
 ## Examples in Action
 

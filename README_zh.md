@@ -19,6 +19,9 @@
 
 > **UI kit 主题色：** GUI 版本中在 **Settings → ComfyDL → UI kit accent theme** 选择九种色相之一
 > （`host` 表示跟随宿主 ComfyUI 主题）。这是外观设置，与 Optimizer 浮窗里的性能开关无关。
+> 自 [0.90] 起，Optimizer / Observation / Profiler 三面板共用惰性加载的 kit 控件
+> （`ui-button`、`ui-spinner`、`ui-textbox`、`ui-tabs`、`ui-checkbox`）与统一语义色模块；
+> 节点入参与节点数量均不变。
 
 ## 使用示例
 
